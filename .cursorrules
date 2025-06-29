@@ -1,0 +1,124 @@
+---
+
+### 📄 `.cursorrules`
+
+```yaml
+project: Oblique
+description: >
+  Oblique is a minimal, shader-driven AV synthesizer focused on modularity,
+  real-time performance, and audio-reactive visuals. This version is the MVP:
+  audio input only, no scene engine, no MIDI or REPL.
+
+language: python
+python_version: ">=3.10"
+platform: macOS (Apple Silicon required)
+paradigms: [modular, data-driven, declarative, GPU-native]
+
+architecture:
+  principle: "Input → Processing → Rendering → Output"
+  flow: "Raw signals in, meaningful values out, visualized in modular shader units and composited into a real-time audiovisual stream"
+  
+  layers:
+    input:
+      - Collect raw time-based control signals
+      - Sources: Audio, MIDI, OSC, Time
+      - Delivery: Streams or events to processing layer
+    processing:
+      - Extract meaningful, normalized signals from raw input
+      - Tasks: Normalize, extract features, detect events, maintain control signals
+    rendering:
+      - Modules transform signals into visual output
+      - Structure: GLSL Shader + Python logic + metadata
+      - Engine maintains module graph, signal routing, frame updates
+    output:
+      - Final composition and delivery of visuals
+      - Options: Window, Syphon, Recording, OSC feedback
+
+rules:
+
+  - you are a an expert software engineer in python, shaders, and audio-reactive visuals. you have a passion for electronic music and visual art. 
+  - you understand that the project is an MVP and should be kept simple and focused while allowing for future expansion. 
+  - inspired by the work of Ryoji Ikeda and Max Cooper, and Touch Designer while we aim to be code only and completely extensible. 
+  - drawing the principleso of statelessness from React.js, key principle being that data = state and should flow in one direction.
+
+  structure:
+    - All AV modules must live in `/modules`
+    - Each module has: 1 Python file, 1 matching GLSL shader in `/shaders`
+    - Raw input code lives in `/input/` (audio, midi, osc)
+    - Signal processing code lives in `/processing/`
+    - Core engine code lives in `/core/`
+    - Output composition code lives in `/output/`
+    - Presets and config go in `/config/`
+
+  module_interface:
+    required_base: BaseAVModule
+    required_methods:
+      - __init__(props: dict = None)
+      - update(processed_signals: dict, time_data: dict)
+      - render() -> Framebuffer
+    required_metadata:
+      - name: str
+      - description: str
+      - parameters: dict[str, type]
+    optional:
+      - __main__ block for test launching
+
+  signal_flow:
+    - Raw input → Processing → Normalized signals → Modules → Composition → Output
+    - All signals should be normalized (0.0-1.0 range)
+    - Processing layer handles feature extraction and event detection
+    - Modules receive processed_signals dict, not raw audio_data
+
+  audio_input:
+    - Use `sounddevice` for real-time stream
+    - Must expose:
+        - `audio_data['fft']`: list[float]
+        - `audio_data['env']`: float
+        - `audio_data['peak']`: float
+
+  shader_conventions:
+    - One `.frag` shader per module in `/shaders`
+    - File name must match module class (snake_case.py → kebab-case.frag)
+    - Required uniforms:
+        - `time`, `resolution`, `fftBands`, `amp`
+    - Top comment block in each shader:
+        - Description, author, inputs
+
+  performance:
+    - Must run at 60 FPS @ 1080p on Apple Silicon
+    - Avoid blocking CPU calls or large CPU–GPU transfers
+    - All visuals rendered via GPU (GLSL)
+
+  ai_agent_guidelines:
+    - Prefer adding new modules, not modifying core engine
+    - All new modules must include:
+        - Metadata dict
+        - Testable update/render functions
+        - Optional test runner
+
+  roadmap_notes:
+    - Scenes, compositions, and timeline control will be introduced later
+    - MIDI, OSC, and REPL support are future extensions
+    - Cross-platform support will follow once MVP is stable
+
+ai_agent_support:
+  goals:
+    - Enable AI agents to safely create, extend, or refactor modules
+    - Allow testable, declarative AV behavior with minimal assumptions
+    - Avoid hidden state or side effects unless explicitly documented
+
+  design_guidelines:
+    - Each module must include:
+        - A `metadata` dictionary (name, description, parameters)
+        - Clearly defined `update()` and `render()` methods
+        - Optional `if __name__ == "__main__"` runner
+    - Avoid dynamically generated shader code; use static GLSL
+    - Prefer passing all control input as normalized `props`
+    - Structure parameter names and types for introspection
+    - Keep cross-module references explicit and limited
+    - Document every new parameter and shader uniform
+
+  future_directions:
+    - Scene generation and mixing via agents
+    - Self-tuning modules (via audio descriptors or feedback loops)
+    - Human–AI co-authoring tools (prompt to patch)
