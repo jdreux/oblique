@@ -1,13 +1,12 @@
 import argparse
-import sys
 import time
-import numpy as np
 import moderngl
-import glfw
+import glfw  # type: ignore
 from pathlib import Path
 
 # --- Module import ---
 from modules.ryoji_grid import RyojiGrid, RyojiGridParams
+from core.renderer import render_fullscreen_quad
 
 SHADER_PATH = Path("shaders/ryoji-grid.frag")
 
@@ -41,38 +40,7 @@ def main():
     window = create_window(width, height)
     ctx = moderngl.create_context()
 
-    # Fullscreen quad
-    vertices = np.array([
-        -1.0, -1.0, 0.0, 0.0,
-         1.0, -1.0, 1.0, 0.0,
-        -1.0,  1.0, 0.0, 1.0,
-         1.0,  1.0, 1.0, 1.0,
-    ], dtype='f4')
-    vbo = ctx.buffer(vertices.tobytes())
-    vao = ctx.simple_vertex_array(
-        ctx.program(
-            vertex_shader='''
-                #version 330
-                in vec2 in_vert;
-                in vec2 in_uv;
-                out vec2 v_uv;
-                void main() {
-                    v_uv = in_uv;
-                    gl_Position = vec4(in_vert, 0.0, 1.0);
-                }
-            ''',
-            fragment_shader=load_shader_source(SHADER_PATH),
-        ),
-        vbo,
-        'in_vert', 'in_uv'
-    )
-
-    # Get uniforms
-    prog = vao.program
-    u_time = prog['u_time']
-    u_resolution = prog['u_resolution']
-
-    # Initialize the grid module (not used for logic yet)
+    # Initialize the grid module
     grid = RyojiGrid(RyojiGridParams(width=width, height=height))
 
     start_time = time.time()
@@ -80,9 +48,9 @@ def main():
         now = time.time()
         t = now - start_time
         ctx.clear(1.0, 1.0, 1.0, 1.0)
-        prog['u_time'] = t
-        prog['u_resolution'] = (width, height)
-        vao.render(moderngl.TRIANGLE_STRIP)
+        grid.update(RyojiGridParams(width=width, height=height))
+        render_data = grid.render(t)
+        render_fullscreen_quad(ctx, render_data['frag_shader_path'], render_data['uniforms'])
         glfw.swap_buffers(window)
         glfw.poll_events()
     glfw.terminate()
