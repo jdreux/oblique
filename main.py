@@ -3,9 +3,11 @@ import time
 import moderngl
 import glfw  # type: ignore
 from pathlib import Path
+from typing import Union
 
 # --- Module import ---
 from modules.ryoji_grid import RyojiGrid, RyojiGridParams
+from modules.pauric_particles import PauricParticles, PauricParticlesParams
 from core.renderer import render_fullscreen_quad
 
 SHADER_PATH = Path("shaders/ryoji-grid.frag")
@@ -34,22 +36,31 @@ def main():
     parser = argparse.ArgumentParser(description="Oblique MVP - Minimal AV Synthesizer")
     parser.add_argument('--width', type=int, default=800, help='Window width')
     parser.add_argument('--height', type=int, default=600, help='Window height')
+    parser.add_argument('--module', type=str, default='pauric', choices=['pauric', 'ryoji'], help='AV module to run (pauric or ryoji)')
     args = parser.parse_args()
 
     width, height = args.width, args.height
     window = create_window(width, height)
     ctx = moderngl.create_context()
 
-    # Initialize the grid module
-    grid = RyojiGrid(RyojiGridParams(width=width, height=height))
+    module: Union[PauricParticles, RyojiGrid]
+    if args.module == 'ryoji':
+        print("Running module: RyojiGrid")
+        module = RyojiGrid(RyojiGridParams(width=width, height=height))
+    else:
+        print("Running module: PauricParticles")
+        module = PauricParticles(PauricParticlesParams(width=width, height=height))
 
     start_time = time.time()
     while not glfw.window_should_close(window):
         now = time.time()
         t = now - start_time
         ctx.clear(1.0, 1.0, 1.0, 1.0)
-        grid.update(RyojiGridParams(width=width, height=height))
-        render_data = grid.render(t)
+        if isinstance(module, RyojiGrid):
+            module.update(RyojiGridParams(width=width, height=height))
+        elif isinstance(module, PauricParticles):
+            module.update(PauricParticlesParams(width=width, height=height))
+        render_data = module.render(t)
         render_fullscreen_quad(ctx, render_data['frag_shader_path'], render_data['uniforms'])
         glfw.swap_buffers(window)
         glfw.poll_events()
