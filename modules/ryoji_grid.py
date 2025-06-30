@@ -1,11 +1,16 @@
 from dataclasses import dataclass
 from typing import Any
-from modules.base_av_module import BaseAVModule
+from typing import TypedDict, Tuple
+from modules.base_av_module import BaseAVModule, Uniforms
 
 @dataclass
 class RyojiGridParams:
     width: int = 800
     height: int = 600
+
+class RyojiGridUniforms(Uniforms, total=True):
+    u_time: float
+    u_resolution: Tuple[int, int]
 
 class RyojiGrid(BaseAVModule):
     """
@@ -18,6 +23,7 @@ class RyojiGrid(BaseAVModule):
         'description': 'Minimal grid animation inspired by Ryoji Ikeda.',
         'parameters': RyojiGridParams.__annotations__,
     }
+    frag_shader_path: str = 'shaders/ryoji-grid.frag'
 
     def __init__(self, props: RyojiGridParams = RyojiGridParams()):
         super().__init__(props)
@@ -34,12 +40,13 @@ class RyojiGrid(BaseAVModule):
         """
         Return the data needed for the renderer to render this module.
         """
+        uniforms: RyojiGridUniforms = {
+            'u_time': t,
+            'u_resolution': (self.width, self.height),
+        }
         return {
-            'frag_shader_path': 'shaders/ryoji-grid.frag',
-            'uniforms': {
-                'u_time': t,
-                'u_resolution': (self.width, self.height),
-            }
+            'frag_shader_path': self.frag_shader_path,
+            'uniforms': uniforms,
         }
 
 if __name__ == "__main__":
