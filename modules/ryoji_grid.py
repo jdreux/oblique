@@ -1,4 +1,10 @@
+from dataclasses import dataclass
 from typing import Any, Dict
+
+@dataclass
+class RyojiGridParams:
+    width: int = 800
+    height: int = 600
 
 class RyojiGrid:
     """
@@ -8,21 +14,20 @@ class RyojiGrid:
     metadata = {
         'name': 'RyojiGrid',
         'description': 'Minimal grid animation inspired by Ryoji Ikeda.',
-        'parameters': {
-            'width': int,
-            'height': int,
-        }
+        'parameters': RyojiGridParams.__annotations__,
     }
 
-    def __init__(self, props: Dict[str, Any] = None):
-        self.props = props or {}
-        self.width = self.props.get('width', 800)
-        self.height = self.props.get('height', 600)
+    def __init__(self, props: RyojiGridParams = RyojiGridParams()):
+        self.props = props
+        self.width = self.props.width
+        self.height = self.props.height
         # Placeholder: In a real implementation, load the shader here
 
-    def update(self, props: Dict[str, Any]):
-        # No dynamic props yet, but update internal state if needed
-        pass
+    def update(self, props: RyojiGridParams):
+        self.props = props
+        self.width = self.props.width
+        self.height = self.props.height
+        # Update internal state if needed
 
     def render(self):
         # Placeholder: Would invoke the GLSL shader and return a framebuffer
@@ -30,6 +35,7 @@ class RyojiGrid:
         return None
 
 if __name__ == "__main__":
-    grid = RyojiGrid({'width': 800, 'height': 600})
-    grid.update({})
+    params = RyojiGridParams(width=800, height=600)
+    grid = RyojiGrid(params)
+    grid.update(params)
     grid.render() 

@@ -7,7 +7,7 @@ import glfw
 from pathlib import Path
 
 # --- Module import ---
-from modules.ryoji_grid import RyojiGrid
+from modules.ryoji_grid import RyojiGrid, RyojiGridParams
 
 SHADER_PATH = Path("shaders/ryoji-grid.frag")
 
@@ -73,7 +73,7 @@ def main():
     u_resolution = prog['u_resolution']
 
     # Initialize the grid module (not used for logic yet)
-    grid = RyojiGrid({'width': width, 'height': height})
+    grid = RyojiGrid(RyojiGridParams(width=width, height=height))
 
     start_time = time.time()
     while not glfw.window_should_close(window):
