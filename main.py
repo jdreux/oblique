@@ -8,9 +8,10 @@ from typing import Union
 # --- Module import ---
 from modules.ryoji_grid import RyojiGrid, RyojiGridParams
 from modules.pauric_particles import PauricParticles, PauricParticlesParams
-from core.renderer import render_fullscreen_quad
+from core.renderer import render_fullscreen_quad, render_to_texture, blend_textures
 
 SHADER_PATH = Path("shaders/ryoji-grid.frag")
+ADDITIVE_BLEND_SHADER = "shaders/additive-blend.frag"
 
 # --- Window and OpenGL setup ---
 def create_window(width: int, height: int, title: str = "Oblique MVP"):
@@ -36,32 +37,52 @@ def main():
     parser = argparse.ArgumentParser(description="Oblique MVP - Minimal AV Synthesizer")
     parser.add_argument('--width', type=int, default=800, help='Window width')
     parser.add_argument('--height', type=int, default=600, help='Window height')
-    parser.add_argument('--module', type=str, default='pauric', choices=['pauric', 'ryoji'], help='AV module to run (pauric or ryoji)')
+    # parser.add_argument('--module', type=str, default='pauric', choices=['pauric', 'ryoji'], help='AV module to run (pauric or ryoji)')
     args = parser.parse_args()
 
     width, height = args.width, args.height
     window = create_window(width, height)
     ctx = moderngl.create_context()
 
-    module: Union[PauricParticles, RyojiGrid]
-    if args.module == 'ryoji':
-        print("Running module: RyojiGrid")
-        module = RyojiGrid(RyojiGridParams(width=width, height=height))
-    else:
-        print("Running module: PauricParticles")
-        module = PauricParticles(PauricParticlesParams(width=width, height=height))
+    # --- Hardcoded module list (order matters) ---
+    modules = [
+        PauricParticles(PauricParticlesParams(width=width, height=height)),
+        RyojiGrid(RyojiGridParams(width=width, height=height)),
+    ]
 
     start_time = time.time()
     while not glfw.window_should_close(window):
         now = time.time()
         t = now - start_time
         ctx.clear(1.0, 1.0, 1.0, 1.0)
-        if isinstance(module, RyojiGrid):
-            module.update(RyojiGridParams(width=width, height=height))
-        elif isinstance(module, PauricParticles):
-            module.update(PauricParticlesParams(width=width, height=height))
-        render_data = module.render(t)
-        render_fullscreen_quad(ctx, render_data['frag_shader_path'], render_data['uniforms'])
+        # Render each module to a texture
+        textures = []
+        for module in modules:
+            module.update(module.params)  # Use default params for now
+            render_data = module.render(t)
+            tex = render_to_texture(ctx, width, height, render_data['frag_shader_path'], render_data['uniforms'])
+            textures.append(tex)
+        # Blend all textures in order (additive)
+        if len(textures) == 1:
+            final_tex = textures[0]
+        else:
+            final_tex = textures[0]
+            for tex in textures[1:]:
+                final_tex = blend_textures(ctx, width, height, final_tex, tex, ADDITIVE_BLEND_SHADER)
+        # Display final texture to screen
+        # Render the final texture using a simple passthrough shader
+        # Display the final texture to the screen using a generic passthrough shader.
+        # The additive-blend shader is used above in blend_textures() when compositing multiple module outputs.
+        render_fullscreen_quad(
+            ctx,
+            "shaders/passthrough.frag",  # Generic shader that simply displays a texture
+            {
+                'tex0': final_tex,  # The final composited texture
+                'u_time': t,
+                'u_resolution': (width, height),
+            }
+        )
+        final_tex.use(location=0)
         glfw.swap_buffers(window)
         glfw.poll_events()
     glfw.terminate()

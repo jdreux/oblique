@@ -1,4 +1,11 @@
 from typing import Any, TypedDict, Dict
+from dataclasses import dataclass
+
+# --- Base params dataclass ---
+@dataclass
+class BaseAVParams:
+    width: int = 800
+    height: int = 600
 
 class Uniforms(TypedDict, total=True):
     # Extend this in each module for specific uniforms
@@ -11,8 +18,8 @@ class BaseAVModule:
     Required attributes and methods:
     - metadata: dict[str, Any] with keys 'name', 'description', 'parameters'
     - frag_shader_path: str (must be set by subclass)
-    - __init__(props: Any = None): Initialize the module with properties
-    - update(props: Any): Update the module's properties/state
+    - __init__(params: BaseAVParams): Initialize the module with parameters (subclass of BaseAVParams)
+    - update(params: BaseAVParams): Update the module's parameters/state
     - render(t: float) -> dict[str, Any]:
         Return a dictionary with at least:
             'frag_shader_path': str (path to the fragment shader)
@@ -27,26 +34,25 @@ class BaseAVModule:
     }
     frag_shader_path: str  # Must be set by subclass
 
-    def __init__(self, props: Any = None):
+    def __init__(self, params: BaseAVParams):
         """
-        Initialize the module with properties.
+        Initialize the module with parameters.
 
         Args:
-            props (Any, optional): Initial properties for the module.
+            params (BaseAVParams): Initial parameters for the module.
         """
         if not hasattr(self, 'frag_shader_path') or not isinstance(self.frag_shader_path, str):
             raise TypeError(f"{self.__class__.__name__} must define a class attribute 'frag_shader_path' (str)!")
-        # Base class constructor does nothing; subclasses may override.
-        pass
+        self.params = params
 
-    def update(self, props: Any) -> None:
+    def update(self, params: BaseAVParams) -> None:
         """
-        Update the module's properties/state.
+        Update the module's parameters/state.
 
         Args:
-            props (Any): Properties to update the module's state.
+            params (BaseAVParams): Parameters to update the module's state.
         """
-        raise NotImplementedError("Subclasses must implement the update() method.")
+        self.params = params
 
     def render(self, t: float) -> dict[str, Any]:
         """

@@ -1,12 +1,11 @@
 from dataclasses import dataclass
 from typing import Any
 from typing import TypedDict, Tuple
-from modules.base_av_module import BaseAVModule, Uniforms
+from modules.base_av_module import BaseAVModule, Uniforms, BaseAVParams
 
 @dataclass
-class RyojiGridParams:
-    width: int = 800
-    height: int = 600
+class RyojiGridParams(BaseAVParams):
+    pass
 
 class RyojiGridUniforms(Uniforms, total=True):
     u_time: float
@@ -25,16 +24,15 @@ class RyojiGrid(BaseAVModule):
     }
     frag_shader_path: str = 'shaders/ryoji-grid.frag'
 
-    def __init__(self, props: RyojiGridParams = RyojiGridParams()):
-        super().__init__(props)
-        self.props = props
-        self.width = self.props.width
-        self.height = self.props.height
+    def __init__(self, params: RyojiGridParams = RyojiGridParams()):
+        super().__init__(params)
+        self.width = self.params.width
+        self.height = self.params.height
 
-    def update(self, props: RyojiGridParams):
-        self.props = props
-        self.width = self.props.width
-        self.height = self.props.height
+    def update(self, params: RyojiGridParams):
+        self.params = params
+        self.width = self.params.width
+        self.height = self.params.height
 
     def render(self, t: float) -> dict[str, Any]:
         """

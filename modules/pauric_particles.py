@@ -1,11 +1,9 @@
 from dataclasses import dataclass
 from typing import Any, Tuple
-from modules.base_av_module import BaseAVModule, Uniforms
+from modules.base_av_module import BaseAVModule, Uniforms, BaseAVParams
 
 @dataclass
-class PauricParticlesParams:
-    width: int = 800
-    height: int = 600
+class PauricParticlesParams(BaseAVParams):
     num_particles: int = 128
     spread: float = 0.5  # 0.0 to 1.0, controls how wide the particles spread
     speed: float = 1.0   # Particle speed multiplier
@@ -28,22 +26,21 @@ class PauricParticles(BaseAVModule):
     }
     frag_shader_path: str = 'shaders/pauric-particles.frag'
 
-    def __init__(self, props: PauricParticlesParams = PauricParticlesParams()):
-        super().__init__(props)
-        self.props = props
-        self.width = self.props.width
-        self.height = self.props.height
-        self.num_particles = self.props.num_particles
-        self.spread = self.props.spread
-        self.speed = self.props.speed
+    def __init__(self, params: PauricParticlesParams = PauricParticlesParams()):
+        super().__init__(params)
+        self.width = self.params.width
+        self.height = self.params.height
+        self.num_particles = self.params.num_particles
+        self.spread = self.params.spread
+        self.speed = self.params.speed
 
-    def update(self, props: PauricParticlesParams):
-        self.props = props
-        self.width = self.props.width
-        self.height = self.props.height
-        self.num_particles = self.props.num_particles
-        self.spread = self.props.spread
-        self.speed = self.props.speed
+    def update(self, params: PauricParticlesParams):
+        self.params = params
+        self.width = self.params.width
+        self.height = self.params.height
+        self.num_particles = self.params.num_particles
+        self.spread = self.params.spread
+        self.speed = self.params.speed
 
     def render(self, t: float) -> dict[str, Any]:
         uniforms: PauricParticlesUniforms = {
