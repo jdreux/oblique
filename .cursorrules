@@ -1,8 +1,4 @@
----
 
-### 📄 `.cursorrules`
-
-```yaml
 project: Oblique
 description: >
   Oblique is a minimal, shader-driven AV synthesizer focused on modularity,
@@ -10,51 +6,43 @@ description: >
   audio input only, no scene engine, no MIDI or REPL.
 
 language: python
-python_version: ">=3.10"
-platform: macOS (Apple Silicon required)
-paradigms: [modular, data-driven, declarative, GPU-native]
+platform: macOS Apple Silicon required for GPU acceleration, further expansion after MVP>
 
-architecture:
-  principle: "Input → Processing → Rendering → Output"
-  flow: "Raw signals in, meaningful values out, visualized in modular shader units and composited into a real-time audiovisual stream"
-  
-  layers:
-    input:
-      - Collect raw time-based control signals
-      - Sources: Audio, MIDI, OSC, Time
-      - Delivery: Streams or events to processing layer
-    processing:
-      - Extract meaningful, normalized signals from raw input
-      - Tasks: Normalize, extract features, detect events, maintain control signals
-    rendering:
-      - Modules transform signals into visual output
-      - Structure: GLSL Shader + Python logic + metadata
-      - Engine maintains module graph, signal routing, frame updates
-    output:
-      - Final composition and delivery of visuals
-      - Options: Window, Syphon, Recording, OSC feedback
-
-rules:
-
-  - you are a an expert software engineer in python, shaders, and audio-reactive visuals. you have a passion for electronic music and visual art. 
+- you are a an expert software engineer in python, shaders, and audio-reactive visuals. you have a passion for electronic music and visual art. 
   - you understand that the project is an MVP and should be kept simple and focused while allowing for future expansion. 
   - inspired by the work of Ryoji Ikeda and Max Cooper, and Touch Designer while we aim to be code only and completely extensible. 
   - drawing the principleso of statelessness from React.js, key principle being that data = state and should flow in one direction.
+  
 
+python rules:
+1. **Use Meaningful Names**: Choose descriptive variable, function, and class names.
+2. **Follow PEP 8**: Adhere to the Python Enhancement Proposal 8 style guide for formatting.
+3. **Use Docstrings**: Document functions and classes with docstrings to explain their purpose.
+4. **Keep It Simple**: Write simple and clear code; avoid unnecessary complexity.
+5. **Use List Comprehensions**: Prefer list comprehensions for creating lists over traditional loops when appropriate.
+6. **Handle Exceptions**: Use try-except blocks to handle exceptions gracefully.
+7. **Use Virtual Environments**: Isolate project dependencies using virtual environments (e.g., `venv`).
+8. **Write Tests**: Implement unit tests to ensure code reliability.
+9. **Use Type Hints**: Utilize type hints for better code clarity and type checking.
+10. **Avoid Global Variables**: Limit the use of global variables to reduce side effects.
+11. **Use strong typing**: as much as possible, in particular to establish a clear interface between modules and with shaders. 
+
+These rules will help you write clean, efficient, and maintainable Python code.
+
+
+Architecture: 
   structure:
     - All AV modules must live in `/modules`
-    - Each module has: 1 Python file, 1 matching GLSL shader in `/shaders`
-    - Raw input code lives in `/input/` (audio, midi, osc)
-    - Signal processing code lives in `/processing/`
+    - Each module has: 1 Python file, 1 matching GLSL shader in `/shaders` if shader is necessary.
+    - Input code lives in `/input
     - Core engine code lives in `/core/`
-    - Output composition code lives in `/output/`
-    - Presets and config go in `/config/`
+    - All output and rendering code is in `/render`
 
   module_interface:
     required_base: BaseAVModule
     required_methods:
       - __init__(props: dict = None)
-      - update(processed_signals: dict, time_data: dict)
+      - update(props:dict)
       - render() -> Framebuffer
     required_metadata:
       - name: str
@@ -63,24 +51,10 @@ rules:
     optional:
       - __main__ block for test launching
 
-  signal_flow:
-    - Raw input → Processing → Normalized signals → Modules → Composition → Output
-    - All signals should be normalized (0.0-1.0 range)
-    - Processing layer handles feature extraction and event detection
-    - Modules receive processed_signals dict, not raw audio_data
-
-  audio_input:
-    - Use `sounddevice` for real-time stream
-    - Must expose:
-        - `audio_data['fft']`: list[float]
-        - `audio_data['env']`: float
-        - `audio_data['peak']`: float
 
   shader_conventions:
-    - One `.frag` shader per module in `/shaders`
+    - One `.frag` shader per module in `/shaders` where needed
     - File name must match module class (snake_case.py → kebab-case.frag)
-    - Required uniforms:
-        - `time`, `resolution`, `fftBands`, `amp`
     - Top comment block in each shader:
         - Description, author, inputs
 
@@ -112,13 +86,9 @@ ai_agent_support:
         - A `metadata` dictionary (name, description, parameters)
         - Clearly defined `update()` and `render()` methods
         - Optional `if __name__ == "__main__"` runner
+    - Comments explaining the code to be referred to later. 
     - Avoid dynamically generated shader code; use static GLSL
     - Prefer passing all control input as normalized `props`
     - Structure parameter names and types for introspection
     - Keep cross-module references explicit and limited
     - Document every new parameter and shader uniform
-
-  future_directions:
-    - Scene generation and mixing via agents
-    - Self-tuning modules (via audio descriptors or feedback loops)
-    - Human–AI co-authoring tools (prompt to patch)
