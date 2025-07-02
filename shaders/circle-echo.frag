@@ -45,11 +45,12 @@ float draw_marker(vec2 uv, vec2 pos, float size) {
 
 void main() {
     vec2 uv = (gl_FragCoord.xy / u_resolution.xy) * 2.0 - 1.0;
+    // vec2 uv = gl_FragCoord.xy / u_resolution.xy;
     uv.x *= u_resolution.x / u_resolution.y;
     // uv.y *= -1.0;
     vec3 color = vec3(0.0);
     float t = u_time;
-    vec2 center = vec2(1,1);
+    vec2 center = vec2(1);
     float base_radius = 0.4;
     float echo_alpha = 1.0;
     for (int c = 0; c < 32; ++c) {
