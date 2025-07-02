@@ -108,3 +108,21 @@ Future goals include:
 - AI-generated scenes and compositions
 - Automatic module tuning from reference music or MIDI
 - Generative documentation and mutation of existing patches
+
+## Inputs
+
+Inputs are modular sources of data for Oblique. All input classes inherit from `BaseInput` (in `/inputs/base_input.py`), which defines a simple interface: `start()`, `stop()`, and `read()`.
+
+### Example: AudioDeviceInput
+
+`AudioDeviceInput` reads audio from a file and provides it in chunks for processing and visualization. It is useful for prototyping and testing audio-reactive modules.
+
+```python
+from inputs.audio_device_input import AudioDeviceInput
+input_device = AudioDeviceInput("path/to/audio.wav", chunk_size=2048)
+input_device.start()
+chunk = input_device.read()
+input_device.stop()
+```
+
+Future input modules will support live audio, MIDI, OSC, and more.

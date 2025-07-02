@@ -1,3 +1,5 @@
 moderngl
 pyglfw
-numpy 
+numpy
+sounddevice
+soundfile 
