@@ -11,7 +11,7 @@ def render_fullscreen_quad(ctx: moderngl.Context, frag_shader_path: str, uniform
     Caches the program, VAO, and VBO for efficiency.
     """
     global _shader_cache
-    if frag_shader_path not in _shader_cache:
+    if True or frag_shader_path not in _shader_cache:
         with open(frag_shader_path, 'r') as f:
             fragment_shader = f.read()
         vertex_shader = '''
@@ -48,7 +48,9 @@ def render_fullscreen_quad(ctx: moderngl.Context, frag_shader_path: str, uniform
     for name, value in uniforms.items():
         if name in program:
             if isinstance(value, moderngl.Texture):
+                value.filter = (moderngl.LINEAR, moderngl.LINEAR)
                 value.use(location=texture_unit)
+
                 # print(f"Binding texture uniform {name} to unit {texture_unit}")
                 program[name] = texture_unit
                 texture_unit += 1
@@ -63,8 +65,12 @@ def render_to_texture(ctx: moderngl.Context, width: int, height: int, frag_shade
     Render a fullscreen quad to an offscreen texture using the given fragment shader and uniforms.
     Returns the resulting texture.
     """
-    tex = ctx.texture((width, height), 4)
+    tex = ctx.texture((width, height), 4,  dtype='f1', alignment=1)
+    tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
+    tex.repeat_x = False
+    tex.repeat_y = False
     fbo = ctx.framebuffer(color_attachments=[tex])
+    ctx.viewport = (0, 0, width, height)
     fbo.use()
     ctx.clear(0.0, 0.0, 0.0, 1.0)
     render_fullscreen_quad(ctx, frag_shader_path, uniforms)
@@ -76,8 +82,12 @@ def blend_textures(ctx: moderngl.Context, width: int, height: int, tex0: moderng
     """
     Blend two textures using the specified blend shader and return the result as a new texture.
     """
-    out_tex = ctx.texture((width, height), 4)
+    out_tex = ctx.texture((width, height), 4,  dtype='f1', alignment=1)
+    out_tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
+    out_tex.repeat_x = False
+    out_tex.repeat_y = False
     fbo = ctx.framebuffer(color_attachments=[out_tex])
+    ctx.viewport = (0, 0, width, height)
     fbo.use()
     ctx.clear(0.0, 0.0, 0.0, 1.0)
     global _shader_cache

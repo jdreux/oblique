@@ -50,40 +50,47 @@ def main():
         RyojiGrid(RyojiGridParams(width=width, height=height)),
     ]
 
+    # Get the framebuffer size to account for Retina display scaling
+    fb_width, fb_height = ctx.screen.size
+
     start_time = time.time()
     while not glfw.window_should_close(window):
         now = time.time()
         t = now - start_time
+        ctx.viewport = (0, 0, width, height)
         ctx.clear(1.0, 1.0, 1.0, 1.0)
+        
         # Render each module to a texture
         textures = []
-        # for module in modules:
-        #     module.update(module.params)  # Use default params for now
-        #     render_data = module.render(t)
-        #     tex = render_to_texture(ctx, width, height, render_data['frag_shader_path'], render_data['uniforms'])
-        #     textures.append(tex)
-        # # Blend all textures in order (additive)
-        # if len(textures) == 1:
-        #     final_tex = textures[0]
-        # else:
-        #     final_tex = textures[0]
-        #     for tex in textures[1:]:
-        #         final_tex = blend_textures(ctx, width, height, final_tex, tex, ADDITIVE_BLEND_SHADER)
-        # # Display final texture to screen
-        # # Render the final texture using a simple passthrough shader
-        # # Display the final texture to the screen using a generic passthrough shader.
-        # # The additive-blend shader is used above in blend_textures() when compositing multiple module outputs.
-        # render_fullscreen_quad(
-        #     ctx,
-        #     "shaders/passthrough.frag",  # Generic shader that simply displays a texture
-        #     {
-        #         'tex0': final_tex,  # The final composited texture
-        #         'u_time': t,
-        #         'u_resolution': (width, height),
-        #     }
-        # )
-        render_fullscreen_quad(ctx, modules[0].frag_shader_path, modules[0].uniforms)
-        # final_tex.use(location=0)
+        for module in modules:
+            module.update(module.params)  # Use default params for now
+            render_data = module.render(t)
+            tex = render_to_texture(ctx, fb_width, fb_height, render_data['frag_shader_path'], render_data['uniforms'])
+            textures.append(tex)
+        # Blend all textures in order (additive)
+        if len(textures) == 1:
+            final_tex = textures[0]
+        else:
+            final_tex = textures[0]
+            for tex in textures[1:]:
+                final_tex = blend_textures(ctx, fb_width, fb_height, final_tex, tex, ADDITIVE_BLEND_SHADER)
+        # Debug logging for texture and window size
+        # Ensure viewport covers the full window
+        ctx.viewport = (0, 0, fb_width, fb_height)
+        # Display final texture to screen
+        # Render the final texture using a simple passthrough shader
+        # Display the final texture to the screen using a generic passthrough shader.
+        # The additive-blend shader is used above in blend_textures() when compositing multiple module outputs.
+        render_fullscreen_quad(
+            ctx,
+            "shaders/passthrough.frag",  # Generic shader that simply displays a texture
+            {
+                'tex0': final_tex,  # The final composited texture
+                'u_time': t,
+                'u_resolution': (fb_width, fb_height),
+            }
+        )
+        final_tex.use(location=0)
         glfw.swap_buffers(window)
         glfw.poll_events()
     glfw.terminate()

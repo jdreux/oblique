@@ -8,14 +8,12 @@ Inputs:
     uniform vec2 u_resolution; // Output resolution
 */
 #version 330 core
-precision highp float;
 uniform sampler2D tex0;
 uniform sampler2D tex1;
-uniform vec2 u_resolution;
+in vec2 v_uv;
 out vec4 fragColor;
 void main() {
-    vec2 uv = gl_FragCoord.xy / u_resolution;
-    vec4 color0 = texture(tex0, uv);
-    vec4 color1 = texture(tex1, uv);
+    vec4 color0 = texture(tex0, v_uv);
+    vec4 color1 = texture(tex1, v_uv);
     fragColor = min(color0 + color1, 1.0);
-} 
+}

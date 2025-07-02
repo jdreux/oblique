@@ -32,8 +32,7 @@ void main() {
     uv.x *= aspect;
 
     float min_dist = 1.0;
-    for (int i = 0; i < 512; ++i) {
-        if (i >= u_num_particles) break;
+    for (int i = 0; i < u_num_particles; ++i) {
         float fi = float(i);
         float t = u_time * u_speed + fi * 10.0;
         float angle = hash(fi) * 3.14159 * 2.0 * u_spread;
@@ -42,7 +41,7 @@ void main() {
         float px = radius * life * cos(angle);
         float py = radius * life * sin(angle);
         // Emanate from bottom-left corner
-        vec2 center = vec2(0.05, 0.05);
+        vec2 center = vec2(0.55, 0.55);
         vec2 pos = center + vec2(px, py);
         pos.x *= aspect;
         float d = length(uv - pos);
