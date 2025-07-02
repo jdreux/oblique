@@ -9,4 +9,4 @@ fi
 source venv/bin/activate
 
 echo "[DEBUG] Starting Oblique MVP with default settings..."
-python3 main.py --width 800 --height 600 
+python3 main.py --width 800 --height 800 

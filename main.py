@@ -8,6 +8,7 @@ from typing import Union
 # --- Module import ---
 from modules.ryoji_grid import RyojiGrid, RyojiGridParams
 from modules.pauric_particles import PauricParticles, PauricParticlesParams
+from modules.circle_echo import CircleEcho, CircleEchoParams
 from core.renderer import render_fullscreen_quad, render_to_texture, blend_textures
 
 SHADER_PATH = Path("shaders/ryoji-grid.frag")
@@ -46,8 +47,9 @@ def main():
 
     # --- Hardcoded module list (order matters) ---
     modules = [
-        PauricParticles(PauricParticlesParams(width=width, height=height)),
-        RyojiGrid(RyojiGridParams(width=width, height=height)),
+        # PauricParticles(PauricParticlesParams(width=width, height=height)),
+        # RyojiGrid(RyojiGridParams(width=width, height=height)),
+        CircleEcho(CircleEchoParams(width=width, height=height)),
     ]
 
     # Get the framebuffer size to account for Retina display scaling
