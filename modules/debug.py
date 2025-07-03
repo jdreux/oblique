@@ -10,7 +10,7 @@ class DebugParams(BaseAVParams):
     width: int = 800
     height: int = 600
 
-class DebugModule(BaseAVModule):
+class DebugModule(BaseAVModule[DebugParams]):
     """
     Debug module that displays an input number and string using a shader.
     """
@@ -28,8 +28,6 @@ class DebugModule(BaseAVModule):
         super().__init__(params)
 
     def update(self, params: DebugParams) -> None:
-        if not isinstance(params, DebugParams):
-            params = DebugParams(**params.__dict__)
         self.params = params
 
     def render(self, t: float) -> dict[str, Any]:

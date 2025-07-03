@@ -11,7 +11,7 @@ class RyojiGridUniforms(Uniforms, total=True):
     u_time: float
     u_resolution: Tuple[int, int]
 
-class RyojiGrid(BaseAVModule):
+class RyojiGrid(BaseAVModule[RyojiGridParams]):
     """
     RyojiGrid - Minimal grid animation inspired by Ryoji Ikeda.
     This module generates a simple animated grid using a GLSL shader.
@@ -29,7 +29,7 @@ class RyojiGrid(BaseAVModule):
         self.width = self.params.width
         self.height = self.params.height
 
-    def update(self, params: RyojiGridParams):
+    def update(self, params: RyojiGridParams) -> None:
         self.params = params
         self.width = self.params.width
         self.height = self.params.height

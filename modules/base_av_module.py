@@ -1,4 +1,4 @@
-from typing import Any, TypedDict, Dict
+from typing import Any, TypedDict, Dict, TypeVar, Generic
 from dataclasses import dataclass
 
 # --- Base params dataclass ---
@@ -11,7 +11,9 @@ class Uniforms(TypedDict, total=True):
     # Extend this in each module for specific uniforms
     pass
 
-class BaseAVModule:
+P = TypeVar('P', bound='BaseAVParams')
+
+class BaseAVModule(Generic[P]):
     """
     Base class for all AV modules. Defines the required interface for AV modules.
 
@@ -34,7 +36,7 @@ class BaseAVModule:
     }
     frag_shader_path: str  # Must be set by subclass
 
-    def __init__(self, params: BaseAVParams):
+    def __init__(self, params: P):
         """
         Initialize the module with parameters.
 
@@ -45,7 +47,7 @@ class BaseAVModule:
             raise TypeError(f"{self.__class__.__name__} must define a class attribute 'frag_shader_path' (str)!")
         self.params = params
 
-    def update(self, params: BaseAVParams) -> None:
+    def update(self, params: P) -> None:
         """
         Update the module's parameters/state.
 

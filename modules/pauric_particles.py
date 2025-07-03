@@ -15,7 +15,7 @@ class PauricParticlesUniforms(Uniforms, total=True):
     u_spread: float
     u_speed: float
 
-class PauricParticles(BaseAVModule):
+class PauricParticles(BaseAVModule[PauricParticlesParams]):
     """
     PauricParticles - Animated sprinkle of particles emanating from one corner and spreading across the screen.
     """
@@ -34,7 +34,7 @@ class PauricParticles(BaseAVModule):
         self.spread = self.params.spread
         self.speed = self.params.speed
 
-    def update(self, params: PauricParticlesParams):
+    def update(self, params: PauricParticlesParams) -> None:
         self.params = params
         self.width = self.params.width
         self.height = self.params.height

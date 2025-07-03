@@ -25,7 +25,7 @@ class CircleEchoUniforms(Uniforms, total=True):
     u_audio_level: float
     u_band_amps: Tuple[float, ...]
 
-class CircleEcho(BaseAVModule):
+class CircleEcho(BaseAVModule[CircleEchoParams]):
     """
     CircleEcho - Concentric modulated circles with echo/fade effect. Placeholder uniforms for future audio features.
     """
@@ -48,7 +48,7 @@ class CircleEcho(BaseAVModule):
         self.audio_level = self.params.audio_level
         self.band_amps = self.params.band_amps
 
-    def update(self, params: CircleEchoParams):
+    def update(self, params: CircleEchoParams) -> None:
         self.params = params
         self.width = self.params.width
         self.height = self.params.height
