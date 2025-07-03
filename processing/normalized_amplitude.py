@@ -1,6 +1,7 @@
 import numpy as np
 from typing import Any
 from .base_processing_operator import BaseProcessingOperator
+from inputs.audio_device_input import AudioDeviceInput
 
 class NormalizedAmplitudeOperator(BaseProcessingOperator):
     """
@@ -14,12 +15,20 @@ class NormalizedAmplitudeOperator(BaseProcessingOperator):
         "parameters": {}
     }
 
-    def process(self, data: np.ndarray) -> float:
+    def __init__(self, audio_input: AudioDeviceInput):
+        super().__init__()
+        self.amplitude = 0.0
+        self.audio_input = audio_input
+
+    def process(self) -> float:
         """
         Compute the normalized RMS amplitude of the input audio chunk.
         :param data: np.ndarray, shape (chunk_size, channels)
         :return: float, normalized amplitude in [0, 1]
         """
+        data = self.audio_input.peek()
+        if data is None:
+            return 0.0
         if not isinstance(data, np.ndarray):
             raise ValueError("Input data must be a numpy ndarray.")
         if data.size == 0:

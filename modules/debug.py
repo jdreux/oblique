@@ -2,6 +2,8 @@ from .base_av_module import BaseAVModule, BaseAVParams
 from typing import Any, Dict
 from dataclasses import dataclass
 import numpy as np
+from core.oblique_node import ObliqueNode
+from processing.base_processing_operator import BaseProcessingOperator
 
 @dataclass
 class DebugParams(BaseAVParams):
@@ -24,18 +26,24 @@ class DebugModule(BaseAVModule[DebugParams]):
     }
     frag_shader_path = "shaders/debug.frag"
 
-    def __init__(self, params: DebugParams = DebugParams()):
-        super().__init__(params)
+    def __init__(self, params: DebugParams = DebugParams(), number_input: BaseProcessingOperator | None = None):
+        super().__init__(params, number_input)
+        self.number_input = number_input
 
     def update(self, params: DebugParams) -> None:
         self.params = params
 
     def render(self, t: float) -> dict[str, Any]:
         # Return shader path and uniforms for rendering
+        if self.number_input:
+            number = self.number_input.process()
+            print(f"Number: {number}")
+        else:
+            number = self.params.number
         return {
             "frag_shader_path": self.frag_shader_path,
             "uniforms": {
-                "u_number": self.params.number,
+                "u_number": number,
                 "u_resolution": (self.params.width, self.params.height),
                 # Text uniform would require a text rendering system; placeholder for now
                 # "u_text": self.params.text

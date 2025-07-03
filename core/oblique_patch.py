@@ -36,13 +36,20 @@ class ObliquePatch:
         self._graph.append(module)
         return module
 
-    def get_output(self) -> BaseAVModule:
+    def get_output(self) -> BaseAVModule | None:
         """
         Return the final output node (renderer or passthrough).
         If no renderer is present, returns a default DebugModule instance.
         """
         if self.modules:
             return self.modules[-1]
+        return None
+    
+    def get_audio_input(self) -> BaseInput:
+        """
+        Return the audio input node.
+        """
+        return self.inputs[0]
         
     def get_graph(self) -> List[Any]:
         """

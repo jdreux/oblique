@@ -19,7 +19,8 @@ class ObliqueNode:
     def add(self, child: 'ObliqueNode') -> 'ObliqueNode':
         """Add a child node (downstream in the DAG)."""
         self.children.add(child)
-        child.parents.add(self)
+        if self not in child.parents:
+            child.parents.add(self)
         return self
 
     def get_node_info(self) -> Dict[str, Any]:

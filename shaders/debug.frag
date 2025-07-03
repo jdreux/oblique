@@ -28,6 +28,6 @@ void main() {
     vec2 uv = gl_FragCoord.xy / u_resolution;
     // Simple color: number modulates red, text not shown in MVP
     // fragColor = vec4(u_number, uv.x, uv.y, 1.0);
-    fragColor = vec4(gl_FragCoord.x / u_resolution.x, gl_FragCoord.y / u_resolution.y, 0.0, 1.0);
+    fragColor = vec4(gl_FragCoord.x / u_resolution.x, gl_FragCoord.y / u_resolution.y, u_number, 1.0);
     // TODO: Text rendering can be added with a font atlas and SDF in future
 } 

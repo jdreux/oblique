@@ -37,7 +37,7 @@ class BaseAVModule(ObliqueNode, Generic[P]):
     }
     frag_shader_path: str  # Must be set by subclass
 
-    def __init__(self, params: P):
+    def __init__(self, params: P, parent: ObliqueNode | None = None):
         """
         Initialize the module with parameters.
 
@@ -48,6 +48,8 @@ class BaseAVModule(ObliqueNode, Generic[P]):
         if not hasattr(self, 'frag_shader_path') or not isinstance(self.frag_shader_path, str):
             raise TypeError(f"{self.__class__.__name__} must define a class attribute 'frag_shader_path' (str)!")
         self.params = params
+        if parent:
+            self.add_parent(parent)
 
     def update(self, params: P) -> None:
         """
