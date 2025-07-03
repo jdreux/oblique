@@ -1,5 +1,6 @@
 from typing import Any, TypedDict, Dict, TypeVar, Generic
 from dataclasses import dataclass
+from core.oblique_node import ObliqueNode
 
 # --- Base params dataclass ---
 @dataclass
@@ -13,7 +14,7 @@ class Uniforms(TypedDict, total=True):
 
 P = TypeVar('P', bound='BaseAVParams')
 
-class BaseAVModule(Generic[P]):
+class BaseAVModule(ObliqueNode, Generic[P]):
     """
     Base class for all AV modules. Defines the required interface for AV modules.
 
@@ -43,6 +44,7 @@ class BaseAVModule(Generic[P]):
         Args:
             params (BaseAVParams): Initial parameters for the module.
         """
+        ObliqueNode.__init__(self)
         if not hasattr(self, 'frag_shader_path') or not isinstance(self.frag_shader_path, str):
             raise TypeError(f"{self.__class__.__name__} must define a class attribute 'frag_shader_path' (str)!")
         self.params = params

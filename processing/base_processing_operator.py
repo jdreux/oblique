@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any
+from core.oblique_node import ObliqueNode
 
-class BaseProcessingOperator(ABC):
+class BaseProcessingOperator(ObliqueNode, ABC):
     """
     Abstract base class for all processing operators in Oblique.
     Defines the interface for feature extraction, normalization, and event detection modules.
@@ -11,6 +12,7 @@ class BaseProcessingOperator(ABC):
         Initialize the processing operator with optional configuration.
         :param config: Optional dictionary of configuration parameters.
         """
+        ObliqueNode.__init__(self)
         self.config = config or {}
 
     @abstractmethod

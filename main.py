@@ -91,7 +91,7 @@ def main():
     modules = [
         # PauricParticles(PauricParticlesParams(width=width, height=height)),
         # RyojiGrid(RyojiGridParams(width=width, height=height)),
-        # CircleEcho(CircleEchoParams(width=width, height=height)),
+        CircleEcho(CircleEchoParams(width=width, height=height)),
         debug_module,
     ]
 
