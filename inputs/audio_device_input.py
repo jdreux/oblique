@@ -21,6 +21,7 @@ class AudioDeviceInput(BaseInput):
         self.channels = None
         self._buffer = None
         self._pos = 0
+        self._last_chunk = None # Initialize for peek()
 
     def start(self) -> None:
         """
@@ -36,10 +37,11 @@ class AudioDeviceInput(BaseInput):
         """
         self._buffer = None
         self._pos = 0
+        self._last_chunk = None # Clear cached chunk on stop
 
     def read(self) -> np.ndarray:
         """
-        Read the next chunk of audio data.
+        Read the next chunk of audio data, advancing the buffer position.
         :return: Numpy array of shape (chunk_size, channels)
         """
         if self._buffer is None:
@@ -48,7 +50,15 @@ class AudioDeviceInput(BaseInput):
         end = min(self._pos + self.chunk_size, self._buffer.shape[0])
         chunk = self._buffer[start:end]
         self._pos = end
+        self._last_chunk = chunk  # Cache the last chunk for peek()
         return chunk
+
+    def peek(self) -> Optional[np.ndarray]:
+        """
+        Return the most recently read chunk without advancing the buffer.
+        :return: Numpy array of shape (chunk_size, channels) or None if not available
+        """
+        return self._last_chunk
 
 if __name__ == "__main__":
     import sys

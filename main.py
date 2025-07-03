@@ -98,18 +98,22 @@ def main():
     # Get the framebuffer size to account for Retina display scaling
     fb_width, fb_height = ctx.screen.size
 
+    FRAME_DURATION = 1.0 / 60.0  # 60 Hz = 16.67 ms per frame
     start_time = time.time()
+    last_frame_time = start_time
+
     while not glfw.window_should_close(window):
-        now = time.time()
-        t = now - start_time
+        frame_start = time.time()
+        t = frame_start - start_time
         ctx.viewport = (0, 0, width, height)
         ctx.clear(1.0, 1.0, 1.0, 1.0)
 
         # --- Audio input and amplitude processing ---
         if audio_input is not None and amplitude_processor is not None:
             try:
-                chunk = audio_input.read()
-                amplitude = amplitude_processor.process(chunk)
+                chunk = audio_input.peek()
+                if chunk is not None:
+                    amplitude = amplitude_processor.process(chunk)
             except Exception as e:
                 amplitude = 0.0
 
@@ -145,6 +149,16 @@ def main():
         final_tex.use(location=0)
         glfw.swap_buffers(window)
         glfw.poll_events()
+
+        # --- 60 Hz frame limiting ---
+        frame_end = time.time()
+        elapsed = frame_end - frame_start
+        sleep_time = FRAME_DURATION - elapsed
+        if sleep_time > 0:
+            time.sleep(sleep_time)
+        else:
+            print(f"[WARNING] Frame took too long: {elapsed:.4f}s (target: {FRAME_DURATION:.4f}s)")
+
     glfw.terminate()
     if audio_input is not None:
         audio_input.stop()

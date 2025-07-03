@@ -30,7 +30,16 @@ class BaseInput(ABC):
     @abstractmethod
     def read(self) -> Any:
         """
-        Read data from the input source.
+        Read data from the input source, potentially advancing the input cursor.
         :return: Data from the input source (type depends on implementation).
+        """
+        pass
+
+    @abstractmethod
+    def peek(self) -> Any:
+        """
+        Return the most recent data chunk without advancing the input cursor.
+        This allows consumers (e.g., video/visual analysis) to access the latest data
+        being played or processed, without interfering with the main data stream.
         """
         pass 

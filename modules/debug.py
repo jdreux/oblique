@@ -7,6 +7,8 @@ import numpy as np
 class DebugParams(BaseAVParams):
     number: float = 0.0
     text: str = "Debug"
+    width: int = 800
+    height: int = 600
 
 class DebugModule(BaseAVModule):
     """
@@ -36,6 +38,7 @@ class DebugModule(BaseAVModule):
             "frag_shader_path": self.frag_shader_path,
             "uniforms": {
                 "u_number": self.params.number,
+                "u_resolution": (self.params.width, self.params.height),
                 # Text uniform would require a text rendering system; placeholder for now
                 # "u_text": self.params.text
             }
