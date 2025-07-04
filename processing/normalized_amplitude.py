@@ -49,9 +49,9 @@ if __name__ == "__main__":
     file_path = sys.argv[1] if len(sys.argv) > 1 else "../projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav"
     input_device = AudioDeviceInput(file_path, chunk_size=2048)
     input_device.start()
-    op = NormalizedAmplitudeOperator()
+    op = NormalizedAmplitudeOperator(input_device)
     for i in range(5):
         chunk = input_device.read()
-        amp = op.process(chunk)
+        amp = op.process()
         print(f"Chunk {i}: normalized amplitude = {amp:.4f}")
     input_device.stop() 

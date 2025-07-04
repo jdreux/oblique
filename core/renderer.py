@@ -51,11 +51,9 @@ def render_fullscreen_quad(ctx: moderngl.Context, frag_shader_path: str, uniform
                 value.filter = (moderngl.LINEAR, moderngl.LINEAR)
                 value.use(location=texture_unit)
 
-                # print(f"Binding texture uniform {name} to unit {texture_unit}")
                 program[name] = texture_unit
                 texture_unit += 1
             else:
-                # print(f"Setting uniform {name} to {value}")
                 program[name] = value
     vao.render(moderngl.TRIANGLE_STRIP) 
 

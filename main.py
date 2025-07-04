@@ -5,12 +5,13 @@ from pathlib import Path
 from core import ObliqueEngine, ObliquePatch
 
 # --- Module imports ---
+from modules import ryoji_grid
 from modules.ryoji_grid import RyojiGrid, RyojiGridParams
 from modules.pauric_particles import PauricParticles, PauricParticlesParams
 from modules.circle_echo import CircleEcho, CircleEchoParams
 from modules.debug import DebugModule, DebugParams
 from processing.normalized_amplitude import NormalizedAmplitudeOperator
-
+from processing.fft_bands import FFTBands
 # --- Input imports ---
 from inputs.audio_device_input import AudioDeviceInput
 
@@ -32,20 +33,16 @@ def create_demo_patch(width: int, height: int, audio_path: str) -> ObliquePatch:
     audio_input = AudioDeviceInput(file_path=audio_path)
 
     patch.input(audio_input)
-
     amplitude_processor = NormalizedAmplitudeOperator(audio_input)
+    # debug_module = DebugModule(DebugParams(width=width, height=height, number=0.0, text="Debug"), amplitude_processor)
+    # patch.add(debug_module)
 
-    debug_module = DebugModule(DebugParams(width=width, height=height, number=0.0, text="Debug"), amplitude_processor)
+    fft_bands_processor = FFTBands(audio_input, perceptual=True)
 
-
-    patch.add(debug_module)
+    # ryoji_grid_module = RyojiGrid(RyojiGridParams(width=width, height=height), fft_bands_processor)
+    circle_echo_module = CircleEcho(CircleEchoParams(width=width, height=height), fft_bands_processor)
+    patch.add(circle_echo_module)
     
-    # Add modules to the patch
-    # Uncomment/modify these lines to change which modules are active
-    
-    # patch.add(CircleEcho(CircleEchoParams(width=width, height=height)))
-    # patch.add(RyojiGrid(RyojiGridParams(width=width, height=height)))
-    # patch.add(PauricParticles(PauricParticlesParams(width=width, height=height)))
     
     return patch
 

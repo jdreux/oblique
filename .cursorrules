@@ -6,7 +6,7 @@ description: >
   audio input only, no scene engine, no MIDI or REPL.
 
 language: python
-platform: macOS Apple Silicon required for GPU acceleration, further expansion after MVP>
+platform: macOS Apple Silicon required for GPU acceleration, further expansion after MVP
 
 - you are a an expert software engineer in python, shaders, and audio-reactive visuals. you have a passion for electronic music and visual art. 
   - you understand that the project is an MVP and should be kept simple and focused while allowing for future expansion. 
@@ -26,6 +26,7 @@ python rules:
 9. **Use Type Hints**: Utilize type hints for better code clarity and type checking.
 10. **Avoid Global Variables**: Limit the use of global variables to reduce side effects.
 11. **Use strong typing**: as much as possible, in particular to establish a clear interface between modules and with shaders. 
+12. **Use absolute imports**: use absolute imports to avoid conflicts with other modules. and improve re-usability**
 
 These rules will help you write clean, efficient, and maintainable Python code.
 
@@ -34,16 +35,16 @@ Architecture:
   structure:
     - All AV modules must live in `/modules`
     - Each module has: 1 Python file, 1 matching GLSL shader in `/shaders` if shader is necessary.
-    - Input code lives in `/input
+    - Input code lives in `/inputs/`
     - Core engine code lives in `/core/`
     - All output and rendering code is in `/render`
+    - All processing code is in `/processing`
+    - Always extend the base classes in the respective folders when creating new ones. 
 
   module_interface:
     required_base: BaseAVModule
-    required_methods:
-      - __init__(props: dict = None)
-      - update(props:dict)
-      - render() -> Framebuffer
+    required_methods: See base class.
+    always instantiate the appropriate dataclass for the modeule, it will be used to pass parameters to the shader.
     required_metadata:
       - name: str
       - description: str
@@ -57,11 +58,13 @@ Architecture:
     - File name must match module class (snake_case.py → kebab-case.frag)
     - Top comment block in each shader:
         - Description, author, inputs
+    - All shaders must be written in GLSL 3.30 "#version 330". Respect the version requirements.
 
   performance:
     - Must run at 60 FPS @ 1080p on Apple Silicon
     - Avoid blocking CPU calls or large CPU–GPU transfers
     - All visuals rendered via GPU (GLSL)
+    - Aim for high def visuals, go for details and complexity. the goal is to wow the enjoyers. 
 
   ai_agent_guidelines:
     - Prefer adding new modules, not modifying core engine
@@ -77,18 +80,11 @@ Architecture:
 
 ai_agent_support:
   goals:
-    - Enable AI agents to safely create, extend, or refactor modules
+    - Enable AI agents to safely create, extend, or refactor code
     - Allow testable, declarative AV behavior with minimal assumptions
     - Avoid hidden state or side effects unless explicitly documented
+    - Rely on the type system as much as possible. always use strong typing and type hints. Prefer APIs and function design that favours good type safety.
 
   design_guidelines:
-    - Each module must include:
-        - A `metadata` dictionary (name, description, parameters)
-        - Clearly defined `update()` and `render()` methods
-        - Optional `if __name__ == "__main__"` runner
     - Comments explaining the code to be referred to later. 
-    - Avoid dynamically generated shader code; use static GLSL
-    - Prefer passing all control input as normalized `props`
-    - Structure parameter names and types for introspection
-    - Keep cross-module references explicit and limited
     - Document every new parameter and shader uniform
