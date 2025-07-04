@@ -2,8 +2,10 @@ from .base_input import BaseInput
 from typing import Any, Optional
 import soundfile as sf
 import numpy as np
+import collections
 
 class AudioDeviceInput(BaseInput):
+    HISTORY_SIZE = 4  # Class-level constant for buffer history size
     """
     Input class that reads audio from a file for testing and prototyping.
     """
@@ -22,6 +24,7 @@ class AudioDeviceInput(BaseInput):
         self._buffer = None
         self._pos = 0
         self._last_chunk = None # Initialize for peek()
+        self._chunk_history = collections.deque(maxlen=self.HISTORY_SIZE)
 
     def start(self) -> None:
         """
@@ -30,6 +33,7 @@ class AudioDeviceInput(BaseInput):
         self._buffer, self.samplerate = sf.read(self.file_path, always_2d=True)
         self.channels = self._buffer.shape[1]
         self._pos = 0
+        self._chunk_history.clear()
 
     def stop(self) -> None:
         """
@@ -38,6 +42,7 @@ class AudioDeviceInput(BaseInput):
         self._buffer = None
         self._pos = 0
         self._last_chunk = None # Clear cached chunk on stop
+        self._chunk_history.clear()
 
     def read(self) -> np.ndarray:
         """
@@ -51,14 +56,24 @@ class AudioDeviceInput(BaseInput):
         chunk = self._buffer[start:end]
         self._pos = end
         self._last_chunk = chunk  # Cache the last chunk for peek()
+        self._chunk_history.append(chunk)
         return chunk
 
-    def peek(self) -> Optional[np.ndarray]:
+    def peek(self, n_buffers: Optional[int] = None) -> Optional[np.ndarray]:
         """
-        Return the most recently read chunk without advancing the buffer.
-        :return: Numpy array of shape (chunk_size, channels) or None if not available
+        Return the most recently read chunk or up to the last n_buffers chunks concatenated.
+        :param n_buffers: Number of previous chunks to return (concatenated). If None, returns the most recent chunk.
+        :return: Numpy array of shape (n*chunk_size, channels) or None if not available
         """
-        return self._last_chunk
+        if n_buffers is None:
+            return self._last_chunk
+        if n_buffers <= 0 or len(self._chunk_history) == 0:
+            return None
+        # Get up to n_buffers most recent chunks
+        chunks = list(self._chunk_history)[-n_buffers:]
+        if not chunks:
+            return None
+        return np.concatenate(chunks, axis=0)
 
 if __name__ == "__main__":
     import sys

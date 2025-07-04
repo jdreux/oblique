@@ -73,7 +73,8 @@ class FFTBands(BaseProcessingOperator):
         The result is clipped to [0, 1].
         If perceptual is True, applies perceptual scaling to the bands.
         """
-        data = self.audio_input.peek()
+        # Use up to 4 most recent buffers for higher FFT resolution (improves low-frequency band coverage)
+        data = self.audio_input.peek(n_buffers=4)
         if data is None or not isinstance(data, np.ndarray) or data.size == 0:
             return [0.0] * self.num_bands
         if data.ndim == 2:
