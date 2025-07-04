@@ -29,6 +29,7 @@ uniform int u_num_bands;
 uniform float u_line_thickness = 0.01;
 uniform float u_animation_speed = 0.05;
 uniform float u_fade_rate = 0.3;
+uniform float u_spectral_brightness = 0.5;
 
 // Function to get band amplitude with bounds checking
 float getBandAmplitude(int bandIndex) {
@@ -48,7 +49,7 @@ vec2 calculateLine(vec2 uv, int bandIndex) {
     float amplitude = getBandAmplitude(bandIndex);
     
     // Calculate vertical animation based on amplitude and time
-    float animOffset = u_time * u_animation_speed  * (0.5 + amplitude * 0.5);
+    float animOffset = u_time * u_animation_speed * u_spectral_brightness * (0.5 + amplitude * 0.5);
     // fract() returns the fractional part of a number (part after decimal point)
     // This creates a repeating pattern that wraps around the screen
     float lineY = fract(uv.y + animOffset);

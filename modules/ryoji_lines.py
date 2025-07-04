@@ -4,6 +4,7 @@ from typing import TypedDict
 from modules.base_av_module import BaseAVModule, Uniforms, BaseAVParams
 from processing.fft_bands import FFTBands
 from typing import Optional
+from processing.spectral_centroid import SpectralCentroid
 
 # Hardcoded shader array size - must match the shader declaration
 SHADER_BANDS_SIZE = 512
@@ -14,12 +15,14 @@ class RyojiLinesParams(BaseAVParams):
     num_bands: int = SHADER_BANDS_SIZE  # Default to full shader capacity
     fade_rate: float = 0.95
     band_levels_processor: Optional[FFTBands] = None
+    spectral_centroid_processor: Optional[SpectralCentroid] = None
 
 class RyojiLinesUniforms(Uniforms, total=True):
     u_time: float
     u_resolution: Tuple[int, int]
     u_bands: List[float]
     u_num_bands: int
+    u_spectral_brightness: float
     # u_fade_rate: float
 
 class RyojiLines(BaseAVModule[RyojiLinesParams]):
@@ -35,22 +38,16 @@ class RyojiLines(BaseAVModule[RyojiLinesParams]):
     }
     frag_shader_path: str = 'shaders/ryoji-lines.frag'
 
-    def __init__(self, params: RyojiLinesParams = RyojiLinesParams(), band_levels_processor: Optional[FFTBands] = None):
+    def __init__(self, params: RyojiLinesParams = RyojiLinesParams(), band_levels_processor: Optional[FFTBands] = None, spectral_centroid_processor: Optional[SpectralCentroid] = None):
         super().__init__(params)
         self.width = self.params.width
         self.height = self.params.height
         # Initialize with zero bands - always use shader size
         self.bands: List[float] = [0.0] * SHADER_BANDS_SIZE
         self.band_levels_processor = band_levels_processor
-
-    def update(self, params: RyojiLinesParams) -> None:
-        """Update module parameters."""
-        self.params = params
-        self.width = self.params.width
-        self.height = self.params.height
-        # Ensure bands list always matches shader size
-        if len(self.bands) != SHADER_BANDS_SIZE:
-            self.bands = [0.0] * SHADER_BANDS_SIZE
+        self.spectral_centroid_processor = spectral_centroid_processor
+        self.spectral_brightness = 0.5
+        
 
     def set_bands(self, bands: List[float]) -> None:
         """
@@ -79,11 +76,15 @@ class RyojiLines(BaseAVModule[RyojiLinesParams]):
             processor_bands = self.band_levels_processor.process()
             self.set_bands(processor_bands)
         
+        if self.spectral_centroid_processor is not None:
+            self.spectral_brightness = self.spectral_centroid_processor.process()
+
         uniforms: RyojiLinesUniforms = {
             'u_time': t,
             'u_resolution': (self.width, self.height),
             'u_bands': self.bands,  # Always 512 bands now
             'u_num_bands': min(self.params.num_bands, SHADER_BANDS_SIZE),  # Use actual number of bands (up to 512)
+            'u_spectral_brightness': self.spectral_brightness,
             # 'u_line_thickness': self.params.line_thickness,
             # 'u_line_spacing': self.params.line_spacing,
             # 'u_animation_speed': self.params.animation_speed,
