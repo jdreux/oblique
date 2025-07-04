@@ -28,7 +28,7 @@ uniform float u_swap_phase;
 
 // Local shader parameters (not uniforms)
 const int MAX_SWAPS = 8; // Maximum number of swaps active at once
-const float SWAP_PATTERN_SCALE = 200.3; // Controls the pattern of swaps
+const float SWAP_PATTERN_SCALE = 1.0; // Controls the pattern of swaps (reduced from 200.3)
 const float SWAP_RANDOMNESS = 0.7; // Controls randomness in swap selection
 
 // Pseudo-random function for generating swap patterns
@@ -83,7 +83,8 @@ bool isSwapActive(int swapIndex) {
     float swapTime = u_time * u_swap_frequency + u_swap_phase;
     // Use different phases for different swaps to create varied patterns
     float phase = float(swapIndex) * 0.3;
-    return mod(swapTime + phase, 2.0) > 1.0;
+    // Make swaps more frequent by reducing the modulo period
+    return mod(swapTime + phase, 1.0) > 0.5;
 }
 
 // Function to apply swap transformation to grid coordinates
@@ -131,15 +132,17 @@ void main() {
     
     // Add some visual feedback for active swaps
     float swapIntensity = 0.0;
+    int activeSwapCount = 0;
     for (int i = 0; i < MAX_SWAPS; i++) {
         if (isSwapActive(i)) {
+            activeSwapCount++;
             vec4 swapPair = generateSwapPair(i, u_time);
             vec2 pos1 = swapPair.xy;
             vec2 pos2 = swapPair.zw;
             
-            // Add subtle highlight to swapped cells
+            // Add more visible highlight to swapped cells
             if (gridCell == pos1 || gridCell == pos2) {
-                swapIntensity += 0.05;
+                swapIntensity += 0.3; // Increased from 0.05 for better visibility
             }
         }
     }
@@ -150,8 +153,15 @@ void main() {
     float gridLine = step(0.95, fract(gridUV.x)) + step(0.95, fract(gridUV.y));
     gridLine = min(gridLine, 0.3); // Subtle grid lines
     
+    // Add debug info: show active swap count in top-left corner
+    vec2 debugUV = gl_FragCoord.xy / u_resolution.xy;
+    float debugInfo = 0.0;
+    if (debugUV.x < 0.1 && debugUV.y > 0.9) {
+        debugInfo = float(activeSwapCount) / float(MAX_SWAPS);
+    }
+    
     // Combine texture color with swap highlights and grid lines
-    vec3 finalColor = texColor.rgb + vec3(swapIntensity) + (showGrid ? vec3(gridLine) : vec3(0.0));
+    vec3 finalColor = texColor.rgb + vec3(swapIntensity) + (showGrid ? vec3(gridLine) : vec3(0.0)) + vec3(debugInfo);
     
     fragColor = vec4(finalColor, texColor.a);
 } 

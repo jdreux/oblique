@@ -54,16 +54,9 @@ def create_demo_patch(width: int, height: int, audio_path: str) -> ObliquePatch:
     iked_grid_params = IkedGridParams(
         width=width, 
         height=height, 
-        grid_size=4,
-        swap_pairs=[
-            (0, 0, 7, 7),      # Corner swap
-            (1, 1, 6, 6),      # Inner corner swap
-            (3, 3, 4, 4),      # Center swap
-            (0, 3, 7, 4),      # Vertical edge swap
-            (3, 0, 4, 7),      # Horizontal edge swap
-        ],
-        swap_frequency=8.0,
-        swap_phase=0.5
+        grid_size=2**1,  # Changed from 4 to 8 for better visibility
+        swap_frequency=1.0,  # Increased frequency for more visible swaps
+        swap_phase=0.0
     )
     iked_grid_module = IkedGrid(iked_grid_params, module=circle_echo_module)
     patch.add(iked_grid_module)
