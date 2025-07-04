@@ -85,11 +85,6 @@ class RyojiLines(BaseAVModule[RyojiLinesParams]):
             'u_bands': self.bands,  # Always 512 bands now
             'u_num_bands': min(self.params.num_bands, SHADER_BANDS_SIZE),  # Use actual number of bands (up to 512)
             'u_spectral_brightness': self.spectral_brightness,
-            # 'u_line_thickness': self.params.line_thickness,
-            # 'u_line_spacing': self.params.line_spacing,
-            # 'u_animation_speed': self.params.animation_speed,
-            # 'u_color_intensity': self.params.color_intensity,
-            # 'u_fade_rate': self.params.fade_rate,
         }
         return {
             'frag_shader_path': self.frag_shader_path,

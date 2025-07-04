@@ -34,7 +34,6 @@ class FFTBands(BaseProcessingOperator):
         self.f_min = 20.0  # Minimum frequency for bands (Hz)
         self.f_max = sample_rate / 2  # Nyquist
         self.band_edges = None  # Will be computed on first process
-        self.last_fft_size = None
         self.perceptual = perceptual
         self.gamma = gamma
         self.high_boost = high_boost
@@ -84,9 +83,12 @@ class FFTBands(BaseProcessingOperator):
         fft = np.abs(np.fft.rfft(mono))
         fft_size = len(mono)
         # Recompute band edges if fft_size changes
-        if self.band_edges is None or self.last_fft_size != fft_size:
+        if self.band_edges is None:
             self.band_edges = self._compute_band_edges(fft_size)
-            self.last_fft_size = fft_size
+        
+        # Compute FFT
+        fft = np.abs(np.fft.rfft(mono))
+        
         bands = []
         # Theoretical max FFT magnitude for a full-scale sine wave (amplitude 1.0)
         max_fft_magnitude = fft_size / 2.0
@@ -94,6 +96,7 @@ class FFTBands(BaseProcessingOperator):
             if len(bins) == 0:
                 bands.append(0.0)
             else:
+                # Use mean for better stability, but consider using max for more responsive peaks
                 band_amp = float(np.mean(fft[bins]))
                 # Normalize and clip to [0, 1]
                 normalized = np.clip(band_amp / max_fft_magnitude, 0.0, 1.0)

@@ -41,12 +41,13 @@ float getBandAmplitude(int bandIndex) {
 
 // Function to calculate line position and intensity
 vec2 calculateLine(vec2 uv, int bandIndex) {
+    // Early exit for zero amplitude bands
+    float amplitude = getBandAmplitude(bandIndex);
+    if (amplitude < 0.01) return vec2(0.0, 0.0);
+    
     // Calculate horizontal position for this band - equally allocate each band across viewport width
     float bandWidth = 1.0 / float(u_num_bands)*2;
     float normalizedX = (float(bandIndex) + 0.5) * bandWidth;
-    
-    // Get the amplitude for this band
-    float amplitude = getBandAmplitude(bandIndex);
     
     // Calculate vertical animation based on amplitude and time
     float animOffset = u_time * u_animation_speed * u_spectral_brightness * (0.5 + amplitude * 0.5);
