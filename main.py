@@ -10,6 +10,7 @@ from modules.ryoji_grid import RyojiGrid, RyojiGridParams
 from modules.pauric_particles import PauricParticles, PauricParticlesParams
 from modules.circle_echo import CircleEcho, CircleEchoParams
 from modules.debug import DebugModule, DebugParams
+from modules.iked_grid import IkedGrid, IkedGridParams
 from processing.normalized_amplitude import NormalizedAmplitudeOperator
 from processing.fft_bands import FFTBands
 # --- Input imports ---
@@ -47,7 +48,24 @@ def create_demo_patch(width: int, height: int, audio_path: str) -> ObliquePatch:
     spectral_centroid_processor = SpectralCentroid(audio_input)
     fft_bands_processor = FFTBands(audio_input, perceptual=True, num_bands=512)
     ryoji_lines_module = RyojiLines(RyojiLinesParams(width=width, height=height, num_bands=512), fft_bands_processor, spectral_centroid_processor)
-    patch.add(ryoji_lines_module)
+    
+    # Create IkedGrid module that creates its own pattern and swaps squares
+    iked_grid_params = IkedGridParams(
+        width=width, 
+        height=height, 
+        grid_size=8,
+        swap_pairs=[
+            (0, 0, 7, 7),      # Corner swap
+            (1, 1, 6, 6),      # Inner corner swap
+            (3, 3, 4, 4),      # Center swap
+            (0, 3, 7, 4),      # Vertical edge swap
+            (3, 0, 4, 7),      # Horizontal edge swap
+        ],
+        swap_frequency=2.0,
+        swap_phase=0.0
+    )
+    iked_grid_module = IkedGrid(iked_grid_params)
+    patch.add(iked_grid_module)
     
     
     return patch
