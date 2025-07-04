@@ -14,6 +14,7 @@ from processing.normalized_amplitude import NormalizedAmplitudeOperator
 from processing.fft_bands import FFTBands
 # --- Input imports ---
 from inputs.audio_device_input import AudioDeviceInput
+from modules.spectral_lines import SpectralLines, SpectralLinesParams
 
 
 def create_demo_patch(width: int, height: int, audio_path: str) -> ObliquePatch:
@@ -40,8 +41,9 @@ def create_demo_patch(width: int, height: int, audio_path: str) -> ObliquePatch:
     fft_bands_processor = FFTBands(audio_input, perceptual=True)
 
     # ryoji_grid_module = RyojiGrid(RyojiGridParams(width=width, height=height), fft_bands_processor)
-    circle_echo_module = CircleEcho(CircleEchoParams(width=width, height=height), fft_bands_processor)
-    patch.add(circle_echo_module)
+    # circle_echo_module = CircleEcho(CircleEchoParams(width=width, height=height), fft_bands_processor)
+    spectral_lines_module = SpectralLines(SpectralLinesParams(width=width, height=height), fft_bands_processor)
+    patch.add(spectral_lines_module)
     
     
     return patch
