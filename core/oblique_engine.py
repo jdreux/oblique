@@ -4,11 +4,12 @@ import moderngl
 import glfw  # type: ignore
 import sounddevice as sd
 import numpy as np
-from typing import Optional, List
+from typing import Optional, List, Dict
 from pathlib import Path
 
 from core.oblique_patch import ObliquePatch
 from core.renderer import render_fullscreen_quad, render_to_texture, blend_textures
+from core.performance_monitor import PerformanceMonitor
 from inputs.audio_device_input import AudioDeviceInput
 from inputs.base_input import BaseInput
 from processing.normalized_amplitude import NormalizedAmplitudeOperator
@@ -21,7 +22,7 @@ class ObliqueEngine:
     """
     
     def __init__(self, patch: ObliquePatch, width: int = 800, height: int = 600, 
-                 title: str = "Oblique MVP", target_fps: int = 60):
+                 title: str = "Oblique MVP", target_fps: int = 60, debug: bool = False):
         """
         Initialize the Oblique engine with a patch and display settings.
         
@@ -31,6 +32,7 @@ class ObliqueEngine:
             height: Window height in pixels
             title: Window title
             target_fps: Target frame rate for rendering
+            debug: Enable debug mode with performance monitoring
         """
         self.patch = patch
         self.width = width
@@ -38,6 +40,10 @@ class ObliqueEngine:
         self.title = title
         self.target_fps = target_fps
         self.frame_duration = 1.0 / target_fps
+        self.debug = debug
+        
+        # Performance monitoring
+        self.performance_monitor = PerformanceMonitor() if debug else None
         
         # OpenGL context
         self.window: Optional[glfw._GLFWwindow] = None
@@ -192,6 +198,9 @@ class ObliqueEngine:
             self.running = True
             
             print(f"Starting Oblique engine with {len(self.patch.modules)} modules")
+            
+            if self.debug:
+                print("Debug mode enabled - Performance monitoring active")
 
             if self.audio_input is not None:
                 self.audio_input.start()
@@ -205,6 +214,10 @@ class ObliqueEngine:
             
             # Main render loop
             while not glfw.window_should_close(self.window):
+                # Performance monitoring
+                if self.performance_monitor:
+                    self.performance_monitor.begin_frame()
+                
                 frame_start = time.time()
                 t = frame_start - self.start_time
                 
@@ -224,20 +237,37 @@ class ObliqueEngine:
                 # Handle events
                 glfw.poll_events()
                 
+                # Performance monitoring
+                if self.performance_monitor:
+                    self.performance_monitor.end_frame()
+                    self.performance_monitor.print_stats(every_n_frames=60)
+                
                 # Frame rate limiting
                 frame_end = time.time()
                 elapsed = frame_end - frame_start
                 sleep_time = self.frame_duration - elapsed
                 if sleep_time > 0:
                     time.sleep(sleep_time)
-                else:
-                    print(f"[WARNING] Frame took too long: {elapsed:.4f}s (target: {self.frame_duration:.4f}s)")
+                # else:
+                #     if self.debug:
+                #         print(f"[WARNING] Frame took too long: {elapsed:.4f}s (target: {self.frame_duration:.4f}s)")
                     
         except Exception as e:
             print(f"Error in Oblique engine: {e}")
             raise
         finally:
             self.cleanup()
+    
+    def get_performance_stats(self) -> Optional[Dict[str, float]]:
+        """
+        Get current performance statistics if debug mode is enabled.
+        
+        Returns:
+            Performance statistics dictionary or None if debug mode is disabled
+        """
+        if self.performance_monitor:
+            return self.performance_monitor.get_stats()
+        return None
     
     def cleanup(self) -> None:
         """Clean up resources."""

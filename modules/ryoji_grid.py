@@ -29,10 +29,6 @@ class RyojiGrid(BaseAVModule[RyojiGridParams]):
         self.width = self.params.width
         self.height = self.params.height
 
-    def update(self, params: RyojiGridParams) -> None:
-        self.params = params
-        self.width = self.params.width
-        self.height = self.params.height
 
     def render(self, t: float) -> dict[str, Any]:
         """

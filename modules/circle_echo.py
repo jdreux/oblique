@@ -45,15 +45,6 @@ class CircleEcho(BaseAVModule[CircleEchoParams]):
         self.band_amps = tuple(self.params.band_amps)
         self.band_levels_processor = band_levels_processor
 
-    def update(self, params: CircleEchoParams) -> None:
-        self.params = params
-        self.width = self.params.width
-        self.height = self.params.height
-        self.n_circles = self.params.n_circles
-        self.mod_depth = self.params.mod_depth
-        self.audio_level = self.params.audio_level
-        self.band_amps = tuple(self.params.band_amps)
-
     def render(self, t: float) -> dict[str, Any]:
         if self.band_levels_processor:
             band_amps_list = self.band_levels_processor.process()

@@ -30,9 +30,6 @@ class DebugModule(BaseAVModule[DebugParams]):
         super().__init__(params, number_input)
         self.number_input = number_input
 
-    def update(self, params: DebugParams) -> None:
-        self.params = params
-
     def render(self, t: float) -> dict[str, Any]:
         # Return shader path and uniforms for rendering
         if self.number_input:

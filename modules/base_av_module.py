@@ -22,7 +22,6 @@ class BaseAVModule(ObliqueNode, Generic[P]):
     - metadata: dict[str, Any] with keys 'name', 'description', 'parameters'
     - frag_shader_path: str (must be set by subclass)
     - __init__(params: BaseAVParams): Initialize the module with parameters (subclass of BaseAVParams)
-    - update(params: BaseAVParams): Update the module's parameters/state
     - render(t: float) -> dict[str, Any]:
         Return a dictionary with at least:
             'frag_shader_path': str (path to the fragment shader)
@@ -50,15 +49,6 @@ class BaseAVModule(ObliqueNode, Generic[P]):
         self.params = params
         if parent:
             self.add_parent(parent)
-
-    def update(self, params: P) -> None:
-        """
-        Update the module's parameters/state.
-
-        Args:
-            params (BaseAVParams): Parameters to update the module's state.
-        """
-        self.params = params
 
     def render(self, t: float) -> dict[str, Any]:
         """

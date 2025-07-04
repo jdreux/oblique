@@ -38,11 +38,14 @@ def create_demo_patch(width: int, height: int, audio_path: str) -> ObliquePatch:
     # debug_module = DebugModule(DebugParams(width=width, height=height, number=0.0, text="Debug"), amplitude_processor)
     # patch.add(debug_module)
 
-    fft_bands_processor = FFTBands(audio_input, perceptual=True, num_bands=512)
-    spectral_centroid_processor = SpectralCentroid(audio_input)
-
+    
     # ryoji_grid_module = RyojiGrid(RyojiGridParams(width=width, height=height), fft_bands_processor)
+    # fft_bands_processor = FFTBands(audio_input, perceptual=True, num_bands=16)
     # circle_echo_module = CircleEcho(CircleEchoParams(width=width, height=height), fft_bands_processor)
+    # patch.add(circle_echo_module)
+    
+    spectral_centroid_processor = SpectralCentroid(audio_input)
+    fft_bands_processor = FFTBands(audio_input, perceptual=True, num_bands=512)
     ryoji_lines_module = RyojiLines(RyojiLinesParams(width=width, height=height, num_bands=512), fft_bands_processor, spectral_centroid_processor)
     patch.add(ryoji_lines_module)
     
@@ -57,6 +60,7 @@ def main():
     parser.add_argument('--height', type=int, default=600, help='Window height')
     parser.add_argument('--audio', type=str, default=None, help='Path to audio file for playback')
     parser.add_argument('--fps', type=int, default=60, help='Target frame rate')
+    parser.add_argument('--debug', action='store_true', help='Enable debug mode with performance monitoring')
     args = parser.parse_args()
 
     # Create the patch
@@ -68,7 +72,8 @@ def main():
         width=args.width,
         height=args.height,
         title="Oblique MVP",
-        target_fps=args.fps
+        target_fps=args.fps,
+        debug=args.debug
     )
     
     try:

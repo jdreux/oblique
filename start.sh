@@ -9,4 +9,4 @@ fi
 source venv/bin/activate
 
 echo "[DEBUG] Starting Oblique MVP with default settings..."
-python3 main.py --audio "projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav" --width 800 --height 800 "$@" 
+python3 main.py --audio "projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav" --width 800 --height 800 --debug "$@" 

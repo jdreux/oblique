@@ -34,14 +34,6 @@ class PauricParticles(BaseAVModule[PauricParticlesParams]):
         self.spread = self.params.spread
         self.speed = self.params.speed
 
-    def update(self, params: PauricParticlesParams) -> None:
-        self.params = params
-        self.width = self.params.width
-        self.height = self.params.height
-        self.num_particles = self.params.num_particles
-        self.spread = self.params.spread
-        self.speed = self.params.speed
-
     def render(self, t: float) -> dict[str, Any]:
         uniforms: PauricParticlesUniforms = {
             'u_time': t,
