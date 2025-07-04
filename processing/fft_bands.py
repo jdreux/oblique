@@ -17,7 +17,7 @@ class FFTBands(BaseProcessingOperator):
         "parameters": {"num_bands": int, "sample_rate": int}
     }
 
-    def __init__(self, audio_input: AudioDeviceInput, num_bands: int = 16, sample_rate: int = 44100, perceptual: bool = False, gamma: float = 0.5, high_boost: float = 0.5):
+    def __init__(self, audio_input: AudioDeviceInput, num_bands: int = 16, sample_rate: int = 44100, perceptual: bool = False, gamma: float = 0.3, high_boost: float = 0.7):
         """
         Args:
             audio_input (AudioDeviceInput): Audio input source.

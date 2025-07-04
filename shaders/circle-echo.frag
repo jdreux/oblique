@@ -47,12 +47,17 @@ void main() {
         float band_amp = band_idx < 16 ? u_band_amps[band_idx] : 0.0;
         float amp = 0.1 + band_amp * 0.9;
         float radius = base_radius + float(c) * 0.8 / float(u_n_circles);
-        float angle = atan(uv.y, uv.x);
-        // float subtle_ripple = 0.01 * sin(u_time * 2.0 + float(band_idx) * 0.7 + angle * 8.0) * amp;
-        float subtle_ripple = 0;
-        float modulated_radius = radius + u_mod_depth * band_amp + subtle_ripple;
-        float band_fade = band_idx < 16 ? 1.0 : 0.0;
-        float alpha = amp * band_fade;
+        float angle = atan(uv.y - center.y, uv.x - center.x);
+        // --- Sound wave modulation ---
+        // Each circle's radius is modulated by a sine wave to mimic a sound wave.
+        // The amplitude of the wave is controlled by the band amplitude.
+        // The frequency is mapped to the band index for visual variety.
+        float wave_freq = 6.0 + float(band_idx) * 1.5; // Higher bands = more wiggles
+        float wave_phase = t * 0.2 + float(band_idx) * 0.3; // Animate the wave
+        float wave_amp = .04 + band_amp * 0.2; // Louder = more pronounced wave
+        float wave = sin(1 * wave_freq + wave_phase) * .01;
+        float modulated_radius = radius + wave_amp + wave;
+        float alpha = amp;
         color += circle(uv, center, modulated_radius, 0.008) * alpha * vec3(0.0, 0.94, 1.0);
     }
     fragColor = vec4(color, 1.0);
