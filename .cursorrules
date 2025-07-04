@@ -27,6 +27,7 @@ python rules:
 10. **Avoid Global Variables**: Limit the use of global variables to reduce side effects.
 11. **Use strong typing**: as much as possible, in particular to establish a clear interface between modules and with shaders. 
 12. **Use absolute imports**: use absolute imports to avoid conflicts with other modules. and improve re-usability**
+13. **To test code from the command line, use the ./start.sh script unless you need to adjust the parameters.**
 
 These rules will help you write clean, efficient, and maintainable Python code.
 

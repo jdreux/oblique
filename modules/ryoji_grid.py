@@ -30,7 +30,7 @@ class RyojiGrid(BaseAVModule[RyojiGridParams]):
         self.height = self.params.height
 
 
-    def render(self, t: float) -> dict[str, Any]:
+    def render_data(self, t: float) -> dict[str, Any]:
         """
         Return the data needed for the renderer to render this module.
         """
@@ -46,4 +46,3 @@ class RyojiGrid(BaseAVModule[RyojiGridParams]):
 if __name__ == "__main__":
     params = RyojiGridParams(width=800, height=600)
     grid = RyojiGrid(params)
-    grid.update(params)

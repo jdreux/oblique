@@ -3,6 +3,18 @@ import numpy as np
 from typing import Any
 
 _shader_cache = {}
+_debug_mode = False
+
+
+def set_debug_mode(debug: bool) -> None:
+    """
+    Set debug mode globally. When enabled, shaders are reloaded from file every time.
+    
+    Args:
+        debug: If True, bypass shader cache and reload from file every time
+    """
+    global _debug_mode
+    _debug_mode = debug
 
 
 def render_fullscreen_quad(ctx: moderngl.Context, frag_shader_path: str, uniforms: dict[str, Any]) -> None:
@@ -10,7 +22,12 @@ def render_fullscreen_quad(ctx: moderngl.Context, frag_shader_path: str, uniform
     Render a fullscreen quad using the given fragment shader and uniforms.
     Caches the program, VAO, and VBO for efficiency.
     """
-    global _shader_cache
+    global _shader_cache, _debug_mode
+    
+    # In debug mode, always reload shader from file
+    if _debug_mode and frag_shader_path in _shader_cache:
+        del _shader_cache[frag_shader_path]
+    
     if frag_shader_path not in _shader_cache:
         with open(frag_shader_path, 'r') as f:
             fragment_shader = f.read()
@@ -97,7 +114,12 @@ def blend_textures(ctx: moderngl.Context, width: int, height: int, tex0: moderng
     fbo.use()
     ctx.clear(0.0, 0.0, 0.0, 1.0)
     
-    global _shader_cache
+    global _shader_cache, _debug_mode
+    
+    # In debug mode, always reload shader from file
+    if _debug_mode and blend_shader_path in _shader_cache:
+        del _shader_cache[blend_shader_path]
+    
     if blend_shader_path not in _shader_cache:
         with open(blend_shader_path, 'r') as f:
             fragment_shader = f.read()

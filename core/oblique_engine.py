@@ -8,7 +8,7 @@ from typing import Optional, List, Dict
 from pathlib import Path
 
 from core.oblique_patch import ObliquePatch
-from core.renderer import render_fullscreen_quad, render_to_texture, blend_textures
+from core.renderer import render_fullscreen_quad, blend_textures
 from core.performance_monitor import PerformanceMonitor
 from inputs.audio_device_input import AudioDeviceInput
 from inputs.base_input import BaseInput
@@ -41,6 +41,9 @@ class ObliqueEngine:
         self.target_fps = target_fps
         self.frame_duration = 1.0 / target_fps
         self.debug = debug
+        # Set global debug mode for shader reloading
+        from core.renderer import set_debug_mode
+        set_debug_mode(debug)
         
         # Performance monitoring
         self.performance_monitor = PerformanceMonitor() if debug else None
@@ -121,15 +124,7 @@ class ObliqueEngine:
         textures: List[moderngl.Texture] = []
         # print(f"Rendering {len(self.patch.modules)} modules")
         for module in self.patch.modules:
-            render_data = module.render(t)
-            # print(f"Render data: {render_data}")
-            tex = render_to_texture(
-                self.ctx, 
-                fb_width, 
-                fb_height, 
-                render_data['frag_shader_path'], 
-                render_data['uniforms']
-            )
+            tex = module.render_texture(self.ctx, fb_width, fb_height, t)
             textures.append(tex)
         
         # Blend all textures in order (additive)

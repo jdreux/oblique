@@ -67,7 +67,7 @@ class RyojiLines(BaseAVModule[RyojiLinesParams]):
             # Exact size
             self.bands = bands.copy()
 
-    def render(self, t: float) -> dict[str, Any]:
+    def render_data(self, t: float) -> dict[str, Any]:
         """
         Return the data needed for the renderer to render this module.
         """
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     ryoji_lines.set_bands(test_bands)
     
     # Test render
-    result = ryoji_lines.render(1.5)
+    result = ryoji_lines.render_data(1.5)
     print(f"Render result: {result}")
     print(f"Number of bands sent to shader: {len(result['uniforms']['u_bands'])}")
     print(f"u_num_bands value: {result['uniforms']['u_num_bands']}") 

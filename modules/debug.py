@@ -30,7 +30,7 @@ class DebugModule(BaseAVModule[DebugParams]):
         super().__init__(params, number_input)
         self.number_input = number_input
 
-    def render(self, t: float) -> dict[str, Any]:
+    def render_data(self, t: float) -> dict[str, Any]:
         # Return shader path and uniforms for rendering
         if self.number_input:
             number = self.number_input.process()
@@ -49,6 +49,5 @@ class DebugModule(BaseAVModule[DebugParams]):
 
 if __name__ == "__main__":
     mod = DebugModule(DebugParams(number=42.0, text="Hello, Oblique!"))
-    print("Initial render:", mod.render(0.0))
-    mod.update(DebugParams(number=3.14, text="Updated!"))
-    print("After update:", mod.render(1.0)) 
+    print("Initial render:", mod.render_data(0.0))
+    print("After update:", mod.render_data(1.0)) 

@@ -1,6 +1,8 @@
 from typing import Any, TypedDict, Dict, TypeVar, Generic
 from dataclasses import dataclass
 from core.oblique_node import ObliqueNode
+import moderngl
+from core.renderer import render_to_texture
 
 # --- Base params dataclass ---
 @dataclass
@@ -22,11 +24,16 @@ class BaseAVModule(ObliqueNode, Generic[P]):
     - metadata: dict[str, Any] with keys 'name', 'description', 'parameters'
     - frag_shader_path: str (must be set by subclass)
     - __init__(params: BaseAVParams): Initialize the module with parameters (subclass of BaseAVParams)
-    - render(t: float) -> dict[str, Any]:
+    - render_data(t: float) -> dict[str, Any]:
         Return a dictionary with at least:
             'frag_shader_path': str (path to the fragment shader)
             'uniforms': Uniforms (uniforms to pass to the shader)
         This data will be used by the renderer to draw the module.
+    
+    Optional methods:
+    - render_texture(ctx: moderngl.Context, width: int, height: int, t: float) -> moderngl.Texture:
+        Override this method to provide custom texture rendering behavior.
+        Default implementation uses render_data() method and render_to_texture().
     """
 
     metadata: dict[str, Any] = {
@@ -50,7 +57,7 @@ class BaseAVModule(ObliqueNode, Generic[P]):
         if parent:
             self.add_parent(parent)
 
-    def render(self, t: float) -> dict[str, Any]:
+    def render_data(self, t: float) -> dict[str, Any]:
         """
         Return the data needed for the renderer to render this module.
 
@@ -60,9 +67,27 @@ class BaseAVModule(ObliqueNode, Generic[P]):
         Returns:
             dict[str, Any]: Dictionary with at least 'frag_shader_path' and 'uniforms'.
         """
-        raise NotImplementedError("Subclasses must implement the render() method.")
+        raise NotImplementedError("Subclasses must implement the render_data() method.")
+
+    def render_texture(self, ctx: moderngl.Context, width: int, height: int, t: float) -> moderngl.Texture:
         """
-        Return the data needed for the renderer to render this module.
-        Should return a dict with at least 'frag_shader_path' and 'uniforms'.
+        Get the texture for this module. Default implementation uses render_data() method.
+        Override this method to provide custom texture rendering behavior.
+
+        Args:
+            ctx (moderngl.Context): OpenGL context
+            width (int): Texture width
+            height (int): Texture height
+            t (float): Current time in seconds
+
+        Returns:
+            moderngl.Texture: The rendered texture for this module
         """
-        raise NotImplementedError 
+        render_data = self.render_data(t)
+        return render_to_texture(
+            ctx,
+            width,
+            height,
+            render_data['frag_shader_path'],
+            render_data['uniforms']
+        ) 

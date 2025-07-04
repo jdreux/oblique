@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Any, Tuple, Optional, List
 from modules.base_av_module import BaseAVModule, Uniforms, BaseAVParams
+import moderngl
 
 @dataclass
 class IkedGridParams(BaseAVParams):
@@ -15,7 +16,8 @@ class IkedGridUniforms(Uniforms, total=True):
     u_grid_size: int
     u_swap_frequency: float
     u_swap_phase: float
-    u_swap_pairs: List[Tuple[int, int, int, int]]
+    # u_swap_pairs: List[Tuple[int, int, int, int]]
+    tex0: moderngl.Texture
 
 class IkedGrid(BaseAVModule[IkedGridParams]):
     """
@@ -29,11 +31,12 @@ class IkedGrid(BaseAVModule[IkedGridParams]):
     }
     frag_shader_path: str = 'shaders/iked-grid.frag'
 
-    def __init__(self, params: IkedGridParams = IkedGridParams()):
+    def __init__(self, params: IkedGridParams, module: BaseAVModule):
         """
         Initialize IkedGrid module.
         Args:
             params (IkedGridParams): Parameters for the module.
+            module (BaseAVModule): Upstream module to get texture from.
         """
         super().__init__(params)
         self.width = self.params.width
@@ -41,7 +44,8 @@ class IkedGrid(BaseAVModule[IkedGridParams]):
         self.grid_size = self.params.grid_size
         self.swap_frequency = self.params.swap_frequency
         self.swap_phase = self.params.swap_phase
-        
+        self.upstream_module = module
+
         # Initialize default swap pairs if none provided
         if self.params.swap_pairs is None:
             # Default: swap corners and some middle squares
@@ -53,7 +57,7 @@ class IkedGrid(BaseAVModule[IkedGridParams]):
         else:
             self.swap_pairs = self.params.swap_pairs
 
-    def render(self, t: float) -> dict[str, Any]:
+    def render_data(self, t: float) -> dict[str, Any]:
         """
         Return the data needed for the renderer to render this module.
         """
@@ -76,12 +80,19 @@ class IkedGrid(BaseAVModule[IkedGridParams]):
             'u_grid_size': self.grid_size,
             'u_swap_frequency': self.swap_frequency,
             'u_swap_phase': self.swap_phase,
-            'u_swap_pairs': shader_swap_pairs,
+            # 'u_swap_pairs': shader_swap_pairs,
+            'tex0': self.upstream_tex,
         }
         return {
             'frag_shader_path': self.frag_shader_path,
             'uniforms': uniforms,
         }
+    
+    def render_texture(self, ctx: moderngl.Context, width: int, height: int, t: float) -> moderngl.Texture:
+        self.upstream_tex = self.upstream_module.render_texture(ctx, width, height, t);
+
+        # Render the module to a texture
+        return super().render_texture(ctx, width, height, t)
 
 if __name__ == "__main__":
     # Test with some interesting swap patterns
@@ -101,5 +112,3 @@ if __name__ == "__main__":
         swap_frequency=2.0,
         swap_phase=0.0
     )
-    module = IkedGrid(params)
-    print(module.render(0.0)) 

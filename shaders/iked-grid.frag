@@ -1,16 +1,16 @@
 #version 330
 /*
 iked-grid.frag
-Description: Ikeda Grid - Creates a pattern and performs square swapping operations on an NxN grid.
+Description: Ikeda Grid - Takes a texture input and performs square swapping operations on an NxN grid.
              Inspired by Ryoji Ikeda's geometric manipulations.
 Author: Oblique AI Agent
 Inputs:
+    - uniform sampler2D tex0; // Upstream texture to be swapped
     - uniform float u_time; // Animation time in seconds
     - uniform vec2 u_resolution; // Viewport resolution
     - uniform int u_grid_size; // NxN grid size
     - uniform float u_swap_frequency; // How often swaps occur (in Hz)
     - uniform float u_swap_phase; // Phase offset for swap timing
-    - uniform vec4 u_swap_pairs[16]; // Array of swap pairs (x1,y1,x2,y2) - max 16 pairs
 */
 
 out vec4 fragColor;
@@ -19,12 +19,27 @@ out vec4 fragColor;
 precision mediump float;
 #endif
 
+uniform sampler2D tex0;
 uniform float u_time;
 uniform vec2 u_resolution;
 uniform int u_grid_size;
 uniform float u_swap_frequency;
 uniform float u_swap_phase;
-uniform vec4 u_swap_pairs[16];
+
+// Local shader parameters (not uniforms)
+const int MAX_SWAPS = 8; // Maximum number of swaps active at once
+const float SWAP_PATTERN_SCALE = 200.3; // Controls the pattern of swaps
+const float SWAP_RANDOMNESS = 0.7; // Controls randomness in swap selection
+
+// Pseudo-random function for generating swap patterns
+float random(vec2 st) {
+    // This is a classic pseudo-random hash function for GLSL:
+    // 1. dot(st.xy, vec2(12.9898, 78.233)) - Creates a scalar from 2D input using magic numbers
+    // 2. sin(...) * 43758.5453123 - Applies sine and scales by large constant for good distribution
+    // 3. fract(...) - Returns fractional part, giving us a value in [0,1) range
+    // The magic numbers are carefully chosen to avoid patterns and provide good randomness
+    return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+}
 
 // Function to get grid cell coordinates from UV coordinates
 vec2 getGridCell(vec2 uv) {
@@ -37,11 +52,37 @@ vec2 getCellUV(vec2 uv) {
     return (uv * float(u_grid_size)) - cell;
 }
 
+// Function to generate a swap pair based on time and pattern
+vec4 generateSwapPair(int swapIndex, float time) {
+    // Use time and swap index to generate deterministic but varied patterns
+    float seed = time * SWAP_PATTERN_SCALE + float(swapIndex) * 0.5;
+    
+    // Generate first position
+    vec2 pos1 = vec2(
+        mod(random(vec2(seed, 0.0)) * float(u_grid_size), float(u_grid_size)),
+        mod(random(vec2(seed, 1.0)) * float(u_grid_size), float(u_grid_size))
+    );
+    
+    // Generate second position with some randomness
+    float offsetSeed = seed + SWAP_RANDOMNESS;
+    vec2 pos2 = vec2(
+        mod(random(vec2(offsetSeed, 2.0)) * float(u_grid_size), float(u_grid_size)),
+        mod(random(vec2(offsetSeed, 3.0)) * float(u_grid_size), float(u_grid_size))
+    );
+    
+    // Ensure positions are different
+    if (distance(pos1, pos2) < 1.0) {
+        pos2 = mod(pos2 + vec2(1.0, 1.0), float(u_grid_size));
+    }
+    
+    return vec4(pos1, pos2);
+}
+
 // Function to check if a swap should be active based on time
-bool isSwapActive(int pairIndex) {
+bool isSwapActive(int swapIndex) {
     float swapTime = u_time * u_swap_frequency + u_swap_phase;
-    // Use different phases for different pairs to create varied patterns
-    float phase = float(pairIndex) * 0.5;
+    // Use different phases for different swaps to create varied patterns
+    float phase = float(swapIndex) * 0.3;
     return mod(swapTime + phase, 2.0) > 1.0;
 }
 
@@ -50,15 +91,12 @@ vec2 applySwaps(vec2 gridCoord) {
     vec2 result = gridCoord;
     
     // Apply each swap pair if active
-    for (int i = 0; i < 16; i++) {
-        // Check if this swap pair is valid (not zero)
-        vec4 swapPair = u_swap_pairs[i];
-        if (swapPair.x < 0.0) break; // Use negative x as sentinel for end of array
-        
-        vec2 pos1 = swapPair.xy;
-        vec2 pos2 = swapPair.zw;
-        
+    for (int i = 0; i < MAX_SWAPS; i++) {
         if (isSwapActive(i)) {
+            vec4 swapPair = generateSwapPair(i, u_time);
+            vec2 pos1 = swapPair.xy;
+            vec2 pos2 = swapPair.zw;
+            
             // If current position matches pos1, swap to pos2
             if (result == pos1) {
                 result = pos2;
@@ -73,36 +111,6 @@ vec2 applySwaps(vec2 gridCoord) {
     return result;
 }
 
-// Function to generate a pattern based on coordinates and time
-vec3 generatePattern(vec2 uv, float time) {
-    // Create a complex pattern that will be interesting when swapped
-    float x = uv.x;
-    float y = uv.y;
-    
-    // Create multiple layers of patterns
-    float pattern1 = sin(x * 20.0 + time * 2.0) * cos(y * 15.0 + time * 1.5);
-    float pattern2 = sin(x * 10.0 - time * 1.0) * sin(y * 12.0 + time * 0.8);
-    float pattern3 = cos(x * 8.0 + time * 0.5) * cos(y * 6.0 - time * 1.2);
-    
-    // Combine patterns with different weights
-    float combined = pattern1 * 0.4 + pattern2 * 0.3 + pattern3 * 0.3;
-    
-    // Create color variations
-    vec3 color1 = vec3(0.8, 0.2, 0.8); // Purple
-    vec3 color2 = vec3(0.2, 0.8, 0.8); // Cyan
-    vec3 color3 = vec3(0.8, 0.8, 0.2); // Yellow
-    
-    // Mix colors based on pattern values
-    vec3 finalColor = mix(color1, color2, (combined + 1.0) * 0.5);
-    finalColor = mix(finalColor, color3, abs(sin(time * 0.5)));
-    
-    // Add some noise for texture
-    float noise = fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453);
-    finalColor += vec3(noise * 0.1);
-    
-    return finalColor;
-}
-
 void main() {
     vec2 uv = gl_FragCoord.xy / u_resolution.xy;
     
@@ -115,37 +123,35 @@ void main() {
     // Get UV coordinates within the cell
     vec2 cellUV = getCellUV(uv);
     
-    // Calculate final coordinates for pattern generation
+    // Calculate final coordinates for texture sampling
     vec2 finalUV = (swappedCell + cellUV) / float(u_grid_size);
     
-    // Generate a pattern based on the swapped coordinates
-    vec3 patternColor = generatePattern(finalUV, u_time);
+    // Sample from the upstream texture using swapped coordinates
+    vec4 texColor = texture(tex0, finalUV);
     
     // Add some visual feedback for active swaps
     float swapIntensity = 0.0;
-    for (int i = 0; i < 16; i++) {
-        // Check if this swap pair is valid
-        vec4 swapPair = u_swap_pairs[i];
-        if (swapPair.x < 0.0) break;
-        
+    for (int i = 0; i < MAX_SWAPS; i++) {
         if (isSwapActive(i)) {
+            vec4 swapPair = generateSwapPair(i, u_time);
             vec2 pos1 = swapPair.xy;
             vec2 pos2 = swapPair.zw;
             
             // Add subtle highlight to swapped cells
             if (gridCell == pos1 || gridCell == pos2) {
-                swapIntensity += 0.1;
+                swapIntensity += 0.05;
             }
         }
     }
     
     // Add subtle grid lines for visual reference
+    bool showGrid = true; // Hardcoded variable to show/hide grid
     vec2 gridUV = uv * float(u_grid_size);
     float gridLine = step(0.95, fract(gridUV.x)) + step(0.95, fract(gridUV.y));
     gridLine = min(gridLine, 0.3); // Subtle grid lines
     
-    // Combine pattern color with swap highlights and grid lines
-    vec3 finalColor = patternColor + vec3(swapIntensity) + vec3(gridLine);
+    // Combine texture color with swap highlights and grid lines
+    vec3 finalColor = texColor.rgb + vec3(swapIntensity) + (showGrid ? vec3(gridLine) : vec3(0.0));
     
-    fragColor = vec4(finalColor, 1.0);
+    fragColor = vec4(finalColor, texColor.a);
 } 

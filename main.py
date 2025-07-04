@@ -36,24 +36,25 @@ def create_demo_patch(width: int, height: int, audio_path: str) -> ObliquePatch:
 
     patch.input(audio_input)
     amplitude_processor = NormalizedAmplitudeOperator(audio_input)
-    # debug_module = DebugModule(DebugParams(width=width, height=height, number=0.0, text="Debug"), amplitude_processor)
+    debug_module = DebugModule(DebugParams(width=width, height=height, number=0.0, text="Debug"), amplitude_processor)
     # patch.add(debug_module)
 
     
     # ryoji_grid_module = RyojiGrid(RyojiGridParams(width=width, height=height), fft_bands_processor)
-    # fft_bands_processor = FFTBands(audio_input, perceptual=True, num_bands=16)
-    # circle_echo_module = CircleEcho(CircleEchoParams(width=width, height=height), fft_bands_processor)
-    # patch.add(circle_echo_module)
+    fft_bands_processor2 = FFTBands(audio_input, perceptual=True, num_bands=16)
+    circle_echo_module = CircleEcho(CircleEchoParams(width=width, height=height), fft_bands_processor2)
     
     spectral_centroid_processor = SpectralCentroid(audio_input)
     fft_bands_processor = FFTBands(audio_input, perceptual=True, num_bands=512)
     ryoji_lines_module = RyojiLines(RyojiLinesParams(width=width, height=height, num_bands=512), fft_bands_processor, spectral_centroid_processor)
     
+
+    
     # Create IkedGrid module that creates its own pattern and swaps squares
     iked_grid_params = IkedGridParams(
         width=width, 
         height=height, 
-        grid_size=8,
+        grid_size=4,
         swap_pairs=[
             (0, 0, 7, 7),      # Corner swap
             (1, 1, 6, 6),      # Inner corner swap
@@ -61,10 +62,10 @@ def create_demo_patch(width: int, height: int, audio_path: str) -> ObliquePatch:
             (0, 3, 7, 4),      # Vertical edge swap
             (3, 0, 4, 7),      # Horizontal edge swap
         ],
-        swap_frequency=2.0,
-        swap_phase=0.0
+        swap_frequency=8.0,
+        swap_phase=0.5
     )
-    iked_grid_module = IkedGrid(iked_grid_params)
+    iked_grid_module = IkedGrid(iked_grid_params, module=circle_echo_module)
     patch.add(iked_grid_module)
     
     
