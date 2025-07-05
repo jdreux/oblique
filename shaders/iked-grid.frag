@@ -82,5 +82,9 @@ void main() {
     vec2 finalUV = (swappedCell + local) / N;
 
     // Output color from swapped position
+    // texture(tex0, finalUV) samples the input texture at the calculated UV coordinates
+    // tex0: the input texture sampler (from the parent module)
+    // finalUV: the UV coordinates after applying grid cell swaps
+    // This creates the visual effect of swapping grid cells by sampling from different positions
     fragColor = texture(tex0, finalUV);
 }

@@ -53,9 +53,9 @@ class VisualNoiseModule(BaseAVModule[VisualNoiseParams]):
         """
         # Map noise size to scale factor
         size_scale = {
-            "small": 50.0,
-            "medium": 20.0, 
-            "large": 5.0
+            "small": 1,
+            "medium": 500,
+            "large": 10000
         }
         
         # Map color mode to shader flag

@@ -61,7 +61,7 @@ class IkedGrid(BaseAVModule[IkedGridParams]):
             'uniforms': uniforms,
         }
     
-    def render_texture(self, ctx: moderngl.Context, width: int, height: int, t: float) -> moderngl.Texture:
+    def render_texture(self, ctx: moderngl.Context, width: int, height: int, t: float, filter=moderngl.NEAREST) -> moderngl.Texture:
         self.upstream_tex = self.upstream_module.render_texture(ctx, width, height, t);
 
         # Render the module to a texture

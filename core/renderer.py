@@ -78,14 +78,14 @@ def render_fullscreen_quad(ctx: moderngl.Context, frag_shader_path: str, uniform
     vao.render(moderngl.TRIANGLE_STRIP)
 
 
-def render_to_texture(ctx: moderngl.Context, width: int, height: int, frag_shader_path: str, uniforms: dict[str, Any]) -> moderngl.Texture:
+def render_to_texture(ctx: moderngl.Context, width: int, height: int, frag_shader_path: str, uniforms: dict[str, Any], filter=moderngl.NEAREST) -> moderngl.Texture:
     """
     Render a fullscreen quad to an offscreen texture using the given fragment shader and uniforms.
     Returns the resulting texture.
     """
     # Use more efficient texture format and settings
     tex = ctx.texture((width, height), 4, dtype='f1', alignment=1)
-    tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
+    tex.filter = (filter, filter)
     tex.repeat_x = False
     tex.repeat_y = False
     

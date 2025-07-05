@@ -18,6 +18,7 @@ from inputs.audio_device_input import AudioDeviceInput
 from modules.ryoji_lines import RyojiLines, RyojiLinesParams
 from processing.spectral_centroid import SpectralCentroid
 from modules.visual_noise import VisualNoiseModule, VisualNoiseParams
+from modules.ikeda_test_pattern import IkedaTestPatternModule, IkedaTestPatternParams
 
 def create_demo_patch(width: int, height: int, audio_path: str) -> ObliquePatch:
     """
@@ -47,8 +48,8 @@ def create_demo_patch(width: int, height: int, audio_path: str) -> ObliquePatch:
     spectral_centroid_processor = SpectralCentroid(audio_input)
     fft_bands_processor = FFTBands(audio_input, perceptual=True, num_bands=2**7)
     ryoji_lines_module = RyojiLines(RyojiLinesParams(width=width, height=height, num_bands=2**7), fft_bands_processor, spectral_centroid_processor)
-    visual_noise_module = VisualNoiseModule(VisualNoiseParams(width=width, height=height, color_mode="rgba"))
-
+    visual_noise_module = VisualNoiseModule(VisualNoiseParams(width=width, height=height, color_mode="rgba", noise_size="large", speed=0.1))
+    ikeda_test_pattern = IkedaTestPatternModule(IkedaTestPatternParams(width=width, height=height), module=visual_noise_module)
 
     
     # Create IkedGrid module that creates its own pattern and swaps squares

@@ -69,7 +69,7 @@ class BaseAVModule(ObliqueNode, Generic[P]):
         """
         raise NotImplementedError("Subclasses must implement the render_data() method.")
 
-    def render_texture(self, ctx: moderngl.Context, width: int, height: int, t: float) -> moderngl.Texture:
+    def render_texture(self, ctx: moderngl.Context, width: int, height: int, t: float, filter=moderngl.NEAREST) -> moderngl.Texture:
         """
         Get the texture for this module. Default implementation uses render_data() method.
         Override this method to provide custom texture rendering behavior.
@@ -89,5 +89,6 @@ class BaseAVModule(ObliqueNode, Generic[P]):
             width,
             height,
             render_data['frag_shader_path'],
-            render_data['uniforms']
+            render_data['uniforms'],
+            filter
         ) 
