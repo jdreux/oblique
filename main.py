@@ -39,14 +39,13 @@ def create_demo_patch(width: int, height: int, audio_path: str) -> ObliquePatch:
     debug_module = DebugModule(DebugParams(width=width, height=height, number=0.0, text="Debug"), amplitude_processor)
     # patch.add(debug_module)
 
-    
-    # ryoji_grid_module = RyojiGrid(RyojiGridParams(width=width, height=height), fft_bands_processor)
     fft_bands_processor2 = FFTBands(audio_input, perceptual=True, num_bands=16)
+    ryoji_grid_module = RyojiGrid(RyojiGridParams(width=width, height=height))
     circle_echo_module = CircleEcho(CircleEchoParams(width=width, height=height), fft_bands_processor2)
     
     spectral_centroid_processor = SpectralCentroid(audio_input)
-    fft_bands_processor = FFTBands(audio_input, perceptual=True, num_bands=512)
-    ryoji_lines_module = RyojiLines(RyojiLinesParams(width=width, height=height, num_bands=512), fft_bands_processor, spectral_centroid_processor)
+    fft_bands_processor = FFTBands(audio_input, perceptual=True, num_bands=2**7)
+    ryoji_lines_module = RyojiLines(RyojiLinesParams(width=width, height=height, num_bands=2**7), fft_bands_processor, spectral_centroid_processor)
     
 
     
@@ -54,7 +53,7 @@ def create_demo_patch(width: int, height: int, audio_path: str) -> ObliquePatch:
     iked_grid_params = IkedGridParams(
         width=width, 
         height=height, 
-        grid_size=2**2,  
+        grid_size=2**4,  
         swap_frequency=1.0,  # Increased frequency for more visible swaps
         swap_phase=0.0
     )

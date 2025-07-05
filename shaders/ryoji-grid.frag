@@ -16,11 +16,12 @@ precision mediump float;
 
 uniform float u_time;
 uniform vec2 u_resolution;
-
+in vec2 v_uv;
 void main() {
-    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
-    float grid_x = step(0.05, abs(sin(uv.x * 40.0 + u_time * 2.0)));
-    float grid_y = step(0.05, abs(sin(uv.y * 40.0 + u_time * 2.0)));
+    // vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    vec2 uv = v_uv;
+    float grid_x = step(0.05, abs(sin(uv.x * 40.0 + u_time * 0.0)));
+    float grid_y = step(0.05, abs(sin(uv.y * 40.0 + u_time * 0.0)));
     float grid = grid_x * grid_y;
     float color = 1.0 - grid;
     fragColor = vec4(vec3(color), 1.0);

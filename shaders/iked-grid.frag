@@ -22,6 +22,8 @@ uniform int u_grid_size;
 uniform float u_swap_frequency;
 uniform float u_swap_phase;
 
+in vec2 v_uv;
+
 // Simple hash function for pseudo-random swap selection
 float hash12(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
@@ -41,6 +43,9 @@ void getSwapCells(int swapIdx, out vec2 cellA, out vec2 cellB) {
         floor(hash12(vec2(seedB, 7.7)) * float(u_grid_size)),
         floor(hash12(vec2(seedB, 3.9)) * float(u_grid_size))
     );
+
+    // cellA = vec2(1.0, 3.0);  // Top-left cell
+    // cellB = vec2(3.0, 3.0); 
     // Avoid swapping a cell with itself
     if (all(equal(cellA, cellB))) {
         cellB = mod(cellB + vec2(1.0, 0.0), float(u_grid_size));
@@ -50,9 +55,9 @@ void getSwapCells(int swapIdx, out vec2 cellA, out vec2 cellB) {
 // Applies all active swaps to a given cell coordinate
 vec2 applySwaps(vec2 cell) {
     // Number of concurrent swaps per frame (tweakable, 4–8 is typical)
-    const int NUM_SWAPS = 6;
+    // const int NUM_SWAPS = 6;
     vec2 current = cell;
-    for (int i = 0; i < NUM_SWAPS; ++i) {
+    for (int i = 0; i < u_grid_size; ++i) {
         vec2 a, b;
         getSwapCells(i, a, b);
         if (all(equal(current, a)))      current = b;
@@ -62,7 +67,8 @@ vec2 applySwaps(vec2 cell) {
 }
 
 void main() {
-    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    // vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    vec2 uv = v_uv;
 
     // Map pixel to grid cell and cell-local UV
     float N = float(u_grid_size);
