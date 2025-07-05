@@ -8,6 +8,7 @@ class IkedGridParams(BaseAVParams):
     grid_size: int = 8  # NxN grid size
     swap_frequency: float = 1.0  # How often swaps occur (in Hz)
     swap_phase: float = 0.0  # Phase offset for swap timing
+    num_swaps: int = 8
 
 class IkedGridUniforms(Uniforms, total=True):
     u_time: float
@@ -15,6 +16,7 @@ class IkedGridUniforms(Uniforms, total=True):
     u_grid_size: int
     u_swap_frequency: float
     u_swap_phase: float
+    u_num_swaps: int
     tex0: moderngl.Texture
 
 class IkedGrid(BaseAVModule[IkedGridParams]):
@@ -42,6 +44,7 @@ class IkedGrid(BaseAVModule[IkedGridParams]):
         self.grid_size = self.params.grid_size
         self.swap_frequency = self.params.swap_frequency
         self.swap_phase = self.params.swap_phase
+        self.num_swaps = self.params.num_swaps
         self.upstream_module = module
 
     def render_data(self, t: float) -> dict[str, Any]:
@@ -54,6 +57,7 @@ class IkedGrid(BaseAVModule[IkedGridParams]):
             'u_grid_size': self.grid_size,
             'u_swap_frequency': self.swap_frequency,
             'u_swap_phase': self.swap_phase,
+            'u_num_swaps': self.num_swaps,
             'tex0': self.upstream_tex,
         }
         return {

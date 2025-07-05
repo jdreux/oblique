@@ -53,15 +53,16 @@ def create_demo_patch(width: int, height: int, audio_path: str) -> ObliquePatch:
 
     
     # Create IkedGrid module that creates its own pattern and swaps squares
-    iked_grid_params = IkedGridParams(
+    iked_grid_module = IkedGrid(IkedGridParams(
         width=width, 
         height=height, 
         grid_size=2**4,  
         swap_frequency=1.0,  # Increased frequency for more visible swaps
-        swap_phase=0.0
-    )
-    iked_grid_module = IkedGrid(iked_grid_params, module=visual_noise_module)
-    patch.add(visual_noise_module)
+        swap_phase=0.0,
+        num_swaps=2**3
+    ), module=ikeda_test_pattern)
+    
+    patch.add(iked_grid_module)
     
     
     return patch

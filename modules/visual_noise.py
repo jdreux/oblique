@@ -65,10 +65,11 @@ class VisualNoiseModule(BaseAVModule[VisualNoiseParams]):
             "frag_shader_path": self.frag_shader_path,
             "uniforms": {
                 "u_resolution": (self.params.width, self.params.height),
-                "u_time": t * self.params.speed,
+                "u_time": t,
                 "u_noise_scale": size_scale[self.params.noise_size],
                 "u_intensity": self.params.intensity,
-                "u_color_mode": color_mode_flag
+                "u_color_mode": color_mode_flag,
+                "u_speed": self.params.speed
             }
         }
 

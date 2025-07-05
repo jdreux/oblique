@@ -21,6 +21,7 @@ uniform vec2 u_resolution;
 uniform int u_grid_size;
 uniform float u_swap_frequency;
 uniform float u_swap_phase;
+uniform int u_num_swaps;
 
 in vec2 v_uv;
 
@@ -54,10 +55,9 @@ void getSwapCells(int swapIdx, out vec2 cellA, out vec2 cellB) {
 
 // Applies all active swaps to a given cell coordinate
 vec2 applySwaps(vec2 cell) {
-    // Number of concurrent swaps per frame (tweakable, 4–8 is typical)
-    // const int NUM_SWAPS = 6;
+    // Number of concurrent swaps per frame
     vec2 current = cell;
-    for (int i = 0; i < u_grid_size; ++i) {
+    for (int i = 0; i < u_num_swaps; ++i) {
         vec2 a, b;
         getSwapCells(i, a, b);
         if (all(equal(current, a)))      current = b;
