@@ -1,1 +1,1 @@
- 
+from .visual_noise import VisualNoiseModule, VisualNoiseParams 

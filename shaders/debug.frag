@@ -23,9 +23,10 @@ uniform vec2 u_resolution;
 // For example, vec4(1.0, 0.0, 0.0, 1.0) is opaque red.
 // The shader writes the computed color to 'fragColor' for each pixel.
 out vec4 fragColor;
+in vec2 v_uv;
 
 void main() {
-    vec2 uv = gl_FragCoord.xy / u_resolution;
+    vec2 uv = v_uv;
     // Simple color: number modulates red, text not shown in MVP
     // fragColor = vec4(u_number, uv.x, uv.y, 1.0);
     fragColor = vec4(gl_FragCoord.x / u_resolution.x, gl_FragCoord.y / u_resolution.y, u_number, 1.0);
