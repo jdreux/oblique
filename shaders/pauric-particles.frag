@@ -19,6 +19,7 @@ uniform int   u_num_particles;
 uniform float u_spread;
 uniform float u_speed;
 
+in vec2 v_uv;
 out vec4 fragColor;
 
 // Hash function for pseudo-randomness
@@ -27,7 +28,8 @@ float hash(float n) {
 }
 
 void main() {
-    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    // vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    vec2 uv = v_uv;
     float aspect = u_resolution.x / u_resolution.y;
     uv.x *= aspect;
 

@@ -22,6 +22,7 @@ uniform float u_mod_depth;
 uniform float u_band_amps[16];
 
 out vec4 fragColor;
+in vec2 v_uv;
 
 // Utility: draw a soft circle
 float circle(vec2 uv, vec2 center, float radius, float thickness) {
@@ -35,7 +36,8 @@ float circle(vec2 uv, vec2 center, float radius, float thickness) {
 }
 
 void main() {
-    vec2 uv = (gl_FragCoord.xy / u_resolution.xy) * 2.0 - 1.0;
+    // vec2 uv = (gl_FragCoord.xy / u_resolution.xy) * 2.0 - 1.0;
+    vec2 uv = v_uv;
     uv.x *= u_resolution.x / u_resolution.y;
     vec3 color = vec3(0.0);
     float t = u_time;
