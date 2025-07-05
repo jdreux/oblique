@@ -54,11 +54,11 @@ def create_demo_patch(width: int, height: int, audio_path: str) -> ObliquePatch:
     iked_grid_params = IkedGridParams(
         width=width, 
         height=height, 
-        grid_size=2**1,  # Changed from 4 to 8 for better visibility
+        grid_size=2**2,  
         swap_frequency=1.0,  # Increased frequency for more visible swaps
         swap_phase=0.0
     )
-    iked_grid_module = IkedGrid(iked_grid_params, module=circle_echo_module)
+    iked_grid_module = IkedGrid(iked_grid_params, module=ryoji_lines_module)
     patch.add(iked_grid_module)
     
     
@@ -73,7 +73,14 @@ def main():
     parser.add_argument('--audio', type=str, default=None, help='Path to audio file for playback')
     parser.add_argument('--fps', type=int, default=60, help='Target frame rate')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode with performance monitoring')
+    parser.add_argument('--monitor', type=int, default=None, help='Monitor index to open window on (use --list-monitors to see available monitors)')
+    parser.add_argument('--list-monitors', action='store_true', help='List available monitors and exit')
     args = parser.parse_args()
+
+    # List monitors if requested
+    if args.list_monitors:
+        ObliqueEngine.list_monitors()
+        return
 
     # Create the patch
     patch = create_demo_patch(args.width, args.height, args.audio)
@@ -85,7 +92,8 @@ def main():
         height=args.height,
         title="Oblique MVP",
         target_fps=args.fps,
-        debug=args.debug
+        debug=args.debug,
+        monitor=args.monitor
     )
     
     try:

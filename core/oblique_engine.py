@@ -22,7 +22,8 @@ class ObliqueEngine:
     """
     
     def __init__(self, patch: ObliquePatch, width: int = 800, height: int = 600, 
-                 title: str = "Oblique MVP", target_fps: int = 60, debug: bool = False):
+                 title: str = "Oblique MVP", target_fps: int = 60, debug: bool = False,
+                 monitor: Optional[int] = None):
         """
         Initialize the Oblique engine with a patch and display settings.
         
@@ -33,6 +34,7 @@ class ObliqueEngine:
             title: Window title
             target_fps: Target frame rate for rendering
             debug: Enable debug mode with performance monitoring
+            monitor: Monitor index to open window on (None for default)
         """
         self.patch = patch
         self.width = width
@@ -41,6 +43,7 @@ class ObliqueEngine:
         self.target_fps = target_fps
         self.frame_duration = 1.0 / target_fps
         self.debug = debug
+        self.monitor = monitor
         # Set global debug mode for shader reloading
         from core.renderer import set_debug_mode
         set_debug_mode(debug)
@@ -75,13 +78,53 @@ class ObliqueEngine:
         glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
         glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
         
+        # Create windowed window (not fullscreen)
         self.window = glfw.create_window(self.width, self.height, self.title, None, None)
         if not self.window:
             glfw.terminate()
             raise RuntimeError("Failed to create GLFW window")
         
+        # Position window on specified monitor if requested
+        if self.monitor is not None:
+            monitors = glfw.get_monitors()
+            if 0 <= self.monitor < len(monitors):
+                monitor_obj = monitors[self.monitor]
+                # Get monitor position and work area
+                monitor_pos = glfw.get_monitor_pos(monitor_obj)
+                work_area = glfw.get_monitor_workarea(monitor_obj)
+                
+                # Center the window on the monitor
+                x = monitor_pos[0] + (work_area[2] - self.width) // 2
+                y = monitor_pos[1] + (work_area[3] - self.height) // 2
+                
+                glfw.set_window_pos(self.window, x, y)
+                print(f"Positioned window on monitor {self.monitor} at ({x}, {y})")
+            else:
+                print(f"Warning: Monitor {self.monitor} not found. Using default position.")
+                print(f"Available monitors: {len(monitors)}")
+        
         glfw.make_context_current(self.window)
         self.ctx = moderngl.create_context()
+    
+    @staticmethod
+    def list_monitors() -> None:
+        """List all available monitors and their information."""
+        if not glfw.init():
+            print("Failed to initialize GLFW")
+            return
+        
+        monitors = glfw.get_monitors()
+        print(f"Found {len(monitors)} monitor(s):")
+        
+        for i, monitor in enumerate(monitors):
+            name = glfw.get_monitor_name(monitor)
+            video_mode = glfw.get_video_mode(monitor)
+            if video_mode:
+                print(f"  Monitor {i}: {name} ({video_mode.size[0]}x{video_mode.size[1]} @ {video_mode.refresh_rate}Hz)")
+            else:
+                print(f"  Monitor {i}: {name} (no video mode available)")
+        
+        glfw.terminate()
     
     def _audio_stream_playback(self,audio_input: BaseInput) -> None:
         """

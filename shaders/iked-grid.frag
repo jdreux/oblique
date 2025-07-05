@@ -15,10 +15,6 @@ Inputs:
 
 out vec4 fragColor;
 
-#ifdef GL_ES
-precision mediump float;
-#endif
-
 uniform sampler2D tex0;
 uniform float u_time;
 uniform vec2 u_resolution;
@@ -26,142 +22,59 @@ uniform int u_grid_size;
 uniform float u_swap_frequency;
 uniform float u_swap_phase;
 
-// Local shader parameters (not uniforms)
-const int MAX_SWAPS = 8; // Maximum number of swaps active at once
-const float SWAP_PATTERN_SCALE = 1.0; // Controls the pattern of swaps (reduced from 200.3)
-const float SWAP_RANDOMNESS = 0.7; // Controls randomness in swap selection
-
-// Pseudo-random function for generating swap patterns
-float random(vec2 st) {
-    // This is a classic pseudo-random hash function for GLSL:
-    // 1. dot(st.xy, vec2(12.9898, 78.233)) - Creates a scalar from 2D input using magic numbers
-    // 2. sin(...) * 43758.5453123 - Applies sine and scales by large constant for good distribution
-    // 3. fract(...) - Returns fractional part, giving us a value in [0,1) range
-    // The magic numbers are carefully chosen to avoid patterns and provide good randomness
-    return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+// Simple hash function for pseudo-random swap selection
+float hash12(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
 }
 
-// Function to get grid cell coordinates from UV coordinates
-vec2 getGridCell(vec2 uv) {
-    return floor(uv * float(u_grid_size));
-}
-
-// Function to get UV coordinates within a grid cell
-vec2 getCellUV(vec2 uv) {
-    vec2 cell = getGridCell(uv);
-    return (uv * float(u_grid_size)) - cell;
-}
-
-// Function to generate a swap pair based on time and pattern
-vec4 generateSwapPair(int swapIndex, float time) {
-    // Use time and swap index to generate deterministic but varied patterns
-    float seed = time * SWAP_PATTERN_SCALE + float(swapIndex) * 0.5;
-    
-    // Generate first position
-    vec2 pos1 = vec2(
-        mod(random(vec2(seed, 0.0)) * float(u_grid_size), float(u_grid_size)),
-        mod(random(vec2(seed, 1.0)) * float(u_grid_size), float(u_grid_size))
+// Compute which two cells are swapped for a given swap index and current time
+void getSwapCells(int swapIdx, out vec2 cellA, out vec2 cellB) {
+    float t = floor(u_time * u_swap_frequency + float(swapIdx) + u_swap_phase);
+    // Unique seeds per swap and time step
+    float seedA = t + float(swapIdx) * 17.3;
+    float seedB = t + float(swapIdx) * 53.1 + 1.0;
+    cellA = vec2(
+        floor(hash12(vec2(seedA, 1.1)) * float(u_grid_size)),
+        floor(hash12(vec2(seedA, 2.3)) * float(u_grid_size))
     );
-    
-    // Generate second position with some randomness
-    float offsetSeed = seed + SWAP_RANDOMNESS;
-    vec2 pos2 = vec2(
-        mod(random(vec2(offsetSeed, 2.0)) * float(u_grid_size), float(u_grid_size)),
-        mod(random(vec2(offsetSeed, 3.0)) * float(u_grid_size), float(u_grid_size))
+    cellB = vec2(
+        floor(hash12(vec2(seedB, 7.7)) * float(u_grid_size)),
+        floor(hash12(vec2(seedB, 3.9)) * float(u_grid_size))
     );
-    
-    // Ensure positions are different
-    if (distance(pos1, pos2) < 1.0) {
-        pos2 = mod(pos2 + vec2(1.0, 1.0), float(u_grid_size));
+    // Avoid swapping a cell with itself
+    if (all(equal(cellA, cellB))) {
+        cellB = mod(cellB + vec2(1.0, 0.0), float(u_grid_size));
     }
-    
-    return vec4(pos1, pos2);
 }
 
-// Function to check if a swap should be active based on time
-bool isSwapActive(int swapIndex) {
-    float swapTime = u_time * u_swap_frequency + u_swap_phase;
-    // Use different phases for different swaps to create varied patterns
-    float phase = float(swapIndex) * 0.3;
-    // Make swaps more frequent by reducing the modulo period
-    return mod(swapTime + phase, 1.0) > 0.5;
-}
-
-// Function to apply swap transformation to grid coordinates
-vec2 applySwaps(vec2 gridCoord) {
-    vec2 result = gridCoord;
-    
-    // Apply each swap pair if active
-    for (int i = 0; i < MAX_SWAPS; i++) {
-        if (isSwapActive(i)) {
-            vec4 swapPair = generateSwapPair(i, u_time);
-            vec2 pos1 = swapPair.xy;
-            vec2 pos2 = swapPair.zw;
-            
-            // If current position matches pos1, swap to pos2
-            if (result == pos1) {
-                result = pos2;
-            }
-            // If current position matches pos2, swap to pos1
-            else if (result == pos2) {
-                result = pos1;
-            }
-        }
+// Applies all active swaps to a given cell coordinate
+vec2 applySwaps(vec2 cell) {
+    // Number of concurrent swaps per frame (tweakable, 4–8 is typical)
+    const int NUM_SWAPS = 6;
+    vec2 current = cell;
+    for (int i = 0; i < NUM_SWAPS; ++i) {
+        vec2 a, b;
+        getSwapCells(i, a, b);
+        if (all(equal(current, a)))      current = b;
+        else if (all(equal(current, b))) current = a;
     }
-    
-    return result;
+    return current;
 }
 
 void main() {
     vec2 uv = gl_FragCoord.xy / u_resolution.xy;
-    
-    // Get the grid cell this pixel belongs to
-    vec2 gridCell = getGridCell(uv);
-    
-    // Apply swap transformations
-    vec2 swappedCell = applySwaps(gridCell);
-    
-    // Get UV coordinates within the cell
-    vec2 cellUV = getCellUV(uv);
-    
-    // Calculate final coordinates for texture sampling
-    vec2 finalUV = (swappedCell + cellUV) / float(u_grid_size);
-    
-    // Sample from the upstream texture using swapped coordinates
-    vec4 texColor = texture(tex0, finalUV);
-    
-    // Add some visual feedback for active swaps
-    float swapIntensity = 0.0;
-    int activeSwapCount = 0;
-    for (int i = 0; i < MAX_SWAPS; i++) {
-        if (isSwapActive(i)) {
-            activeSwapCount++;
-            vec4 swapPair = generateSwapPair(i, u_time);
-            vec2 pos1 = swapPair.xy;
-            vec2 pos2 = swapPair.zw;
-            
-            // Add more visible highlight to swapped cells
-            if (gridCell == pos1 || gridCell == pos2) {
-                swapIntensity += 0.3; // Increased from 0.05 for better visibility
-            }
-        }
-    }
-    
-    // Add subtle grid lines for visual reference
-    bool showGrid = true; // Hardcoded variable to show/hide grid
-    vec2 gridUV = uv * float(u_grid_size);
-    float gridLine = step(0.95, fract(gridUV.x)) + step(0.95, fract(gridUV.y));
-    gridLine = min(gridLine, 0.3); // Subtle grid lines
-    
-    // Add debug info: show active swap count in top-left corner
-    vec2 debugUV = gl_FragCoord.xy / u_resolution.xy;
-    float debugInfo = 0.0;
-    if (debugUV.x < 0.1 && debugUV.y > 0.9) {
-        debugInfo = float(activeSwapCount) / float(MAX_SWAPS);
-    }
-    
-    // Combine texture color with swap highlights and grid lines
-    vec3 finalColor = texColor.rgb + vec3(swapIntensity) + (showGrid ? vec3(gridLine) : vec3(0.0)) + vec3(debugInfo);
-    
-    fragColor = vec4(finalColor, texColor.a);
-} 
+
+    // Map pixel to grid cell and cell-local UV
+    float N = float(u_grid_size);
+    vec2 cell = floor(uv * N);
+    vec2 local = fract(uv * N);
+
+    // Apply swap operations (in cell coords)
+    vec2 swappedCell = applySwaps(cell);
+
+    // Convert back to UV for sampling
+    vec2 finalUV = (swappedCell + local) / N;
+
+    // Output color from swapped position
+    fragColor = texture(tex0, finalUV);
+}
