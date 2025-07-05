@@ -19,6 +19,7 @@ from modules.ryoji_lines import RyojiLines, RyojiLinesParams
 from processing.spectral_centroid import SpectralCentroid
 from modules.visual_noise import VisualNoiseModule, VisualNoiseParams
 from modules.ikeda_test_pattern import IkedaTestPatternModule, IkedaTestPatternParams
+from modules.ikeda_tiny_barcode import IkedaTinyBarcodeModule, IkedaTinyBarcodeParams
 
 def create_demo_patch(width: int, height: int, audio_path: str) -> ObliquePatch:
     """
@@ -46,11 +47,11 @@ def create_demo_patch(width: int, height: int, audio_path: str) -> ObliquePatch:
     circle_echo_module = CircleEcho(CircleEchoParams(width=width, height=height), fft_bands_processor2)
 
     spectral_centroid_processor = SpectralCentroid(audio_input)
-    fft_bands_processor = FFTBands(audio_input, perceptual=True, num_bands=2**7)
+    fft_bands_processor = FFTBands(audio_input, perceptual=True, num_bands=2**9)
     ryoji_lines_module = RyojiLines(RyojiLinesParams(width=width, height=height, num_bands=2**7), fft_bands_processor, spectral_centroid_processor)
     visual_noise_module = VisualNoiseModule(VisualNoiseParams(width=width, height=height, color_mode="rgba", noise_size="large", speed=0.1))
-    ikeda_test_pattern = IkedaTestPatternModule(IkedaTestPatternParams(width=width, height=height), module=visual_noise_module)
-
+    ikeda_test_pattern = IkedaTestPatternModule(IkedaTestPatternParams(width=width, height=height), module=circle_echo_module)
+    ikeda_tiny_barcode_module = IkedaTinyBarcodeModule(IkedaTinyBarcodeParams(width=width, height=height), fft_bands_processor)
     
     # Create IkedGrid module that creates its own pattern and swaps squares
     iked_grid_module = IkedGrid(IkedGridParams(
@@ -60,9 +61,9 @@ def create_demo_patch(width: int, height: int, audio_path: str) -> ObliquePatch:
         swap_frequency=1.0,  # Increased frequency for more visible swaps
         swap_phase=0.0,
         num_swaps=2**3
-    ), module=ikeda_test_pattern)
+    ), module=circle_echo_module)
     
-    patch.add(iked_grid_module)
+    patch.add(ikeda_test_pattern)
     
     
     return patch

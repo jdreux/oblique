@@ -1,1 +1,2 @@
-from .visual_noise import VisualNoiseModule, VisualNoiseParams 
+from .visual_noise import VisualNoiseModule, VisualNoiseParams
+from .ikeda_tiny_barcode import IkedaTinyBarcodeModule, IkedaTinyBarcodeParams 
