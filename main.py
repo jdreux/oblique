@@ -20,6 +20,7 @@ from processing.spectral_centroid import SpectralCentroid
 from modules.visual_noise import VisualNoiseModule, VisualNoiseParams
 from modules.ikeda_test_pattern import IkedaTestPatternModule, IkedaTestPatternParams
 from modules.ikeda_tiny_barcode import IkedaTinyBarcodeModule, IkedaTinyBarcodeParams
+from modules.spectral_visualizer import SpectralVisualizerModule, SpectralVisualizerParams
 
 def create_demo_patch(width: int, height: int, audio_path: str) -> ObliquePatch:
     """
@@ -42,17 +43,18 @@ def create_demo_patch(width: int, height: int, audio_path: str) -> ObliquePatch:
     debug_module = DebugModule(DebugParams(width=width, height=height, number=0.0, text="Debug"), amplitude_processor)
     # patch.add(debug_module)
 
-    fft_bands_processor2 = FFTBands(audio_input, perceptual=True, num_bands=16)
+    fft_bands_processor16 = FFTBands(audio_input, perceptual=True, num_bands=16)
     ryoji_grid_module = RyojiGrid(RyojiGridParams(width=width, height=height))
-    circle_echo_module = CircleEcho(CircleEchoParams(width=width, height=height), fft_bands_processor2)
+    circle_echo_module = CircleEcho(CircleEchoParams(width=width, height=height, n_circles=16), fft_bands_processor16)
 
     spectral_centroid_processor = SpectralCentroid(audio_input)
-    fft_bands_processor = FFTBands(audio_input, perceptual=True, num_bands=2**9)
-    ryoji_lines_module = RyojiLines(RyojiLinesParams(width=width, height=height, num_bands=2**7), fft_bands_processor, spectral_centroid_processor)
+    fft_bands_processor512 = FFTBands(audio_input, perceptual=True, num_bands=512)
+    ryoji_lines_module = RyojiLines(RyojiLinesParams(width=width, height=height, num_bands=2**7), fft_bands_processor512, spectral_centroid_processor)
     visual_noise_module = VisualNoiseModule(VisualNoiseParams(width=width, height=height, color_mode="rgba", noise_size="large", speed=0.1))
     ikeda_test_pattern = IkedaTestPatternModule(IkedaTestPatternParams(width=width, height=height), module=circle_echo_module)
-    ikeda_tiny_barcode_module = IkedaTinyBarcodeModule(IkedaTinyBarcodeParams(width=width, height=height), fft_bands_processor)
-    
+    ikeda_tiny_barcode_module = IkedaTinyBarcodeModule(IkedaTinyBarcodeParams(width=width, height=height), fft_bands_processor512)
+    spectral_visualizer_module = SpectralVisualizerModule(SpectralVisualizerParams(width=width, height=height), fft_bands_processor512)
+
     # Create IkedGrid module that creates its own pattern and swaps squares
     iked_grid_module = IkedGrid(IkedGridParams(
         width=width, 
@@ -63,7 +65,7 @@ def create_demo_patch(width: int, height: int, audio_path: str) -> ObliquePatch:
         num_swaps=2**3
     ), module=circle_echo_module)
     
-    patch.add(ikeda_test_pattern)
+    patch.add(circle_echo_module)
     
     
     return patch

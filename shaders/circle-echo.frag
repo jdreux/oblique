@@ -1,66 +1,83 @@
-#version 330
+#version 330 core
 /*
-Circle Shader
-Author: Oblique AI
-Description: Renders concentric modulated circles. Audio-reactive via band amplitudes.
-Inputs:
-    u_time: float - Current time
-    u_resolution: vec2 - Viewport resolution
-    u_n_circles: int - Number of circles
-    u_mod_depth: float - Modulation depth
-    u_band_amps: float[16] - Band amplitudes
+Circle Shader  — Oblique AI (2025-07)
+Re-implements the visual logic of visual_render_vispy.py in GLSL.
+Uniforms
+--------
+  u_time        Seconds since start.
+  u_resolution  Viewport in pixels.
+  u_n_circles   How many concentric rings to draw (≤16).
+  u_band_amps   16-element array, each ∈ [0,1] (already log-scaled).
 */
 
 #ifdef GL_ES
 precision mediump float;
 #endif
 
-uniform float u_time;
-uniform vec2 u_resolution;
-uniform int u_n_circles;
-uniform float u_mod_depth;
-uniform float u_band_amps[16];
+uniform float      u_time;
+uniform vec2       u_resolution;
+uniform int        u_n_circles;
+uniform float      u_band_amps[16];
 
 out vec4 fragColor;
-in vec2 v_uv;
+in  vec2 v_uv;
 
-// Utility: draw a soft circle
-float circle(vec2 uv, vec2 center, float radius, float thickness) {
-    float d = length(uv - center);
-    // smoothstep is used here to create a soft, anti-aliased edge for the circle.
-    // It smoothly interpolates from 0 to 1 as 'd' moves from (radius - thickness) to (radius),
-    // and then back from 1 to 0 as 'd' moves from (radius) to (radius + thickness).
-    // The subtraction creates a band of width '2*thickness' centered on 'radius'.
-    float edge = smoothstep(radius - thickness, radius, d) - smoothstep(radius, radius + thickness, d);
-    return edge;
+/* ========== tweakables matching the Python defaults ==================== */
+const float MOD_DEPTH = 0.08;              // same as Python
+const float LINE_WIDTH = 0.0025;           // visual line thickness
+const vec3  C_START = vec3(1.0);            // white
+const vec3  C_END   = vec3(0.0, 0.94, 1.0); // cyan
+
+/* Return white-→-cyan gradient, identical to Python code */
+vec3 bandColour (int i, int n) {
+    float t = n > 1 ? float(i) / float(n - 1) : 0.0;
+    return mix(C_START, C_END, t);
 }
 
-void main() {
-    // vec2 uv = (gl_FragCoord.xy / u_resolution.xy) * 2.0 - 1.0;
-    vec2 uv = v_uv;
-    uv.x *= u_resolution.x / u_resolution.y;
-    vec3 color = vec3(0.0);
-    float t = u_time;
-    vec2 center = vec2(1);
-    float base_radius = 0.4;
-    for (int c = 0; c < 32; ++c) {
-        if (c >= u_n_circles) break;
-        int band_idx = c;
-        float band_amp = band_idx < 16 ? u_band_amps[band_idx] : 0.0;
-        float amp = 0.1 + band_amp * 0.9;
-        float radius = base_radius + float(c) * 0.8 / float(u_n_circles);
-        float angle = atan(uv.y - center.y, uv.x - center.x);
-        // --- Sound wave modulation ---
-        // Each circle's radius is modulated by a sine wave to mimic a sound wave.
-        // The amplitude of the wave is controlled by the band amplitude.
-        // The frequency is mapped to the band index for visual variety.
-        float wave_freq = 6.0 + float(band_idx) * 1.5; // Higher bands = more wiggles
-        float wave_phase = t * 0.2 + float(band_idx) * 0.3; // Animate the wave
-        float wave_amp = .04 + band_amp * 0.2; // Louder = more pronounced wave
-        float wave = sin(1 * wave_freq + wave_phase) * .01;
-        float modulated_radius = radius + wave_amp + wave;
-        float alpha = amp;
-        color += circle(uv, center, modulated_radius, 0.008) * alpha * vec3(0.0, 0.94, 1.0);
+/* ----------------------------------------------------------------------- */
+void main()
+{
+    /* 1. Normalised coordinate system (square), centred at origin --------*/
+    vec2 uv = (v_uv * 2.0 - 1.0);                     // -1 … +1
+    uv.x *= u_resolution.x / u_resolution.y;          // preserve aspect
+    float r = length(uv);                             // radial distance
+    float theta = atan(uv.y, uv.x);                   // angle (-π…+π)
+
+    /* 2. Prepare colour accumulation ------------------------------------ */
+    vec3  col = vec3(0.0);
+    float alpha = 0.0;                                // overall α
+
+    /* 3. Loop over requested circles ------------------------------------ */
+    int bands = clamp(u_n_circles, 0, 16);
+
+    for (int i = 0; i < bands; ++i) {
+        /* --- base radius (0.05 → 0.95) exactly as in Python ---------- */
+        float baseR = mix(0.05, 0.95, float(i) / float(bands - 1));
+
+        /* --- audio amplitude (already log-scaled & clipped) ----------- */
+        float amp = u_band_amps[i];
+
+        /* --- synthesise 'band_wave' replacement ----------------------- *
+         * The Python used the *actual* waveform around the circle.
+         * We approximate it with a rotating 8-petal sine for visual   *
+         * richness; phase speed  = 0.6 rad/s (≈1 rev/10 s).            */
+        float wave = sin(theta * 8.0 + u_time * 0.6);
+
+        /* --- modulated radius ---------------------------------------- */
+        float modR = baseR + MOD_DEPTH * amp * wave;
+
+        /* --- draw a thin ring around modR ---------------------------- */
+        float d = abs(r - modR);
+        float line = smoothstep(LINE_WIDTH, 0.0, d);   // 0→1 inside line
+
+        /* --- colour & alpha exactly like Python ---------------------- */
+        vec3  bandCol = bandColour(i, bands);
+        float bandAlpha = (0.1 + 0.9 * amp) * line;
+
+        /* --- additive-over blend (cheap & close to Vispy result) ----- */
+        col   = mix(col, bandCol, bandAlpha);  // simple screen-style mix
+        alpha = max(alpha, bandAlpha);         // keep brightest α
     }
-    fragColor = vec4(color, 1.0);
-} 
+
+    fragColor = vec4(col, alpha);
+}
