@@ -1,54 +1,86 @@
-#version 330
+#version 330 core
 /*
-Spectral Visualizer Shader
-Author: Oblique AI
-Inputs:
-    uniform float u_time;           // Current time in seconds
-    uniform vec2 u_resolution;      // Output resolution (width, height)
-    uniform float u_bands[512];     // FFT band amplitudes (normalized 0..1)
-    uniform int u_num_bands;        // Number of bands (should be 512)
-Description:
-    Renders a frequency spectrum with colored bars, mapping frequency to color and amplitude to height.
+Spectral Visualiser Shader ─ Oblique AI
+Imitates the dot-matrix style shown in the reference image.
+------------------------------------------------------------------
+Uniforms
+  u_time         (unused here – kept for possible future tweaks)
+  u_resolution   viewport size in pixels
+  u_bands[512]   FFT magnitudes, each ∈ [0,1]
+  u_num_bands    how many bins are valid (≤512)
+Inputs
+  v_uv           normalised coords in [0,1]²
+Output
+  fragColor      RGBA
 */
 
-uniform float u_time;
-uniform vec2 u_resolution;
-uniform float u_bands[512];
-uniform int u_num_bands;
-out vec4 fragColor;
-in vec2 v_uv;
+#ifdef GL_ES
+precision mediump float;
+#endif
 
-vec3 bandColor(float normIdx) {
-    // normIdx: 0.0 (low freq, left) to 1.0 (high freq, right)
-    // Blue → Green → Yellow → Red
-    // if (normIdx < 0.33) {
-    //     return mix(vec3(0.0, 1.0, 1.0), vec3(0.0, 1.0, 0.0), normIdx / 0.33); // Cyan to Green
-    // } else if (normIdx < 0.66) {
-    //     return mix(vec3(0.0, 1.0, 0.0), vec3(1.0, 1.0, 0.0), (normIdx - 0.33) / 0.33); // Green to Yellow
-    // } else {
-    //     return mix(vec3(1.0, 1.0, 0.0), vec3(1.0, 0.0, 0.5), (normIdx - 0.66) / 0.34); // Yellow to Pinkish Red
-    // }
-    return vec3(1);
+/* ───── uniforms ──────────────────────────────────────────────────────── */
+uniform float      u_time;
+uniform vec2       u_resolution;
+uniform float      u_bands[512];
+uniform int        u_num_bands;
+
+/* ───── shader-side constants (tweak if you like) ─────────────────────── */
+const int   DOT_ROWS = 128;              // vertical resolution of the dot grid
+const float DOT_RADIUS = 0.35;           // relative radius inside one cell
+const vec3  C_BOTTOM = vec3(0.00, 0.94, 1.00);  // cyan
+const vec3  C_MID    = vec3(1.00);              // white
+const vec3  C_TOP    = vec3(1.00, 0.40, 0.00);  // orange
+
+/* Anti-aliased circular dot inside one cell (return 0‒1 mask) */
+float dotMask(vec2 cellUV)
+{
+    float d = length(cellUV - 0.5);               // centre at 0.5,0.5
+    // Soft edge from 0.35 → 0.45 of cell size
+    return smoothstep(DOT_RADIUS + 0.10, DOT_RADIUS, d);
 }
 
-void main() {
-    // vec2 uv = gl_FragCoord.xy / u_resolution;
-    vec2 uv = v_uv;
-    float bandW = 1.0 / float(u_num_bands);
-    int bandIdx = int(floor(uv.x * float(u_num_bands)));
-    // clamp() ensures bandIdx stays within valid array bounds [0, u_num_bands-1]
-    // This prevents accessing invalid memory locations in the u_bands array
-    bandIdx = clamp(bandIdx, 0, u_num_bands - 1);
-    float bandLevel = u_bands[bandIdx];
-    float barHeight = bandLevel * 0.95; // 95% of vertical space
-    float yNorm = 1.0 - uv.y;
-    float normIdx = float(bandIdx) / float(u_num_bands - 1);
-    vec3 color = bandColor(normIdx);
-    float alpha = smoothstep(barHeight, barHeight + 0.01, yNorm);
-    // Grid lines (horizontal)
-    float grid = step(0.01, abs(fract(uv.y * 10.0) - 0.5) - 0.49);
-    color = mix(color, vec3(0.1), grid * 0.2);
-    // Fade out background
-    color = mix(vec3(0.05), color, alpha);
-    fragColor = vec4(color, 1.0);
-} 
+/* 3-stop vertical colour gradient: cyan → white → orange */
+vec3 verticalGradient(float t)                    // t ∈ [0,1]
+{
+    if (t < 0.5)
+        return mix(C_BOTTOM, C_MID, t * 2.0);     // 0‒0.5
+    return mix(C_MID, C_TOP, (t - 0.5) * 2.0);    // 0.5‒1
+}
+
+/* ───── main ──────────────────────────────────────────────────────────── */
+out vec4 fragColor;
+in  vec2 v_uv;
+
+void main()
+{
+    /* 1. Convert to grid coordinates ----------------------------------- */
+    float columns = float(max(u_num_bands, 1));       // guard /0
+    vec2  gridPos = vec2(
+        v_uv.x * columns,
+        v_uv.y * float(DOT_ROWS));
+
+    ivec2 cell = ivec2(floor(gridPos));               // integer cell indices
+    vec2  cellUV = fract(gridPos);                    // local 0‒1 inside cell
+
+    /* 2. Map x cell → FFT bin index (clamp for safety) ------------------ */
+    int bin = clamp(cell.x, 0, u_num_bands - 1);
+    float amp = u_bands[bin];                         // 0‒1 amplitude
+
+    /* 3. How many rows should be lit for this column? ------------------- */
+    int litRows = int(amp * float(DOT_ROWS) + 0.5);   // round to nearest row
+    bool lit = cell.y < litRows;
+
+    /* 4. Build colour & alpha ------------------------------------------ */
+    float dot = dotMask(cellUV);                      // smooth circular mask
+
+    if (!lit || dot <= 0.001) {                       // quick out for speed
+        fragColor = vec4(0.0);
+        return;
+    }
+
+    /* Height fraction used for the gradient (0 = bottom row, 1 = top) */
+    float heightT = float(cell.y) / float(DOT_ROWS - 1);
+    vec3  colour  = verticalGradient(heightT);
+
+    fragColor = vec4(colour, dot);                    // premultiplied alpha
+}

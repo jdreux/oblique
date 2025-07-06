@@ -65,7 +65,7 @@ def create_demo_patch(width: int, height: int, audio_path: str) -> ObliquePatch:
         num_swaps=2**3
     ), module=circle_echo_module)
     
-    patch.add(circle_echo_module)
+    patch.add(spectral_visualizer_module)
     
     
     return patch
