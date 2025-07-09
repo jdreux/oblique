@@ -4,7 +4,7 @@ from modules.base_av_module import BaseAVModule, Uniforms, BaseAVParams
 
 @dataclass
 class PauricParticlesParams(BaseAVParams):
-    num_particles: int = 2**8;
+    num_particles: int = 2**8
     spread: float = 0.9  # 0.0 to 1.0, controls how wide the particles spread
     speed: float = 1.0   # Particle speed multiplier
 

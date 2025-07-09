@@ -1,0 +1,8 @@
+[tool.ruff]
+select = ["E", "F", "W", "C90", "I", "U100"]
+ignore = []
+line-length = 120
+
+[tool.ruff.lint]
+# We'll add our custom plugin for uniform validation
+extend-select = ["UNI001"] 

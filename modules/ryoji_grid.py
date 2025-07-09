@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Any
-from typing import TypedDict, Tuple
+from typing import Tuple
 from modules.base_av_module import BaseAVModule, Uniforms, BaseAVParams
 
 @dataclass

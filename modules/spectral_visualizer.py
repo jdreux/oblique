@@ -58,13 +58,3 @@ class SpectralVisualizerModule(BaseAVModule[SpectralVisualizerParams]):
             'frag_shader_path': self.frag_shader_path,
             'uniforms': uniforms,
         }
-
-if __name__ == "__main__":
-    params = SpectralVisualizerParams(width=800, height=400, num_bands=512)
-    vis = SpectralVisualizer(params)
-    import numpy as np
-    # Simulate a spectrum with a peak
-    test_bands = np.abs(np.sin(np.linspace(0, 3.14, 512)))
-    vis.set_bands(test_bands.tolist())
-    result = vis.render_data(1.0)
-    print(f"Render result: {result}") 

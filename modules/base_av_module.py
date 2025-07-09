@@ -84,6 +84,7 @@ class BaseAVModule(ObliqueNode, Generic[P]):
             moderngl.Texture: The rendered texture for this module
         """
         render_data = self.render_data(t)
+        print(f"Rendering {self.__class__.__name__} with {render_data}")
         return render_to_texture(
             ctx,
             width,

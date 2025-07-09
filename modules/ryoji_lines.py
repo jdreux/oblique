@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from typing import Any, List, Tuple
-from typing import TypedDict
 from modules.base_av_module import BaseAVModule, Uniforms, BaseAVParams
 from processing.fft_bands import FFTBands
 from typing import Optional
