@@ -8,13 +8,16 @@ from processing.spectral_centroid import SpectralCentroid
 # Hardcoded shader array size - must match the shader declaration
 SHADER_BANDS_SIZE = 512
 
+
 @dataclass
 class RyojiLinesParams(BaseAVParams):
     """Parameters for the RyojiLines module."""
+
     num_bands: int = SHADER_BANDS_SIZE  # Default to full shader capacity
     fade_rate: float = 0.95
     band_levels_processor: Optional[FFTBands] = None
     spectral_centroid_processor: Optional[SpectralCentroid] = None
+
 
 class RyojiLinesUniforms(Uniforms, total=True):
     u_time: float
@@ -24,20 +27,27 @@ class RyojiLinesUniforms(Uniforms, total=True):
     u_spectral_brightness: float
     # u_fade_rate: float
 
+
 class RyojiLines(BaseAVModule[RyojiLinesParams]):
     """
     RyojiLines - Renders animated parallel lines representing FFT frequency bands.
     Each line corresponds to a frequency band and animates based on the band's amplitude.
     Lines are arranged horizontally and animate vertically with varying intensity.
     """
-    metadata = {
-        'name': 'RyojiLines',
-        'description': 'Renders animated parallel lines representing FFT frequency bands with vertical animation.',
-        'parameters': RyojiLinesParams.__annotations__,
-    }
-    frag_shader_path: str = 'shaders/ryoji-lines.frag'
 
-    def __init__(self, params: RyojiLinesParams = RyojiLinesParams(), band_levels_processor: Optional[FFTBands] = None, spectral_centroid_processor: Optional[SpectralCentroid] = None):
+    metadata = {
+        "name": "RyojiLines",
+        "description": "Renders animated parallel lines representing FFT frequency bands with vertical animation.",
+        "parameters": RyojiLinesParams.__annotations__,
+    }
+    frag_shader_path: str = "shaders/ryoji-lines.frag"
+
+    def __init__(
+        self,
+        params: RyojiLinesParams = RyojiLinesParams(),
+        band_levels_processor: Optional[FFTBands] = None,
+        spectral_centroid_processor: Optional[SpectralCentroid] = None,
+    ):
         super().__init__(params)
         self.width = self.params.width
         self.height = self.params.height
@@ -46,12 +56,11 @@ class RyojiLines(BaseAVModule[RyojiLinesParams]):
         self.band_levels_processor = band_levels_processor
         self.spectral_centroid_processor = spectral_centroid_processor
         self.spectral_brightness = 0.5
-        
 
     def set_bands(self, bands: List[float]) -> None:
         """
         Set the FFT band amplitudes.
-        
+
         Args:
             bands: List of band amplitudes (will be padded to 512 with zeros)
         """
@@ -74,38 +83,41 @@ class RyojiLines(BaseAVModule[RyojiLinesParams]):
             # Get bands from processor and ensure proper size
             processor_bands = self.band_levels_processor.process()
             self.set_bands(processor_bands)
-        
+
         if self.spectral_centroid_processor is not None:
             self.spectral_brightness = self.spectral_centroid_processor.process()
 
         uniforms: RyojiLinesUniforms = {
-            'u_time': t,
-            'u_resolution': (self.width, self.height),
-            'u_bands': self.bands,  # Always 512 bands now
-            'u_num_bands': min(self.params.num_bands, SHADER_BANDS_SIZE),  # Use actual number of bands (up to 512)
-            'u_spectral_brightness': self.spectral_brightness,
+            "u_time": t,
+            "u_resolution": (self.width, self.height),
+            "u_bands": self.bands,  # Always 512 bands now
+            "u_num_bands": min(
+                self.params.num_bands, SHADER_BANDS_SIZE
+            ),  # Use actual number of bands (up to 512)
+            "u_spectral_brightness": self.spectral_brightness,
         }
         return {
-            'frag_shader_path': self.frag_shader_path,
-            'uniforms': uniforms,
+            "frag_shader_path": self.frag_shader_path,
+            "uniforms": uniforms,
         }
+
 
 if __name__ == "__main__":
     # Test the module
     params = RyojiLinesParams(
-        width=800, 
+        width=800,
         height=600,
         num_bands=8,  # Test with fewer bands than shader size
     )
     ryoji_lines = RyojiLines(params)
-    
+
     # Simulate some FFT bands (fewer than 512)
     test_bands = [0.1, 0.3, 0.7, 0.9, 0.5, 0.2, 0.8, 0.4]
     ryoji_lines.set_bands(test_bands)
-    
+
     # Test render
     result = ryoji_lines.render_data(1.5)
     print(f"Render result: {result}")
     print(f"Number of bands sent to shader: {len(result['uniforms']['u_bands'])}")
-    print(f"u_num_bands value: {result['uniforms']['u_num_bands']}") 
-    print(f"Render result: {result}") 
+    print(f"u_num_bands value: {result['uniforms']['u_num_bands']}")
+    print(f"Render result: {result}")

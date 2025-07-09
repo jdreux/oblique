@@ -2,9 +2,12 @@ from .base_av_module import BaseAVModule, BaseAVParams
 from typing import Any
 from dataclasses import dataclass
 from processing.fft_bands import FFTBands
+
+
 @dataclass
 class IkedaTinyBarcodeParams(BaseAVParams):
     """Parameters for the Ikeda Tiny Barcode pattern module."""
+
     speed_scale: float = 1.0
     pattern_intensity: float = 1.0
     barcode_width: float = 32.0
@@ -13,10 +16,11 @@ class IkedaTinyBarcodeParams(BaseAVParams):
     width: int = 800
     height: int = 600
 
+
 class IkedaTinyBarcodeModule(BaseAVModule[IkedaTinyBarcodeParams]):
     """
     Ikeda Tiny Barcode module that generates a glitchy barcode pattern based on ShaderToy implementation.
-    
+
     Features:
     - Glitchy barcode pattern generation
     - Texture input support (upstream texture as tex0)
@@ -24,6 +28,7 @@ class IkedaTinyBarcodeModule(BaseAVModule[IkedaTinyBarcodeParams]):
     - GPU-accelerated pattern generation
     - Based on ShaderToy implementation: https://www.shadertoy.com/view/XtdcWS
     """
+
     metadata = {
         "name": "IkedaTinyBarcodeModule",
         "description": "Generates a glitchy barcode pattern inspired by Ikeda's work, adapted from ShaderToy.",
@@ -32,8 +37,8 @@ class IkedaTinyBarcodeModule(BaseAVModule[IkedaTinyBarcodeParams]):
             "pattern_intensity": float,
             "barcode_width": float,
             "noise_scale": float,
-            "threshold": float
-        }
+            "threshold": float,
+        },
     }
     frag_shader_path = "shaders/ikeda-tiny-barcode.frag"
 
@@ -45,10 +50,10 @@ class IkedaTinyBarcodeModule(BaseAVModule[IkedaTinyBarcodeParams]):
     def render_data(self, t: float) -> dict[str, Any]:
         """
         Return shader path and uniforms for rendering.
-        
+
         Args:
             t (float): Current time in seconds
-            
+
         Returns:
             dict[str, Any]: Shader data and uniforms
         """
@@ -58,9 +63,9 @@ class IkedaTinyBarcodeModule(BaseAVModule[IkedaTinyBarcodeParams]):
             "u_pattern_intensity": self.params.pattern_intensity,
             "u_barcode_width": self.params.barcode_width,
             "u_noise_scale": self.params.noise_scale,
-            "u_threshold": self.params.threshold
+            "u_threshold": self.params.threshold,
         }
-        
+
         # Add input texture if available
         # if self._upstream_tex is not None:
         #     uniforms["tex0"] = self._upstream_tex
@@ -68,17 +73,15 @@ class IkedaTinyBarcodeModule(BaseAVModule[IkedaTinyBarcodeParams]):
         # Add FFT bands
         bands = self.fft_bands_processor.process()
         uniforms["u_fft_bands"] = bands
-        
-        return {
-            "frag_shader_path": self.frag_shader_path,
-            "uniforms": uniforms
-        }
+
+        return {"frag_shader_path": self.frag_shader_path, "uniforms": uniforms}
 
     # def render_texture(self, ctx: moderngl.Context, width: int, height: int, t: float, filter=moderngl.NEAREST) -> moderngl.Texture:
     #     self._upstream_tex = self.module.render_texture(ctx, width, height, t);
 
     #     # Render the module to a texture
     #     return super().render_texture(ctx, width, height, t)
+
 
 if __name__ == "__main__":
     # Test the module
@@ -89,8 +92,8 @@ if __name__ == "__main__":
         noise_scale=128.0,
         threshold=0.3,
         width=800,
-        height=600
+        height=600,
     )
-    
+
     print("Ikeda Tiny Barcode module created successfully!")
-    print(f"Parameters: {params}") 
+    print(f"Parameters: {params}")

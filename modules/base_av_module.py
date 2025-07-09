@@ -4,17 +4,21 @@ from core.oblique_node import ObliqueNode
 import moderngl
 from core.renderer import render_to_texture
 
+
 # --- Base params dataclass ---
 @dataclass
 class BaseAVParams:
     width: int = 800
     height: int = 600
 
+
 class Uniforms(TypedDict, total=True):
     # Extend this in each module for specific uniforms
     pass
 
-P = TypeVar('P', bound='BaseAVParams')
+
+P = TypeVar("P", bound="BaseAVParams")
+
 
 class BaseAVModule(ObliqueNode, Generic[P]):
     """
@@ -29,7 +33,7 @@ class BaseAVModule(ObliqueNode, Generic[P]):
             'frag_shader_path': str (path to the fragment shader)
             'uniforms': Uniforms (uniforms to pass to the shader)
         This data will be used by the renderer to draw the module.
-    
+
     Optional methods:
     - render_texture(ctx: moderngl.Context, width: int, height: int, t: float) -> moderngl.Texture:
         Override this method to provide custom texture rendering behavior.
@@ -39,7 +43,7 @@ class BaseAVModule(ObliqueNode, Generic[P]):
     metadata: dict[str, Any] = {
         "name": "BaseAVModule",
         "description": "Abstract base class for AV modules. Subclasses must define metadata, update, and render methods.",
-        "parameters": {}
+        "parameters": {},
     }
     frag_shader_path: str  # Must be set by subclass
 
@@ -51,8 +55,12 @@ class BaseAVModule(ObliqueNode, Generic[P]):
             params (BaseAVParams): Initial parameters for the module.
         """
         ObliqueNode.__init__(self)
-        if not hasattr(self, 'frag_shader_path') or not isinstance(self.frag_shader_path, str):
-            raise TypeError(f"{self.__class__.__name__} must define a class attribute 'frag_shader_path' (str)!")
+        if not hasattr(self, "frag_shader_path") or not isinstance(
+            self.frag_shader_path, str
+        ):
+            raise TypeError(
+                f"{self.__class__.__name__} must define a class attribute 'frag_shader_path' (str)!"
+            )
         self.params = params
         if parent:
             self.add_parent(parent)
@@ -69,7 +77,14 @@ class BaseAVModule(ObliqueNode, Generic[P]):
         """
         raise NotImplementedError("Subclasses must implement the render_data() method.")
 
-    def render_texture(self, ctx: moderngl.Context, width: int, height: int, t: float, filter=moderngl.NEAREST) -> moderngl.Texture:
+    def render_texture(
+        self,
+        ctx: moderngl.Context,
+        width: int,
+        height: int,
+        t: float,
+        filter=moderngl.NEAREST,
+    ) -> moderngl.Texture:
         """
         Get the texture for this module. Default implementation uses render_data() method.
         Override this method to provide custom texture rendering behavior.
@@ -89,7 +104,7 @@ class BaseAVModule(ObliqueNode, Generic[P]):
             ctx,
             width,
             height,
-            render_data['frag_shader_path'],
-            render_data['uniforms'],
-            filter
-        ) 
+            render_data["frag_shader_path"],
+            render_data["uniforms"],
+            filter,
+        )

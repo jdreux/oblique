@@ -3,12 +3,14 @@ from typing import Any, Tuple, Optional
 from modules.base_av_module import BaseAVModule, Uniforms, BaseAVParams
 from processing.fft_bands import FFTBands
 
+
 @dataclass
 class CircleEchoParams(BaseAVParams):
     n_circles: int = 8
     mod_depth: float = 0.8
     audio_level: float = 0.0
     band_amps: Tuple[float, ...] = (0.0,) * 16
+
 
 class CircleEchoUniforms(Uniforms, total=True):
     u_time: float
@@ -18,18 +20,22 @@ class CircleEchoUniforms(Uniforms, total=True):
     u_audio_level: float
     u_band_amps: Tuple[float, ...]
 
+
 class CircleEcho(BaseAVModule[CircleEchoParams]):
     """
     CircleEcho - Concentric modulated circles.
     """
-    metadata = {
-        'name': 'CircleEcho',
-        'description': 'Concentric modulated circles.',
-        'parameters': CircleEchoParams.__annotations__,
-    }
-    frag_shader_path: str = 'shaders/circle-echo.frag'
 
-    def __init__(self, params: CircleEchoParams, band_levels_processor: Optional[FFTBands] = None):
+    metadata = {
+        "name": "CircleEcho",
+        "description": "Concentric modulated circles.",
+        "parameters": CircleEchoParams.__annotations__,
+    }
+    frag_shader_path: str = "shaders/circle-echo.frag"
+
+    def __init__(
+        self, params: CircleEchoParams, band_levels_processor: Optional[FFTBands] = None
+    ):
         """
         Initialize CircleEcho module.
         Args:
@@ -50,19 +56,22 @@ class CircleEcho(BaseAVModule[CircleEchoParams]):
             band_amps_list = self.band_levels_processor.process()
             self.band_amps = tuple(band_amps_list)
         uniforms: CircleEchoUniforms = {
-            'u_time': t,
-            'u_resolution': (self.width, self.height),
-            'u_n_circles': self.n_circles,
-            'u_mod_depth': self.mod_depth,
-            'u_audio_level': self.audio_level,
-            'u_band_amps': self.band_amps,
+            "u_time": t,
+            "u_resolution": (self.width, self.height),
+            "u_n_circles": self.n_circles,
+            "u_mod_depth": self.mod_depth,
+            "u_audio_level": self.audio_level,
+            "u_band_amps": self.band_amps,
         }
         return {
-            'frag_shader_path': self.frag_shader_path,
-            'uniforms': uniforms,
+            "frag_shader_path": self.frag_shader_path,
+            "uniforms": uniforms,
         }
 
+
 if __name__ == "__main__":
-    params = CircleEchoParams(width=800, height=600, n_circles=8, mod_depth=0.08, audio_level=0.0)
+    params = CircleEchoParams(
+        width=800, height=600, n_circles=8, mod_depth=0.08, audio_level=0.0
+    )
     module = CircleEcho(params)
-    print(module.render_data(0.0)) 
+    print(module.render_data(0.0))

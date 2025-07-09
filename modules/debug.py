@@ -5,6 +5,7 @@ import numpy as np
 from core.oblique_node import ObliqueNode
 from processing.base_processing_operator import BaseProcessingOperator
 
+
 @dataclass
 class DebugParams(BaseAVParams):
     number: float = 0.0
@@ -12,21 +13,24 @@ class DebugParams(BaseAVParams):
     width: int = 800
     height: int = 600
 
+
 class DebugModule(BaseAVModule[DebugParams]):
     """
     Debug module that displays an input number and string using a shader.
     """
+
     metadata = {
         "name": "DebugModule",
         "description": "Displays an input number and string for debugging purposes.",
-        "parameters": {
-            "number": float,
-            "text": str
-        }
+        "parameters": {"number": float, "text": str},
     }
     frag_shader_path = "shaders/debug.frag"
 
-    def __init__(self, params: DebugParams = DebugParams(), number_input: BaseProcessingOperator | None = None):
+    def __init__(
+        self,
+        params: DebugParams = DebugParams(),
+        number_input: BaseProcessingOperator | None = None,
+    ):
         super().__init__(params, number_input)
         self.number_input = number_input
 
@@ -44,10 +48,11 @@ class DebugModule(BaseAVModule[DebugParams]):
                 "u_resolution": (self.params.width, self.params.height),
                 # Text uniform would require a text rendering system; placeholder for now
                 # "u_text": self.params.text
-            }
+            },
         }
+
 
 if __name__ == "__main__":
     mod = DebugModule(DebugParams(number=42.0, text="Hello, Oblique!"))
     print("Initial render:", mod.render_data(0.0))
-    print("After update:", mod.render_data(1.0)) 
+    print("After update:", mod.render_data(1.0))

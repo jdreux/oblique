@@ -5,11 +5,13 @@ from processing.fft_bands import FFTBands
 
 SHADER_BANDS_SIZE = 512
 
+
 @dataclass
 class SpectralVisualizerParams(BaseAVParams):
     num_bands: int = SHADER_BANDS_SIZE
     width: int = 800
     height: int = 600
+
 
 class SpectralVisualizerUniforms(Uniforms, total=True):
     u_time: float
@@ -17,19 +19,25 @@ class SpectralVisualizerUniforms(Uniforms, total=True):
     u_bands: List[float]
     u_num_bands: int
 
+
 class SpectralVisualizerModule(BaseAVModule[SpectralVisualizerParams]):
     """
     SpectralVisualizer - Renders a frequency spectrum visualizer using FFT band data.
     Each bar represents a frequency band, colored by frequency.
     """
-    metadata = {
-        'name': 'SpectralVisualizer',
-        'description': 'Renders a frequency spectrum visualizer with color mapping.',
-        'parameters': SpectralVisualizerParams.__annotations__,
-    }
-    frag_shader_path: str = 'shaders/spectral-visualizer.frag'
 
-    def __init__(self, params: SpectralVisualizerParams = SpectralVisualizerParams(), band_levels_processor: Optional[FFTBands] = None):
+    metadata = {
+        "name": "SpectralVisualizer",
+        "description": "Renders a frequency spectrum visualizer with color mapping.",
+        "parameters": SpectralVisualizerParams.__annotations__,
+    }
+    frag_shader_path: str = "shaders/spectral-visualizer.frag"
+
+    def __init__(
+        self,
+        params: SpectralVisualizerParams = SpectralVisualizerParams(),
+        band_levels_processor: Optional[FFTBands] = None,
+    ):
         super().__init__(params)
         self.width = self.params.width
         self.height = self.params.height
@@ -49,12 +57,12 @@ class SpectralVisualizerModule(BaseAVModule[SpectralVisualizerParams]):
             processor_bands = self.band_levels_processor.process()
             self.set_bands(processor_bands)
         uniforms: SpectralVisualizerUniforms = {
-            'u_time': t,
-            'u_resolution': (self.width, self.height),
-            'u_bands': self.bands,
-            'u_num_bands': self.params.num_bands,
+            "u_time": t,
+            "u_resolution": (self.width, self.height),
+            "u_bands": self.bands,
+            "u_num_bands": self.params.num_bands,
         }
         return {
-            'frag_shader_path': self.frag_shader_path,
-            'uniforms': uniforms,
+            "frag_shader_path": self.frag_shader_path,
+            "uniforms": uniforms,
         }
