@@ -3,16 +3,18 @@ from typing import Any
 from .base_processing_operator import BaseProcessingOperator
 from inputs.audio_device_input import AudioDeviceInput
 
+
 class NormalizedAmplitudeOperator(BaseProcessingOperator):
     """
     Computes the normalized amplitude (RMS) of an audio chunk.
     Expects input as a numpy ndarray of shape (chunk_size, channels).
     Returns a float in [0, 1].
     """
+
     metadata = {
         "name": "NormalizedAmplitudeOperator",
         "description": "Outputs the normalized amplitude (RMS) of an audio chunk.",
-        "parameters": {}
+        "parameters": {},
     }
 
     def __init__(self, audio_input: AudioDeviceInput):
@@ -43,10 +45,16 @@ class NormalizedAmplitudeOperator(BaseProcessingOperator):
         normalized = np.clip(rms / 1.0, 0.0, 1.0)  # 1.0 = max float amplitude
         return float(normalized)
 
+
 if __name__ == "__main__":
     import sys
     from inputs.audio_device_input import AudioDeviceInput
-    file_path = sys.argv[1] if len(sys.argv) > 1 else "../projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav"
+
+    file_path = (
+        sys.argv[1]
+        if len(sys.argv) > 1
+        else "../projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav"
+    )
     input_device = AudioDeviceInput(file_path, chunk_size=2048)
     input_device.start()
     op = NormalizedAmplitudeOperator(input_device)
@@ -54,4 +62,4 @@ if __name__ == "__main__":
         chunk = input_device.read()
         amp = op.process()
         print(f"Chunk {i}: normalized amplitude = {amp:.4f}")
-    input_device.stop() 
+    input_device.stop()

@@ -3,15 +3,17 @@ from typing import Any, Dict
 from processing.base_processing_operator import BaseProcessingOperator
 from inputs.audio_device_input import AudioDeviceInput
 
+
 class SpectralFlux(BaseProcessingOperator):
     """
     Computes the spectral flux (rate of change in the spectrum) of the audio signal.
     Returns a float >= 0.
     """
+
     metadata: Dict[str, Any] = {
         "name": "SpectralFlux",
         "description": "Computes the spectral flux (rate of change in the spectrum) of the audio signal.",
-        "parameters": {}
+        "parameters": {},
     }
 
     def __init__(self, audio_input: AudioDeviceInput):
@@ -35,14 +37,20 @@ class SpectralFlux(BaseProcessingOperator):
         self.prev_spectrum = spectrum
         return float(flux)
 
+
 if __name__ == "__main__":
     import sys
     from inputs.audio_device_input import AudioDeviceInput
-    file_path = sys.argv[1] if len(sys.argv) > 1 else "../projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav"
+
+    file_path = (
+        sys.argv[1]
+        if len(sys.argv) > 1
+        else "../projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav"
+    )
     input_device = AudioDeviceInput(file_path, chunk_size=2048)
     input_device.start()
     op = SpectralFlux(input_device)
     for i in range(5):
         input_device.read()
         print(f"Chunk {i}: spectral flux = {op.process():.4f}")
-    input_device.stop() 
+    input_device.stop()

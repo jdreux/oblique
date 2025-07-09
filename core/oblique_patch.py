@@ -5,11 +5,13 @@ from inputs.base_input import BaseInput
 from modules.debug import DebugModule, DebugParams
 from core.oblique_node import ObliqueNode
 
+
 class ObliquePatch:
     """
     Main user-facing builder for AV chains in Oblique.
     Manages modules, connections, and output selection.
     """
+
     def __init__(self) -> None:
         """
         Initialize an empty patch.
@@ -44,15 +46,15 @@ class ObliquePatch:
         if self.modules:
             return self.modules[-1]
         return None
-    
+
     def get_audio_input(self) -> BaseInput:
         """
         Return the audio input node.
         """
         return self.inputs[0]
-        
+
     def get_graph(self) -> List[Any]:
         """
         Return a representation of the patch's module graph (for debugging or introspection).
         """
-        return self._graph 
+        return self._graph

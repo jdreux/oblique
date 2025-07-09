@@ -4,12 +4,16 @@ import soundfile as sf
 import numpy as np
 import collections
 
+
 class AudioDeviceInput(BaseInput):
     HISTORY_SIZE = 4  # Class-level constant for buffer history size
     """
     Input class that reads audio from a file for testing and prototyping.
     """
-    def __init__(self, file_path: str, chunk_size: int = 1024, config: Optional[dict] = None) -> None:
+
+    def __init__(
+        self, file_path: str, chunk_size: int = 1024, config: Optional[dict] = None
+    ) -> None:
         """
         :param file_path: Path to the audio file to read.
         :param chunk_size: Number of samples per read.
@@ -23,7 +27,7 @@ class AudioDeviceInput(BaseInput):
         self.channels = None
         self._buffer = None
         self._pos = 0
-        self._last_chunk = None # Initialize for peek()
+        self._last_chunk = None  # Initialize for peek()
         self._chunk_history = collections.deque(maxlen=self.HISTORY_SIZE)
 
     def start(self) -> None:
@@ -41,7 +45,7 @@ class AudioDeviceInput(BaseInput):
         """
         self._buffer = None
         self._pos = 0
-        self._last_chunk = None # Clear cached chunk on stop
+        self._last_chunk = None  # Clear cached chunk on stop
         self._chunk_history.clear()
 
     def read(self) -> np.ndarray:
@@ -75,10 +79,16 @@ class AudioDeviceInput(BaseInput):
             return None
         return np.concatenate(chunks, axis=0)
 
+
 if __name__ == "__main__":
     import sys
     import time
-    file_path = sys.argv[1] if len(sys.argv) > 1 else "../projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav"
+
+    file_path = (
+        sys.argv[1]
+        if len(sys.argv) > 1
+        else "../projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav"
+    )
     input_device = AudioDeviceInput(file_path, chunk_size=2048)
     input_device.start()
     print(f"Samplerate: {input_device.samplerate}, Channels: {input_device.channels}")
@@ -86,4 +96,4 @@ if __name__ == "__main__":
         chunk = input_device.read()
         print(f"Chunk {i}: shape={chunk.shape}, mean={chunk.mean():.4f}")
         time.sleep(0.1)
-    input_device.stop() 
+    input_device.stop()

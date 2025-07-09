@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional
 from processing.base_processing_operator import BaseProcessingOperator
 from inputs.audio_device_input import AudioDeviceInput
 
+
 class FFTBands(BaseProcessingOperator):
     """
     Extracts N logarithmically spaced frequency bands from the audio using FFT.
@@ -11,13 +12,22 @@ class FFTBands(BaseProcessingOperator):
     Bands are distributed logarithmically from 20 Hz to Nyquist (sample_rate/2),
     which is optimal for electronic music (bass, mids, highs, etc).
     """
+
     metadata: Dict[str, Any] = {
         "name": "FFTBands",
         "description": "Extracts N logarithmically spaced frequency bands from the audio using FFT.",
-        "parameters": {"num_bands": int, "sample_rate": int}
+        "parameters": {"num_bands": int, "sample_rate": int},
     }
 
-    def __init__(self, audio_input: AudioDeviceInput, num_bands: int = 16, sample_rate: int = 44100, perceptual: bool = False, gamma: float = 0.3, high_boost: float = 0.7):
+    def __init__(
+        self,
+        audio_input: AudioDeviceInput,
+        num_bands: int = 16,
+        sample_rate: int = 44100,
+        perceptual: bool = False,
+        gamma: float = 0.3,
+        high_boost: float = 0.7,
+    ):
         """
         Args:
             audio_input (AudioDeviceInput): Audio input source.
@@ -44,11 +54,16 @@ class FFTBands(BaseProcessingOperator):
         Returns a list of arrays, each containing the bin indices for a band.
         """
         # Logarithmically spaced band edges
-        edges = np.logspace(np.log10(self.f_min), np.log10(self.f_max), self.num_bands + 1)
+        edges = np.logspace(
+            np.log10(self.f_min), np.log10(self.f_max), self.num_bands + 1
+        )
         # FFT bin center frequencies
         freqs = np.fft.rfftfreq(fft_size, 1 / self.sample_rate)
         # For each band, find the bin indices
-        band_bins = [np.where((freqs >= edges[i]) & (freqs < edges[i+1]))[0] for i in range(self.num_bands)]
+        band_bins = [
+            np.where((freqs >= edges[i]) & (freqs < edges[i + 1]))[0]
+            for i in range(self.num_bands)
+        ]
         return band_bins
 
     def _perceptual_scale(self, bands: List[float]) -> List[float]:
@@ -58,10 +73,14 @@ class FFTBands(BaseProcessingOperator):
         This avoids boosting quiet signals and keeps scaling static, since bands are already normalized.
         """
         # Power-law compression (gamma < 1 boosts low amplitudes)
-        scaled = [b ** self.gamma for b in bands]
+        scaled = [b**self.gamma for b in bands]
         # High-frequency boost
         n = len(scaled)
-        boosted = [v * (1 + self.high_boost * (i / (n - 1))) for i, v in enumerate(scaled)] if n > 1 else scaled
+        boosted = (
+            [v * (1 + self.high_boost * (i / (n - 1))) for i, v in enumerate(scaled)]
+            if n > 1
+            else scaled
+        )
         # Clip to [0, 1]
         return [min(max(v, 0.0), 1.0) for v in boosted]
 
@@ -85,10 +104,10 @@ class FFTBands(BaseProcessingOperator):
         # Recompute band edges if fft_size changes
         if self.band_edges is None:
             self.band_edges = self._compute_band_edges(fft_size)
-        
+
         # Compute FFT
         fft = np.abs(np.fft.rfft(mono))
-        
+
         bands = []
         # Theoretical max FFT magnitude for a full-scale sine wave (amplitude 1.0)
         max_fft_magnitude = fft_size / 2.0
@@ -105,10 +124,16 @@ class FFTBands(BaseProcessingOperator):
             bands = self._perceptual_scale(bands)
         return bands
 
+
 if __name__ == "__main__":
     import sys
     from inputs.audio_device_input import AudioDeviceInput
-    file_path = sys.argv[1] if len(sys.argv) > 1 else "../projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav"
+
+    file_path = (
+        sys.argv[1]
+        if len(sys.argv) > 1
+        else "../projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav"
+    )
     input_device = AudioDeviceInput(file_path, chunk_size=2048)
     input_device.start()
     op = FFTBands(input_device, num_bands=8, sample_rate=44100)
@@ -116,4 +141,4 @@ if __name__ == "__main__":
         input_device.read()
         bands = op.process()
         print(f"Chunk {i}: bands = {bands}")
-    input_device.stop() 
+    input_device.stop()

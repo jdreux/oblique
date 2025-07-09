@@ -2,11 +2,13 @@ from abc import ABC, abstractmethod
 from typing import Any
 from core.oblique_node import ObliqueNode
 
+
 class BaseInput(ObliqueNode, ABC):
     """
     Abstract base class for all input sources in Oblique.
     Defines the interface for input modules.
     """
+
     def __init__(self, config: dict | None = None) -> None:
         """
         Initialize the input source with optional configuration.
@@ -44,4 +46,4 @@ class BaseInput(ObliqueNode, ABC):
         This allows consumers (e.g., video/visual analysis) to access the latest data
         being played or processed, without interfering with the main data stream.
         """
-        pass 
+        pass
