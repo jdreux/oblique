@@ -20,5 +20,5 @@ MONITOR=${MONITOR:-1}
 
 echo "[DEBUG] Starting Oblique MVP with default settings..."
 echo "[DEBUG] Using monitor: $MONITOR"
-# python3 main.py --audio "projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav" --width 800 --height 800 --debug --monitor "$MONITOR" "$@" 
-python3 main.py --width 800 --height 800 --debug --monitor "$MONITOR" "$@" --audio-device 2 --audio-channels 0
+python3 main.py --audio "projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav" --width 800 --height 800 --debug --monitor "$MONITOR" "$@" 
+# python3 main.py --width 800 --height 800 --debug --monitor "$MONITOR" "$@" --audio-device 2 --audio-channels 0

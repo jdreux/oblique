@@ -165,9 +165,9 @@ def print_audio_devices() -> None:
         
         # Show channel details
         if device['max_input_channels'] == 1:
-            print(f"     Channel: 0 (Mono)")
+            print("     Channel: 0 (Mono)")
         elif device['max_input_channels'] == 2:
-            print(f"     Channels: 0, 1 (Stereo)")
+            print("     Channels: 0, 1 (Stereo)")
         else:
             channels = ", ".join(str(i) for i in range(device['max_input_channels']))
             print(f"     Channels: {channels} ({device['max_input_channels']} channels)")

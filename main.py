@@ -1,6 +1,4 @@
 import argparse
-from pathlib import Path
-from typing import Optional, List
 
 # --- Core imports ---
 from core import ObliqueEngine, ObliquePatch
@@ -18,7 +16,7 @@ from processing.fft_bands import FFTBands
 # --- Input imports ---
 from inputs.audio_file_input import AudioFileInput
 from inputs.audio_device_input import AudioDeviceInput
-from inputs.audio_device_input import list_audio_devices, print_audio_devices
+from inputs.audio_device_input import print_audio_devices
 from modules.ryoji_lines import RyojiLines, RyojiLinesParams
 from processing.spectral_centroid import SpectralCentroid
 from modules.visual_noise import VisualNoiseModule, VisualNoiseParams
@@ -28,6 +26,7 @@ from modules.spectral_visualizer import (
     SpectralVisualizerModule,
     SpectralVisualizerParams,
 )
+from modules.feedback import Feedback, FeedbackParams
 
 
 def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> ObliquePatch:
@@ -96,8 +95,19 @@ def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> Obliqu
         module=circle_echo_module,
     )
 
-    patch.add(spectral_visualizer_module)
-
+    # Add feedback module with spectral visualizer as input
+    feedback_module = Feedback(
+        FeedbackParams(
+            width=width,
+            height=height,
+            feedback_strength=0.99,
+            reset_on_start=True,
+        ),
+        upstream_module=spectral_visualizer_module
+    )
+    
+    patch.add(feedback_module)  # Test feedback module with input
+    # patch.add(spectral_visualizer_module)
     return patch
 
 

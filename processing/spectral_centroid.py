@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Any, Dict
 from processing.base_processing_operator import BaseProcessingOperator
-from inputs.audio_device_input import AudioDeviceInput
+from inputs.base_input import BaseInput
 
 
 class SpectralCentroid(BaseProcessingOperator):
@@ -16,13 +16,13 @@ class SpectralCentroid(BaseProcessingOperator):
         "parameters": {},
     }
 
-    def __init__(self, audio_input: AudioDeviceInput):
+    def __init__(self, audio_input: BaseInput):
         super().__init__()
         self.audio_input = audio_input
         # Techno music typically has meaningful brightness content up to ~8kHz
         # We'll use this as our "bright" reference instead of Nyquist
         self.bright_freq_threshold = 8000.0  # Hz
-        self.sample_rate = self.audio_input.samplerate or 44100.0
+        self.sample_rate = 44100.0
 
     def process(self) -> float:
         data = self.audio_input.peek()
@@ -74,14 +74,14 @@ class SpectralCentroid(BaseProcessingOperator):
 
 if __name__ == "__main__":
     import sys
-    from inputs.audio_device_input import AudioDeviceInput
+    from inputs.audio_file_input import AudioFileInput
 
     file_path = (
         sys.argv[1]
         if len(sys.argv) > 1
         else "../projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav"
     )
-    input_device = AudioDeviceInput(file_path, chunk_size=2048)
+    input_device = AudioFileInput(file_path, chunk_size=2048)
     input_device.start()
     op = SpectralCentroid(input_device)
     for i in range(5):

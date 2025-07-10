@@ -5,7 +5,7 @@
 
 #version 330 core
 
-uniform sampler2D tex0;
+uniform sampler2D u_texture;
 uniform float u_time;
 uniform vec2 u_resolution;
 
@@ -14,5 +14,5 @@ out vec4 fragColor;
 
 void main() {
     vec2 uv = v_uv;
-    fragColor = texture(tex0, uv);
+    fragColor = texture(u_texture, uv);
 } 
