@@ -1,13 +1,14 @@
 import argparse
 from pathlib import Path
+from typing import Optional, List
 
 # --- Core imports ---
 from core import ObliqueEngine, ObliquePatch
+from inputs.base_input import BaseInput
 
 # --- Module imports ---
 from modules import ryoji_grid
 from modules.ryoji_grid import RyojiGrid, RyojiGridParams
-from modules.pauric_particles import PauricParticles, PauricParticlesParams
 from modules.circle_echo import CircleEcho, CircleEchoParams
 from modules.debug import DebugModule, DebugParams
 from modules.iked_grid import IkedGrid, IkedGridParams
@@ -15,7 +16,9 @@ from processing.normalized_amplitude import NormalizedAmplitudeOperator
 from processing.fft_bands import FFTBands
 
 # --- Input imports ---
+from inputs.audio_file_input import AudioFileInput
 from inputs.audio_device_input import AudioDeviceInput
+from inputs.audio_device_input import list_audio_devices, print_audio_devices
 from modules.ryoji_lines import RyojiLines, RyojiLinesParams
 from processing.spectral_centroid import SpectralCentroid
 from modules.visual_noise import VisualNoiseModule, VisualNoiseParams
@@ -27,7 +30,7 @@ from modules.spectral_visualizer import (
 )
 
 
-def create_demo_patch(width: int, height: int, audio_path: str) -> ObliquePatch:
+def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> ObliquePatch:
     """
     Create a demo patch with some example modules.
     This function can be easily modified to create different patch configurations.
@@ -41,7 +44,7 @@ def create_demo_patch(width: int, height: int, audio_path: str) -> ObliquePatch:
     """
     patch = ObliquePatch()
 
-    audio_input = AudioDeviceInput(file_path=audio_path)
+    # audio_input = AudioFileInput(file_path=audio_path)
 
     patch.input(audio_input)
     amplitude_processor = NormalizedAmplitudeOperator(audio_input)
@@ -104,7 +107,27 @@ def main():
     parser.add_argument("--width", type=int, default=800, help="Window width")
     parser.add_argument("--height", type=int, default=600, help="Window height")
     parser.add_argument(
-        "--audio", type=str, default=None, help="Path to audio file for playback"
+        "--audio",
+        type=str,
+        default=None,
+        help="Path to audio file for playback (or 'device' for real-time input)",
+    )
+    parser.add_argument(
+        "--audio-device",
+        type=int,
+        default=None,
+        help="Audio device ID to use for real-time input",
+    )
+    parser.add_argument(
+        "--audio-channels",
+        type=str,
+        default=None,
+        help="Comma-separated list of channel indices to capture (e.g., '0,1' for stereo)",
+    )
+    parser.add_argument(
+        "--list-audio-devices",
+        action="store_true",
+        help="List available audio input devices and exit",
     )
     parser.add_argument("--fps", type=int, default=60, help="Target frame rate")
     parser.add_argument(
@@ -128,8 +151,33 @@ def main():
         ObliqueEngine.list_monitors()
         return
 
+    # List audio devices if requested
+    if args.list_audio_devices:
+        print_audio_devices()
+        return
+
+    # Parse audio channels if specified
+    audio_channels = None
+    if args.audio_channels:
+        try:
+            audio_channels = [int(ch.strip()) for ch in args.audio_channels.split(",")]
+        except ValueError:
+            print(
+                "Error: audio-channels must be comma-separated integers (e.g., '0,1')"
+            )
+            return
+
+    if args.audio_device:
+        audio_input = AudioDeviceInput(
+            device_id=args.audio_device, channels=audio_channels
+        )
+    else:
+        audio_input = AudioFileInput(file_path=args.audio)
+
     # Create the patch
-    patch = create_demo_patch(args.width, args.height, args.audio)
+    patch = create_demo_patch(
+        args.width, args.height, audio_input
+    )
 
     # Create and run the engine
     engine = ObliqueEngine(

@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Any, Dict, List, Optional
 from processing.base_processing_operator import BaseProcessingOperator
-from inputs.audio_device_input import AudioDeviceInput
+from inputs.base_input import BaseInput
 
 
 class FFTBands(BaseProcessingOperator):
@@ -21,7 +21,7 @@ class FFTBands(BaseProcessingOperator):
 
     def __init__(
         self,
-        audio_input: AudioDeviceInput,
+        audio_input: BaseInput,
         num_bands: int = 16,
         sample_rate: int = 44100,
         perceptual: bool = False,
@@ -127,14 +127,14 @@ class FFTBands(BaseProcessingOperator):
 
 if __name__ == "__main__":
     import sys
-    from inputs.audio_device_input import AudioDeviceInput
+    from inputs.audio_file_input import AudioFileInput
 
     file_path = (
         sys.argv[1]
         if len(sys.argv) > 1
         else "../projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav"
     )
-    input_device = AudioDeviceInput(file_path, chunk_size=2048)
+    input_device = AudioFileInput(file_path, chunk_size=2048)
     input_device.start()
     op = FFTBands(input_device, num_bands=8, sample_rate=44100)
     for i in range(5):
