@@ -180,7 +180,6 @@ class ObliqueEngine:
 
         # Render each module to a texture
         textures: List[moderngl.Texture] = []
-        # print(f"Rendering {len(self.patch.modules)} modules")
         for module in self.patch.modules:
             tex = module.render_texture(self.ctx, fb_width, fb_height, t)
             textures.append(tex)

@@ -87,10 +87,10 @@ def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> Obliqu
         IkedGridParams(
             width=width,
             height=height,
-            grid_size=2**4,
-            swap_frequency=1.0,  # Increased frequency for more visible swaps
+            grid_size=8,
+            swap_frequency=30.0,  # Increased frequency for more visible swaps
             swap_phase=0.0,
-            num_swaps=2**3,
+            num_swaps=4,
         ),
         module=circle_echo_module,
     )
@@ -100,10 +100,10 @@ def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> Obliqu
         FeedbackParams(
             width=width,
             height=height,
-            feedback_strength=0.99,
+            feedback_strength=0.95,
             reset_on_start=True,
         ),
-        upstream_module=spectral_visualizer_module
+        upstream_module=iked_grid_module
     )
     
     patch.add(feedback_module)  # Test feedback module with input
