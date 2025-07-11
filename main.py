@@ -10,6 +10,7 @@ from modules.ryoji_grid import RyojiGrid, RyojiGridParams
 from modules.circle_echo import CircleEcho, CircleEchoParams
 from modules.debug import DebugModule, DebugParams
 from modules.iked_grid import IkedGrid, IkedGridParams
+from modules.transform import TransformModule, TransformParams
 from processing.normalized_amplitude import NormalizedAmplitudeOperator
 from processing.fft_bands import FFTBands
 
@@ -56,7 +57,7 @@ def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> Obliqu
     fft_bands_processor16 = FFTBands(audio_input, perceptual=True, num_bands=16)
     ryoji_grid_module = RyojiGrid(RyojiGridParams(width=width, height=height))
     circle_echo_module = CircleEcho(
-        CircleEchoParams(width=width, height=height, n_circles=16),
+        CircleEchoParams(width=width, height=height, n_circles=32),
         fft_bands_processor16,
     )
 
@@ -87,10 +88,10 @@ def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> Obliqu
         IkedGridParams(
             width=width,
             height=height,
-            grid_size=8,
-            swap_frequency=30.0,  # Increased frequency for more visible swaps
+            grid_size=3,
+            swap_frequency=1.0,  # Increased frequency for more visible swaps
             swap_phase=0.0,
-            num_swaps=4,
+            num_swaps=2,
         ),
         module=circle_echo_module,
     )
@@ -103,11 +104,26 @@ def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> Obliqu
             feedback_strength=0.95,
             reset_on_start=True,
         ),
-        upstream_module=iked_grid_module
+        upstream_module=iked_grid_module,
     )
-    
-    patch.add(feedback_module)  # Test feedback module with input
-    # patch.add(spectral_visualizer_module)
+
+    # Test transform module
+    transform_module = TransformModule(
+        TransformParams(
+            width=width,
+            height=height,
+            scale=(10, 10),
+            angle=67, 
+            pivot=(0.5, 0.3),
+            translate=(0.05, -0.5),
+            transform_order="SRT"
+        ),
+        upstream_module=feedback_module,  # Temporarily removed for testing
+    )
+
+    # patch.add(feedback_module)  # Test feedback module with input
+    # patch.add(spectral_visualizer_module)  # Enable this so transform has input
+    patch.add(transform_module)  # Test transform module
     return patch
 
 
@@ -185,9 +201,7 @@ def main():
         audio_input = AudioFileInput(file_path=args.audio)
 
     # Create the patch
-    patch = create_demo_patch(
-        args.width, args.height, audio_input
-    )
+    patch = create_demo_patch(args.width, args.height, audio_input)
 
     # Create and run the engine
     engine = ObliqueEngine(

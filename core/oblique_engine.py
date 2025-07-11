@@ -227,7 +227,7 @@ class ObliqueEngine:
             self.ctx,
             self.passthrough_shader,
             {
-                "tex0": final_tex,
+                "u_texture": final_tex,
                 "u_time": t,
                 "u_resolution": (fb_width, fb_height),
             },

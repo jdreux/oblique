@@ -31,6 +31,7 @@ def render_fullscreen_quad(
         del _shader_cache[frag_shader_path]
 
     if frag_shader_path not in _shader_cache:
+        print(f"Loading shader: {frag_shader_path}")
         with open(frag_shader_path, "r") as f:
             fragment_shader = f.read()
         vertex_shader = """

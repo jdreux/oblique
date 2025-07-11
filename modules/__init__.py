@@ -1,2 +1,3 @@
 from .visual_noise import VisualNoiseModule, VisualNoiseParams
 from .ikeda_tiny_barcode import IkedaTinyBarcodeModule, IkedaTinyBarcodeParams
+from .transform import TransformModule, TransformParams
