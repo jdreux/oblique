@@ -1,6 +1,17 @@
 import time
 from typing import Dict, List, Optional
 from collections import deque
+import gc
+import moderngl
+import sys
+try:
+    import resource
+except ImportError:
+    resource = None
+try:
+    import psutil
+except ImportError:
+    psutil = None
 
 
 class PerformanceMonitor:
@@ -72,6 +83,27 @@ class PerformanceMonitor:
             "frame_time_ms": (sum(self.frame_times) / len(self.frame_times)) * 1000,
         }
 
+    def get_memory_usage_mb(self) -> str:
+        """
+        Get current process memory usage in MB as a string.
+        Returns 'N/A' if not available.
+        """
+        # Prefer resource if available (works on Unix)
+        if resource is not None:
+            usage = resource.getrusage(resource.RUSAGE_SELF)
+            # ru_maxrss is in kilobytes on Linux, bytes on macOS
+            if sys.platform == "darwin":
+                mem_mb = usage.ru_maxrss / (1024 * 1024)
+            else:
+                mem_mb = usage.ru_maxrss / 1024
+            return f"{mem_mb:.1f} MB"
+        elif psutil is not None:
+            process = psutil.Process()
+            mem_mb = process.memory_info().rss / (1024 * 1024)
+            return f"{mem_mb:.1f} MB"
+        else:
+            return "N/A"
+
     def print_stats(self, every_n_frames: int = 60) -> None:
         """
         Print performance statistics every N frames.
@@ -81,10 +113,18 @@ class PerformanceMonitor:
         """
         if self.frame_count % every_n_frames == 0 and self.frame_count > 0:
             stats = self.get_stats()
+            tex_count = sum(
+                1 for o in gc.get_objects() if isinstance(o, moderngl.Texture)
+            )
+            mem_usage = self.get_memory_usage_mb()
+            # Print total run time and total number of frames played first
             print(
+                f"Total runtime: {stats['runtime']:.1f}s | Total frames: {stats['frame_count']} | "
+                f"Memory: {mem_usage} | "
                 f"Performance: {stats['avg_fps']:.1f} FPS avg, "
                 f"{stats['min_fps']:.1f} min, {stats['max_fps']:.1f} max, "
-                f"{stats['frame_time_ms']:.1f}ms avg frame time"
+                f"{stats['frame_time_ms']:.1f}ms avg frame time, "
+                f"{tex_count} live textures"
             )
 
     def reset(self) -> None:

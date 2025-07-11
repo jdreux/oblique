@@ -4,6 +4,7 @@ import moderngl
 import glfw  # type: ignore
 import sounddevice as sd
 import numpy as np
+import gc
 from typing import Optional, List, Dict
 from pathlib import Path
 
@@ -284,6 +285,8 @@ class ObliqueEngine:
                 # Display frame
                 self._display_frame(final_tex, t)
 
+                final_tex.release()
+
                 # Handle events
                 glfw.poll_events()
 
@@ -298,9 +301,6 @@ class ObliqueEngine:
                 sleep_time = self.frame_duration - elapsed
                 if sleep_time > 0:
                     time.sleep(sleep_time)
-                # else:
-                #     if self.debug:
-                #         print(f"[WARNING] Frame took too long: {elapsed:.4f}s (target: {self.frame_duration:.4f}s)")
 
         except Exception as e:
             print(f"Error in Oblique engine: {e}")
