@@ -113,10 +113,10 @@ def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> Obliqu
             width=width,
             height=height,
             scale=(10, 10),
-            angle=67, 
-            pivot=(0.5, 0.3),
-            translate=(0.05, -0.5),
-            transform_order="SRT"
+            # angle=67, 
+            # pivot=(0.5, 0.3),
+            # translate=(0.05, -0.5),
+            # transform_order="SRT"
         ),
         upstream_module=feedback_module,  # Temporarily removed for testing
     )

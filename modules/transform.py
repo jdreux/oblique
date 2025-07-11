@@ -73,14 +73,20 @@ class TransformModule(BaseAVModule[TransformParams]):
 
         for op in order:
             if op == "S":  # Scale
-                scale_matrix = np.array(
-                    [
-                        [self.scale[0], 0.0, 0.0],
-                        [0.0, self.scale[1], 0.0],
-                        [0.0, 0.0, 1.0],
-                    ]
-                )
-                matrix = scale_matrix @ matrix
+                sx, sy = self.scale
+                scale = np.array([[sx, 0.0, 0.0],
+                    [0.0, sy, 0.0],
+                    [0.0, 0.0, 1.0]])
+
+                # use pivot (same as rotation)
+                pivot = np.array([[1, 0, -self.pivot[0]],
+                    [0, 1, -self.pivot[1]],
+                    [0, 0,  1]])
+                pivot_inv = np.array([[1, 0,  self.pivot[0]],
+                    [0, 1,  self.pivot[1]],
+                    [0, 0,  1]])
+
+                matrix = pivot_inv @ scale @ pivot @ matrix
 
             elif op == "R":  # Rotate
                 # Convert degrees to radians
