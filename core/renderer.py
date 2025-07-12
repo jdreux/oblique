@@ -17,6 +17,36 @@ def set_debug_mode(debug: bool) -> None:
     _debug_mode = debug
 
 
+def cleanup_shader_cache() -> None:
+    """
+    Release all cached shader resources. Call this when shutting down the application.
+    """
+    global _shader_cache
+    for entry in _shader_cache.values():
+        _release_shader_cache_entry(entry)
+    _shader_cache.clear()
+
+
+def _release_shader_cache_entry(entry: tuple) -> None:
+    """
+    Safely release program, VAO, and VBO resources from a shader cache entry.
+    """
+    if entry is not None:
+        program, vao, vbo = entry
+        try:
+            vao.release()
+        except Exception:
+            pass
+        try:
+            vbo.release()
+        except Exception:
+            pass
+        try:
+            program.release()
+        except Exception:
+            pass
+
+
 def render_fullscreen_quad(
     ctx: moderngl.Context, frag_shader_path: str, uniforms: dict[str, Any]
 ) -> None:
@@ -28,6 +58,7 @@ def render_fullscreen_quad(
 
     # In debug mode, always reload shader from file
     if _debug_mode and frag_shader_path in _shader_cache:
+        _release_shader_cache_entry(_shader_cache[frag_shader_path])
         del _shader_cache[frag_shader_path]
 
     if frag_shader_path not in _shader_cache:
@@ -71,9 +102,9 @@ def render_fullscreen_quad(
         )
         vbo = ctx.buffer(vertices.tobytes())
         vao = ctx.simple_vertex_array(program, vbo, "in_vert", "in_uv")
-        _shader_cache[frag_shader_path] = (program, vao)
+        _shader_cache[frag_shader_path] = (program, vao, vbo)
     else:
-        program, vao = _shader_cache[frag_shader_path]
+        program, vao, vbo = _shader_cache[frag_shader_path]
 
     # Set uniforms efficiently
     texture_unit = 0
@@ -116,7 +147,6 @@ def render_to_texture(
     ctx.clear(0.0, 0.0, 0.0, 1.0)
 
     render_fullscreen_quad(ctx, frag_shader_path, uniforms)
-
     fbo.release()
     return tex
 
@@ -136,7 +166,7 @@ def blend_textures(
     out_tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
     out_tex.repeat_x = False
     out_tex.repeat_y = False
-
+    raise Exception("Non tested path - blend_textures")
     fbo = ctx.framebuffer(color_attachments=[out_tex])
     ctx.viewport = (0, 0, width, height)
     fbo.use()
@@ -146,6 +176,7 @@ def blend_textures(
 
     # In debug mode, always reload shader from file
     if _debug_mode and blend_shader_path in _shader_cache:
+        _release_shader_cache_entry(_shader_cache[blend_shader_path])
         del _shader_cache[blend_shader_path]
 
     if blend_shader_path not in _shader_cache:
@@ -188,9 +219,9 @@ def blend_textures(
         )
         vbo = ctx.buffer(vertices.tobytes())
         vao = ctx.simple_vertex_array(program, vbo, "in_vert", "in_uv")
-        _shader_cache[blend_shader_path] = (program, vao)
+        _shader_cache[blend_shader_path] = (program, vao, vbo)
     else:
-        program, vao = _shader_cache[blend_shader_path]
+        program, vao, vbo = _shader_cache[blend_shader_path]
 
     # Efficient texture binding
     tex0.use(location=0)

@@ -3,17 +3,12 @@ import threading
 import moderngl
 import glfw  # type: ignore
 import sounddevice as sd
-import numpy as np
-import gc
 from typing import Optional, List, Dict
-from pathlib import Path
 
 from core.oblique_patch import ObliquePatch
 from core.renderer import render_fullscreen_quad, blend_textures
 from core.performance_monitor import PerformanceMonitor
-from inputs.audio_device_input import AudioDeviceInput
 from inputs.base_input import BaseInput
-from processing.normalized_amplitude import NormalizedAmplitudeOperator
 
 
 class ObliqueEngine:
@@ -163,7 +158,7 @@ class ObliqueEngine:
         except Exception as e:
             print(f"[AUDIO ERROR] {e}")
 
-    def _render_modules(self, t: float) -> moderngl.Texture:
+    def _render_modules(self, t: float):
         """
         Render all modules in the patch and blend them together.
 
@@ -185,7 +180,9 @@ class ObliqueEngine:
             tex = module.render_texture(self.ctx, fb_width, fb_height, t)
             textures.append(tex)
 
-        # Blend all textures in order (additive)
+        
+        final_tex = None
+        
         if len(textures) == 0:
             print("No textures to render")
             # Create a black texture if no modules
@@ -193,9 +190,11 @@ class ObliqueEngine:
             tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
             tex.repeat_x = False
             tex.repeat_y = False
-            return tex
-        elif len(textures) == 1:
-            return textures[0]
+            textures.append(tex)
+
+        # Blend all textures in order (additive)
+        if len(textures) == 1:
+            final_tex = textures[0]
         else:
             final_tex = textures[0]
             for tex in textures[1:]:
@@ -207,7 +206,17 @@ class ObliqueEngine:
                     tex,
                     self.additive_blend_shader,
                 )
-            return final_tex
+        
+        # Display frame
+        self._display_frame(final_tex, t)
+
+        # Handle events
+        glfw.poll_events()
+
+        #release all textures
+        for tex in textures:
+            tex.release()
+
 
     def _display_frame(self, final_tex: moderngl.Texture, t: float) -> None:
         """
@@ -220,8 +229,11 @@ class ObliqueEngine:
         if self.ctx is None:
             raise RuntimeError("OpenGL context not initialized")
 
-        fb_width, fb_height = self.ctx.screen.size
+        fb_width, fb_height  = self.ctx.screen.size
         self.ctx.viewport = (0, 0, fb_width, fb_height)
+
+        # Clear the screen
+        self.ctx.clear(1.0, 1.0, 1.0, 1.0)
 
         # Display final texture to screen
         render_fullscreen_quad(
@@ -273,22 +285,8 @@ class ObliqueEngine:
                 frame_start = time.time()
                 t = frame_start - self.start_time
 
-                # Clear the screen
-                if self.ctx is None:
-                    raise RuntimeError("OpenGL context not initialized")
-                self.ctx.viewport = (0, 0, self.width, self.height)
-                self.ctx.clear(1.0, 1.0, 1.0, 1.0)
-
                 # Render modules
-                final_tex = self._render_modules(t)
-
-                # Display frame
-                self._display_frame(final_tex, t)
-
-                final_tex.release()
-
-                # Handle events
-                glfw.poll_events()
+                self._render_modules(t)
 
                 # Performance monitoring
                 if self.performance_monitor:
@@ -328,6 +326,10 @@ class ObliqueEngine:
 
         if self.audio_thread is not None and self.audio_thread.is_alive():
             self.audio_thread.join(timeout=1.0)
+
+        # Clean up shader cache
+        from core.renderer import cleanup_shader_cache
+        cleanup_shader_cache()
 
         if self.window is not None:
             glfw.terminate()

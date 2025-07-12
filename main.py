@@ -5,7 +5,6 @@ from core import ObliqueEngine, ObliquePatch
 from inputs.base_input import BaseInput
 
 # --- Module imports ---
-from modules import ryoji_grid
 from modules.ryoji_grid import RyojiGrid, RyojiGridParams
 from modules.circle_echo import CircleEcho, CircleEchoParams
 from modules.debug import DebugModule, DebugParams
@@ -112,17 +111,17 @@ def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> Obliqu
         TransformParams(
             width=width,
             height=height,
-            scale=(10, 10),
-            # angle=67, 
-            # pivot=(0.5, 0.3),
-            # translate=(0.05, -0.5),
-            # transform_order="SRT"
+            scale=(2, 1.5),
+            angle=67, 
+            pivot=(0.5, 0.3),
+            translate=(0.05, -0.5),
+            transform_order="SRT"
         ),
         upstream_module=feedback_module,  # Temporarily removed for testing
     )
 
     # patch.add(feedback_module)  # Test feedback module with input
-    # patch.add(spectral_visualizer_module)  # Enable this so transform has input
+    # patch.add(spectral_visualizer_module) 
     patch.add(transform_module)  # Test transform module
     return patch
 

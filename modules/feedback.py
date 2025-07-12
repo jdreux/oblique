@@ -129,6 +129,7 @@ class Feedback(BaseAVModule[FeedbackParams]):
 
         # Store current frame as previous frame for next render
         # Copy the current frame to the previous frame texture
+        # TODO: note for later: this is this really needed? why can't we just use current_frame, it has alraedy been rendered. 
         if self.feedback_initialized:
             # Create a framebuffer to copy the texture
             fbo = ctx.framebuffer(color_attachments=[self.previous_frame])
