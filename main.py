@@ -27,7 +27,7 @@ from modules.spectral_visualizer import (
     SpectralVisualizerParams,
 )
 from modules.feedback import Feedback, FeedbackParams
-
+from modules.mesh_shroud import MeshShroudModule, MeshShroudParams
 
 def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> ObliquePatch:
     """
@@ -82,6 +82,9 @@ def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> Obliqu
         SpectralVisualizerParams(width=width, height=height), fft_bands_processor512
     )
 
+    mesh_module = MeshShroudModule(MeshShroudParams(width=width, height=height), fft_bands_processor512)
+
+
     # Create IkedGrid module that creates its own pattern and swaps squares
     iked_grid_module = IkedGrid(
         IkedGridParams(
@@ -111,18 +114,18 @@ def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> Obliqu
         TransformParams(
             width=width,
             height=height,
-            scale=(2, 1.5),
+            scale=(0.94, 0.78),
             angle=67, 
-            pivot=(0.5, 0.3),
+            pivot=(0.7, 0.3),
             translate=(0.05, -0.5),
             transform_order="SRT"
         ),
-        upstream_module=feedback_module,  # Temporarily removed for testing
+        upstream_module=feedback_module, 
     )
 
     # patch.add(feedback_module)  # Test feedback module with input
     # patch.add(spectral_visualizer_module) 
-    patch.add(transform_module)  # Test transform module
+    patch.add(mesh_module)  # Test transform module
     return patch
 
 
