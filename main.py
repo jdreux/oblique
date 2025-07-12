@@ -5,6 +5,7 @@ from core import ObliqueEngine, ObliquePatch
 from inputs.base_input import BaseInput
 
 # --- Module imports ---
+from modules import shader_toy_tester
 from modules.ryoji_grid import RyojiGrid, RyojiGridParams
 from modules.circle_echo import CircleEcho, CircleEchoParams
 from modules.debug import DebugModule, DebugParams
@@ -28,6 +29,7 @@ from modules.spectral_visualizer import (
 )
 from modules.feedback import Feedback, FeedbackParams
 from modules.mesh_shroud import MeshShroudModule, MeshShroudParams
+from modules.shader_toy_tester import ShaderToyTesterModule, ShaderToyTesterParams
 
 def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> ObliquePatch:
     """
@@ -62,6 +64,7 @@ def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> Obliqu
 
     spectral_centroid_processor = SpectralCentroid(audio_input)
     fft_bands_processor512 = FFTBands(audio_input, perceptual=True, num_bands=512)
+    fft_bands_processor64 = FFTBands(audio_input, perceptual=True, num_bands=64)
     ryoji_lines_module = RyojiLines(
         RyojiLinesParams(width=width, height=height, num_bands=2**7),
         fft_bands_processor512,
@@ -82,7 +85,9 @@ def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> Obliqu
         SpectralVisualizerParams(width=width, height=height), fft_bands_processor512
     )
 
-    mesh_module = MeshShroudModule(MeshShroudParams(width=width, height=height), fft_bands_processor512)
+    mesh_module = MeshShroudModule(MeshShroudParams(width=width, height=height), fft_bands_processor64, amplitude_processor)
+
+    shader_toy_tester = ShaderToyTesterModule()
 
 
     # Create IkedGrid module that creates its own pattern and swaps squares
@@ -91,9 +96,9 @@ def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> Obliqu
             width=width,
             height=height,
             grid_size=3,
-            swap_frequency=1.0,  # Increased frequency for more visible swaps
+            swap_frequency=2.0,  # Increased frequency for more visible swaps
             swap_phase=0.0,
-            num_swaps=2,
+            num_swaps=4,
         ),
         module=circle_echo_module,
     )
@@ -106,7 +111,7 @@ def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> Obliqu
             feedback_strength=0.95,
             reset_on_start=True,
         ),
-        upstream_module=iked_grid_module,
+        upstream_module=mesh_module,
     )
 
     # Test transform module
@@ -123,9 +128,11 @@ def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> Obliqu
         upstream_module=feedback_module, 
     )
 
-    # patch.add(feedback_module)  # Test feedback module with input
+
+
+    # patch.add(shader_toy_tester)  # Test feedback module with input
     # patch.add(spectral_visualizer_module) 
-    patch.add(mesh_module)  # Test transform module
+    patch.add(feedback_module)  # Test transform module
     return patch
 
 
