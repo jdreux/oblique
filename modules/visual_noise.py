@@ -1,9 +1,10 @@
-from .base_av_module import BaseAVModule, BaseAVParams
-from typing import Any, Dict, Literal
 from dataclasses import dataclass
-import numpy as np
-from core.oblique_node import ObliqueNode
+from typing import Any, Literal
+
+from core.logger import debug, info
 from processing.base_processing_operator import BaseProcessingOperator
+
+from .base_av_module import BaseAVModule, BaseAVParams
 
 
 @dataclass
@@ -90,6 +91,6 @@ if __name__ == "__main__":
     )
 
     noise_module = VisualNoiseModule(params)
-    print("Visual Noise Module created successfully!")
-    print(f"Parameters: {params}")
-    print("Initial render data:", noise_module.render_data(0.0))
+    info("Visual Noise Module created successfully!")
+    debug(f"Parameters: {params}")
+    debug("Initial render data:", noise_module.render_data(0.0))

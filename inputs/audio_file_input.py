@@ -4,6 +4,8 @@ from typing import Optional
 import numpy as np
 import soundfile as sf
 
+from core.logger import debug, info
+
 from .base_input import BaseInput
 
 
@@ -124,9 +126,9 @@ if __name__ == "__main__":
     )
     input_device = AudioFileInput(file_path, chunk_size=2048)
     input_device.start()
-    print(f"File Input - Samplerate: {input_device.samplerate}, Channels: {input_device.channels}")
+    info(f"File Input - Samplerate: {input_device.samplerate}, Channels: {input_device.channels}")
     for i in range(5):
         chunk = input_device.read()
-        print(f"Chunk {i}: shape={chunk.shape}, mean={chunk.mean():.4f}")
+        debug(f"Chunk {i}: shape={chunk.shape}, mean={chunk.mean():.4f}")
         time.sleep(0.1)
     input_device.stop()

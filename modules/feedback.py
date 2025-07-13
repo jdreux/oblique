@@ -146,22 +146,3 @@ class Feedback(BaseAVModule[FeedbackParams]):
             fbo.release()
 
         return current_frame
-
-
-if __name__ == "__main__":
-    # Test the module
-    params = FeedbackParams(
-        width=800,
-        height=600,
-        feedback_strength=0.8,
-        reset_on_start=True,
-    )
-    # feedback = Feedback(params, upstream_module=None)
-
-    # Test render data
-    # result = feedback.render_data(1.5)
-    # print(f"Render result: {result}")
-    # print(f"Feedback strength: {result['uniforms']['u_feedback_strength']}")
-    # print(
-    #     f"Has feedback texture: {result['uniforms']['u_feedback_texture'] is not None}"
-    # )

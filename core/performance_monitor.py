@@ -1,9 +1,11 @@
-import time
-from typing import Dict, List, Optional
-from collections import deque
 import gc
-import moderngl
 import sys
+import time
+from collections import deque
+from typing import Dict
+
+import moderngl
+
 try:
     import resource
 except ImportError:
@@ -12,6 +14,7 @@ try:
     import psutil
 except ImportError:
     psutil = None
+from core.logger import debug
 
 
 class PerformanceMonitor:
@@ -118,7 +121,7 @@ class PerformanceMonitor:
             )
             mem_usage = self.get_memory_usage_mb()
             # Print total run time and total number of frames played first
-            print(
+            debug(
                 f"Total runtime: {stats['runtime']:.1f}s | Total frames: {stats['frame_count']} | "
                 f"Memory: {mem_usage} | "
                 f"Performance: {stats['avg_fps']:.1f} FPS avg, "

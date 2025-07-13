@@ -6,6 +6,7 @@ import glfw  # type: ignore
 import moderngl
 import sounddevice as sd
 
+from core.logger import debug, error, info, warning
 from core.oblique_patch import ObliquePatch
 from core.performance_monitor import PerformanceMonitor
 from core.renderer import blend_textures, render_fullscreen_quad
@@ -105,12 +106,10 @@ class ObliqueEngine:
                 y = monitor_pos[1] + (work_area[3] - self.height) // 2
 
                 glfw.set_window_pos(self.window, x, y)
-                print(f"Positioned window on monitor {self.monitor} at ({x}, {y})")
+                info(f"Positioned window on monitor {self.monitor} at ({x}, {y})")
             else:
-                print(
-                    f"Warning: Monitor {self.monitor} not found. Using default position."
-                )
-                print(f"Available monitors: {len(monitors)}")
+                warning(f"Monitor {self.monitor} not found. Using default position.")
+                debug(f"Available monitors: {len(monitors)}")
 
         glfw.make_context_current(self.window)
         self.ctx = moderngl.create_context()
@@ -119,21 +118,21 @@ class ObliqueEngine:
     def list_monitors() -> None:
         """List all available monitors and their information."""
         if not glfw.init():
-            print("Failed to initialize GLFW")
+            error("Failed to initialize GLFW")
             return
 
         monitors = glfw.get_monitors()
-        print(f"Found {len(monitors)} monitor(s):")
+        info(f"Found {len(monitors)} monitor(s):")
 
         for i, monitor in enumerate(monitors):
             name = glfw.get_monitor_name(monitor)
             video_mode = glfw.get_video_mode(monitor)
             if video_mode:
-                print(
+                info(
                     f"  Monitor {i}: {name} ({video_mode.size[0]}x{video_mode.size[1]} @ {video_mode.refresh_rate}Hz)"
                 )
             else:
-                print(f"  Monitor {i}: {name} (no video mode available)")
+                info(f"  Monitor {i}: {name} (no video mode available)")
 
         glfw.terminate()
 
@@ -147,7 +146,7 @@ class ObliqueEngine:
         channels = audio_input.num_channels
         chunk_size = audio_input.chunk_size
 
-        print(f"[AUDIO] Streaming audio from {audio_input.device_name} at {samplerate} Hz with {channels} channels, "
+        info(f"[AUDIO] Streaming audio from {audio_input.device_name} at {samplerate} Hz with {channels} channels, "
         f"chunk size: {chunk_size} samples ({chunk_size / samplerate * 1000:.1f}ms)")
 
         try:
@@ -183,18 +182,19 @@ class ObliqueEngine:
                         stream.write(chunk.astype("float32"))
                         chunks_processed += 1
 
-                        # Log progress every 100 chunks
-                        if chunks_processed % 100 == 0:
-                            print(f"[AUDIO] Processed {chunks_processed} chunks")
-
                         # Monitor timing for buffer underruns
                         current_time = time.time()
                         actual_interval = current_time - last_chunk_time
+
+                        # Log progress every 100 chunks
+                        if chunks_processed % 100 == 0:
+                            current_latency = actual_interval * 1000  # Convert to milliseconds
+                            debug(f"[AUDIO] Processed {chunks_processed} chunks, latency: {current_latency:.1f}ms")
                         if actual_interval > expected_interval * 1.2:  # Allow some tolerance
                             buffer_underruns += 1
                             consecutive_underruns += 1
                             if consecutive_underruns >= 3:  # Log after 3 consecutive underruns
-                                print(f"[AUDIO] Sustained buffer underruns detected (total: {buffer_underruns}). "
+                                warning(f"[AUDIO] Sustained buffer underruns detected (total: {buffer_underruns}). "
                                 f"Last expected: {expected_interval*1000:.1f}ms, actual: {actual_interval*1000:.1f}ms")
                                 consecutive_underruns = 0
                         else:
@@ -203,14 +203,14 @@ class ObliqueEngine:
                         last_chunk_time = current_time
 
                     except Exception as e:
-                        print(f"[AUDIO ERROR] Failed to process chunk: {e}")
+                        error(f"[AUDIO ERROR] Failed to process chunk: {e}")
                         # Small delay to prevent tight error loops
                         time.sleep(0.001)
 
-                print(f"[AUDIO] Playback loop ended. Processed {chunks_processed} chunks total.")
+                info(f"[AUDIO] Playback loop ended. Processed {chunks_processed} chunks total.")
 
         except Exception as e:
-            print(f"[AUDIO ERROR] Stream setup failed: {e}")
+            error(f"[AUDIO ERROR] Stream setup failed: {e}")
 
     def _render_modules(self, t: float):
         """
@@ -238,7 +238,7 @@ class ObliqueEngine:
         final_tex = None
 
         if len(textures) == 0:
-            print("No textures to render")
+            warning("No textures to render")
             # Create a black texture if no modules
             tex = self.ctx.texture((fb_width, fb_height), 4, dtype="f1", alignment=1)
             tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
@@ -316,10 +316,10 @@ class ObliqueEngine:
             self.start_time = time.time()
             self.running = True
 
-            print(f"Starting Oblique engine with {len(self.patch.modules)} modules")
+            info(f"Starting Oblique engine with {len(self.patch.modules)} modules")
 
             if self.debug:
-                print("Debug mode enabled - Performance monitoring active")
+                info("Debug mode enabled - Performance monitoring active")
 
             if self.audio_input is not None:
                 self.audio_input.start()
@@ -355,7 +355,7 @@ class ObliqueEngine:
                     time.sleep(sleep_time)
 
         except Exception as e:
-            print(f"Error in Oblique engine: {e}")
+            error(f"Error in Oblique engine: {e}")
             raise
         finally:
             self.cleanup()

@@ -1,7 +1,10 @@
-from .base_av_module import BaseAVModule, BaseAVParams
-from typing import Any
 from dataclasses import dataclass
+from typing import Any
+
+from core.logger import debug, info
 from processing.fft_bands import FFTBands
+
+from .base_av_module import BaseAVModule, BaseAVParams
 
 
 @dataclass
@@ -95,5 +98,5 @@ if __name__ == "__main__":
         height=600,
     )
 
-    print("Ikeda Tiny Barcode module created successfully!")
-    print(f"Parameters: {params}")
+    info("Ikeda Tiny Barcode module created successfully!")
+    debug(f"Parameters: {params}")

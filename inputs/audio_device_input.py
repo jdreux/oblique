@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 import numpy as np
 import sounddevice as sd
 
+from core.logger import debug, error, info
+
 from .base_input import BaseInput
 
 if TYPE_CHECKING:
@@ -112,7 +114,7 @@ class AudioDeviceInput(BaseInput):
         Callback function called by sounddevice when new audio data is available.
         """
         if status:
-            print(f"Audio callback status: {status}")
+            debug(f"Audio callback status: {status}")
 
         if not self._running:
             return
@@ -128,7 +130,7 @@ class AudioDeviceInput(BaseInput):
 
             self._audio_queue.put_nowait(indata.copy())
         except Exception as e:
-            print(f"Error in audio callback: {e}")
+            error(f"Error in audio callback: {e}")
 
     def _filter_channels(self, data: np.ndarray, channels: Optional[List[int]] = None) -> np.ndarray:
         """
@@ -340,25 +342,25 @@ def print_audio_devices() -> None:
     devices = list_audio_devices()
 
     if not devices:
-        print("No audio input devices found.")
+        info("No audio input devices found.")
         return
 
-    print("\n" + "=" * 100)
-    print("AUDIO INPUT DEVICES - CHANNEL INFORMATION")
-    print("=" * 100)
+    info("\n" + "=" * 100)
+    info("AUDIO INPUT DEVICES - CHANNEL INFORMATION")
+    info("=" * 100)
 
     for device in devices:
-        print(f"\nDevice ID: {device['id']}")
-        print(f"Name: {device['name']}")
-        print(f"Sample Rate: {int(device['default_samplerate'])} Hz")
-        print(f"Host API: {device['hostapi']}")
-        print(f"Total Channels: {device['num_channels']}")
-        print("-" * 80)
+        info(f"\nDevice ID: {device['id']}")
+        info(f"Name: {device['name']}")
+        info(f"Sample Rate: {int(device['default_samplerate'])} Hz")
+        info(f"Host API: {device['hostapi']}")
+        info(f"Total Channels: {device['num_channels']}")
+        info("-" * 80)
 
         # Create channel table
-        print("Channel Table:")
-        print(f"{'Index':<6} {'Name':<20} {'Type':<15}")
-        print("-" * 80)
+        info("Channel Table:")
+        info(f"{'Index':<6} {'Name':<20} {'Type':<15}")
+        info("-" * 80)
 
         for i, channel_name in enumerate(device["channel_names"]):
             # Determine channel type based on actual channel configuration
@@ -374,9 +376,9 @@ def print_audio_devices() -> None:
                 else:
                     channel_type = "Mix"
 
-            print(f"{i:<6} {channel_name:<20} {channel_type:<15}")
+            info(f"{i:<6} {channel_name:<20} {channel_type:<15}")
 
-        print()
+        info("")
 
 
 if __name__ == "__main__":
@@ -390,20 +392,20 @@ if __name__ == "__main__":
             sys.exit(0)
 
     # Test device input
-    print("Testing audio device input...")
+    info("Testing audio device input...")
     print_audio_devices()
 
     # Use default device
     input_device = AudioDeviceInput(chunk_size=2048)
     input_device.start()
-    print(f"Device Input - Samplerate: {input_device.samplerate}, Channels: {input_device.num_channels}")
+    info(f"Device Input - Samplerate: {input_device.samplerate}, Channels: {input_device.num_channels}")
 
     try:
         for i in range(10):
             chunk = input_device.read()
-            print(f"Chunk {i}: shape={chunk.shape}, mean={chunk.mean():.4f}")
+            debug(f"Chunk {i}: shape={chunk.shape}, mean={chunk.mean():.4f}")
             time.sleep(0.1)
     except KeyboardInterrupt:
-        print("\nStopping...")
+        info("\nStopping...")
     finally:
         input_device.stop()

@@ -2,7 +2,7 @@ import argparse
 
 # --- Core imports ---
 from core import ObliqueEngine, ObliquePatch
-from inputs.audio_device_channel_input import AudioDeviceChannelInput
+from core.logger import configure_logging, debug, error, info
 from inputs.audio_device_input import AudioDeviceInput, print_audio_devices
 
 # --- Input imports ---
@@ -50,24 +50,30 @@ def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> Obliqu
     if not isinstance(audio_input, AudioDeviceInput):
         raise ValueError("Audio input must be an instance of AudioDeviceInput")
 
-    patch.input(audio_input.get_audio_input_for_channels([0,1]))
-    amplitude_processor = NormalizedAmplitudeOperator(audio_input)
+    mix_LR = audio_input.get_audio_input_for_channels([0,1])
+
+    patch.input(mix_LR)
+
+    kick = audio_input.get_audio_input_for_channels([3])
+    kick2 = audio_input.get_audio_input_for_channels([11])
+
+    amplitude_processor = NormalizedAmplitudeOperator(kick2)
     debug_module = DebugModule(
         DebugParams(width=width, height=height, number=0.0, text="Debug"),
         amplitude_processor,
     )
     # patch.add(debug_module)
 
-    fft_bands_processor16 = FFTBands(audio_input, perceptual=True, num_bands=16)
+    fft_bands_processor16 = FFTBands(kick2, perceptual=True, num_bands=16)
     ryoji_grid_module = RyojiGrid(RyojiGridParams(width=width, height=height))
     circle_echo_module = CircleEcho(
         CircleEchoParams(width=width, height=height, n_circles=32),
         fft_bands_processor16,
     )
 
-    spectral_centroid_processor = SpectralCentroid(audio_input)
-    fft_bands_processor512 = FFTBands(audio_input, perceptual=True, num_bands=512)
-    fft_bands_processor64 = FFTBands(audio_input, perceptual=True, num_bands=64)
+    spectral_centroid_processor = SpectralCentroid(kick2)
+    fft_bands_processor512 = FFTBands(kick2, perceptual=True, num_bands=512)
+    fft_bands_processor64 = FFTBands(kick2, perceptual=True, num_bands=64)
     ryoji_lines_module = RyojiLines(
         RyojiLinesParams(width=width, height=height, num_bands=2**7),
         fft_bands_processor512,
@@ -177,7 +183,31 @@ def main():
         help="Monitor index to open window on (use --list-monitors to see available monitors)",
     )
     parser.add_argument("--list-monitors", action="store_true", help="List available monitors and exit")
+    parser.add_argument(
+        "--log-level",
+        type=str,
+        default="DEBUG",
+        choices=["FATAL", "ERROR", "WARNING", "INFO", "DEBUG", "TRACE"],
+        help="Logging level",
+    )
+    parser.add_argument(
+        "--log-file",
+        type=str,
+        default=None,
+        help="Log file path (auto-generated if not specified)",
+    )
+
     args = parser.parse_args()
+
+    # Configure logging
+    configure_logging(
+        level=args.log_level,
+        log_to_file=args.log_file is not None,
+        log_file_path=args.log_file
+    )
+
+    info("Starting Oblique")
+    debug(f"Arguments: {vars(args)}")
 
     # List monitors if requested
     if args.list_monitors:
@@ -194,16 +224,19 @@ def main():
     if args.audio_channels:
         try:
             audio_channels = [int(ch.strip()) for ch in args.audio_channels.split(",")]
+            debug(f"Audio channels: {audio_channels}")
         except ValueError:
-            print("Error: audio-channels must be comma-separated integers (e.g., '0,1')")
+            error("Audio-channels must be comma-separated integers (e.g., '0,1')")
             return
 
     if args.audio_device is not None:
+        debug(f"Using audio device ID: {args.audio_device}")
         audio_input = AudioDeviceInput(device_id=args.audio_device, channels=audio_channels)
     elif args.audio_file:
+        debug(f"Using audio file: {args.audio_file}")
         audio_input = AudioFileInput(file_path=args.audio_file)
     else:
-        print("Error: No audio input specified")
+        error("No audio input specified")
         return
 
     # Create the patch
@@ -223,9 +256,9 @@ def main():
     try:
         engine.run()
     except KeyboardInterrupt:
-        print("\nShutting down...")
+        info("Shutting down...")
     except Exception as e:
-        print(f"Error: {e}")
+        error(f"Engine error: {e}")
         raise
 
 
