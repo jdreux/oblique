@@ -1,13 +1,14 @@
-import time
 import threading
-import moderngl
+import time
+from typing import Dict, List, Optional
+
 import glfw  # type: ignore
+import moderngl
 import sounddevice as sd
-from typing import Optional, List, Dict
 
 from core.oblique_patch import ObliquePatch
-from core.renderer import render_fullscreen_quad, blend_textures
 from core.performance_monitor import PerformanceMonitor
+from core.renderer import blend_textures, render_fullscreen_quad
 from inputs.base_input import BaseInput
 
 
@@ -142,21 +143,65 @@ class ObliqueEngine:
         Runs in a separate thread.
         """
 
-        # Use standard audio defaults for real-time streaming
-        samplerate = 44100  # Standard CD quality
-        channels = 2  # Stereo
+        samplerate = audio_input.sample_rate
+        channels = audio_input.num_channels
+        chunk_size = audio_input.chunk_size
+
+        print(f"[AUDIO] Streaming audio from {audio_input.device_name} at {samplerate} Hz with {channels} channels")
+        print(f"[AUDIO] Chunk size: {chunk_size} samples ({chunk_size / samplerate * 1000:.1f}ms)")
 
         try:
             with sd.OutputStream(
-                samplerate=samplerate, channels=channels, dtype="float32"
+                samplerate=samplerate,
+                channels=channels,
+                dtype="float32",
+                blocksize=chunk_size,
+                latency="low"  # Match input latency mode
             ) as stream:
+                print(f"[AUDIO] Output stream configured with {chunk_size} sample blocksize")
+
+                # Timing monitoring for buffer underruns
+                last_chunk_time = time.time()
+                expected_interval = chunk_size / samplerate
+                buffer_underruns = 0
+                consecutive_underruns = 0
+
                 while self.running:
                     chunk = audio_input.read()
                     if chunk.shape[0] == 0:
                         break  # End of file
-                    stream.write(chunk.astype("float32"))
+
+                    # Ensure chunk is the right shape and type
+                    if chunk.shape[1] != channels:
+                        # If we have more channels than expected, take the first ones
+                        chunk = chunk[:, :channels]
+
+                    # Write to stream with error handling
+                    try:
+                        stream.write(chunk.astype("float32"))
+
+                        # Monitor timing for buffer underruns
+                        current_time = time.time()
+                        actual_interval = current_time - last_chunk_time
+                        if actual_interval > expected_interval:
+                            buffer_underruns += 1
+                            consecutive_underruns += 1
+                            if consecutive_underruns >= 5:  # Log after 5 consecutive underruns
+                                print(f"[AUDIO] Sustained buffer underruns detected (total: {buffer_underruns}). "
+                                f"Last expected: {expected_interval:.2f}ms, actual: {actual_interval:.2f}ms")
+                                consecutive_underruns = 0
+                        else:
+                            consecutive_underruns = 0
+
+                        last_chunk_time = current_time
+
+                    except Exception as e:
+                        print(f"[AUDIO ERROR] Failed to write chunk: {e}")
+                        # Small delay to prevent tight error loops
+                        time.sleep(0.001)
+
         except Exception as e:
-            print(f"[AUDIO ERROR] {e}")
+            print(f"[AUDIO ERROR] Stream setup failed: {e}")
 
     def _render_modules(self, t: float):
         """
@@ -180,9 +225,9 @@ class ObliqueEngine:
             tex = module.render_texture(self.ctx, fb_width, fb_height, t)
             textures.append(tex)
 
-        
+
         final_tex = None
-        
+
         if len(textures) == 0:
             print("No textures to render")
             # Create a black texture if no modules
@@ -206,7 +251,7 @@ class ObliqueEngine:
                     tex,
                     self.additive_blend_shader,
                 )
-        
+
         # Display frame
         self._display_frame(final_tex, t)
 
@@ -268,7 +313,6 @@ class ObliqueEngine:
                 print("Debug mode enabled - Performance monitoring active")
 
             if self.audio_input is not None:
-                print(f"[INFO] Audio input type: {type(self.audio_input).__name__}")
                 self.audio_input.start()
                 self.audio_thread = threading.Thread(
                     target=self._audio_stream_playback,

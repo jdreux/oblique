@@ -1,8 +1,10 @@
-from .base_input import BaseInput
-from typing import Any, Optional
-import soundfile as sf
-import numpy as np
 import collections
+from typing import Optional
+
+import numpy as np
+import soundfile as sf
+
+from .base_input import BaseInput
 
 
 class AudioFileInput(BaseInput):
@@ -12,16 +14,15 @@ class AudioFileInput(BaseInput):
     """
 
     def __init__(
-        self, file_path: str, chunk_size: int = 1024, config: Optional[dict] = None
+        self, file_path: str, chunk_size: int = 1024
     ) -> None:
         """
         :param file_path: Path to the audio file to read.
         :param chunk_size: Number of samples per read.
         :param config: Optional configuration dictionary.
         """
-        super().__init__(config)
+        super().__init__(chunk_size=chunk_size)
         self.file_path = file_path
-        self.chunk_size = chunk_size
         self.file = None
         self.samplerate = None
         self.channels = None
@@ -79,6 +80,36 @@ class AudioFileInput(BaseInput):
             return None
         return np.concatenate(chunks, axis=0)
 
+    @property
+    def sample_rate(self) -> int:
+        """
+        Get the sample rate of the input source in Hz.
+        :return: Sample rate in Hz.
+        """
+        if self.samplerate is None:
+            raise RuntimeError("AudioFileInput not started. Call start() first.")
+        return int(self.samplerate)
+
+    @property
+    def num_channels(self) -> int:
+        """
+        Get the number of audio channels in the input source.
+        :return: Number of channels (1 for mono, 2 for stereo, etc.).
+        """
+        if self.channels is None:
+            raise RuntimeError("AudioFileInput not started. Call start() first.")
+        return self.channels
+
+    @property
+    def device_name(self) -> str:
+        """
+        Get a human-readable name for the input device/source.
+        :return: Human-readable device name.
+        """
+        import os
+        filename = os.path.basename(self.file_path)
+        return f"File: {filename}"
+
 
 if __name__ == "__main__":
     import sys
@@ -96,4 +127,4 @@ if __name__ == "__main__":
         chunk = input_device.read()
         print(f"Chunk {i}: shape={chunk.shape}, mean={chunk.mean():.4f}")
         time.sleep(0.1)
-    input_device.stop() 
+    input_device.stop()

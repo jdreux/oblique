@@ -2,34 +2,33 @@ import argparse
 
 # --- Core imports ---
 from core import ObliqueEngine, ObliquePatch
-from inputs.base_input import BaseInput
-
-# --- Module imports ---
-from modules import shader_toy_tester
-from modules.ryoji_grid import RyojiGrid, RyojiGridParams
-from modules.circle_echo import CircleEcho, CircleEchoParams
-from modules.debug import DebugModule, DebugParams
-from modules.iked_grid import IkedGrid, IkedGridParams
-from modules.transform import TransformModule, TransformParams
-from processing.normalized_amplitude import NormalizedAmplitudeOperator
-from processing.fft_bands import FFTBands
+from inputs.audio_device_input import AudioDeviceInput, print_audio_devices
 
 # --- Input imports ---
 from inputs.audio_file_input import AudioFileInput
-from inputs.audio_device_input import AudioDeviceInput
-from inputs.audio_device_input import print_audio_devices
-from modules.ryoji_lines import RyojiLines, RyojiLinesParams
-from processing.spectral_centroid import SpectralCentroid
-from modules.visual_noise import VisualNoiseModule, VisualNoiseParams
+from inputs.base_input import BaseInput
+
+# --- Module imports ---
+from modules.circle_echo import CircleEcho, CircleEchoParams
+from modules.debug import DebugModule, DebugParams
+from modules.feedback import Feedback, FeedbackParams
+from modules.iked_grid import IkedGrid, IkedGridParams
 from modules.ikeda_test_pattern import IkedaTestPatternModule, IkedaTestPatternParams
 from modules.ikeda_tiny_barcode import IkedaTinyBarcodeModule, IkedaTinyBarcodeParams
+from modules.mesh_shroud import MeshShroudModule, MeshShroudParams
+from modules.ryoji_grid import RyojiGrid, RyojiGridParams
+from modules.ryoji_lines import RyojiLines, RyojiLinesParams
+from modules.shader_toy_tester import ShaderToyTesterModule
 from modules.spectral_visualizer import (
     SpectralVisualizerModule,
     SpectralVisualizerParams,
 )
-from modules.feedback import Feedback, FeedbackParams
-from modules.mesh_shroud import MeshShroudModule, MeshShroudParams
-from modules.shader_toy_tester import ShaderToyTesterModule, ShaderToyTesterParams
+from modules.transform import TransformModule, TransformParams
+from modules.visual_noise import VisualNoiseModule, VisualNoiseParams
+from processing.fft_bands import FFTBands
+from processing.normalized_amplitude import NormalizedAmplitudeOperator
+from processing.spectral_centroid import SpectralCentroid
+
 
 def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> ObliquePatch:
     """
@@ -71,9 +70,7 @@ def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> Obliqu
         spectral_centroid_processor,
     )
     visual_noise_module = VisualNoiseModule(
-        VisualNoiseParams(
-            width=width, height=height, color_mode="rgba", noise_size="large", speed=0.1
-        )
+        VisualNoiseParams(width=width, height=height, color_mode="rgba", noise_size="large", speed=0.1)
     )
     ikeda_test_pattern = IkedaTestPatternModule(
         IkedaTestPatternParams(width=width, height=height), module=circle_echo_module
@@ -85,10 +82,11 @@ def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> Obliqu
         SpectralVisualizerParams(width=width, height=height), fft_bands_processor512
     )
 
-    mesh_module = MeshShroudModule(MeshShroudParams(width=width, height=height), fft_bands_processor64, amplitude_processor)
+    mesh_module = MeshShroudModule(
+        MeshShroudParams(width=width, height=height), fft_bands_processor64, amplitude_processor
+    )
 
     shader_toy_tester = ShaderToyTesterModule()
-
 
     # Create IkedGrid module that creates its own pattern and swaps squares
     iked_grid_module = IkedGrid(
@@ -120,18 +118,16 @@ def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> Obliqu
             width=width,
             height=height,
             scale=(0.94, 0.78),
-            angle=67, 
+            angle=67,
             pivot=(0.7, 0.3),
             translate=(0.05, -0.5),
-            transform_order="SRT"
+            transform_order="SRT",
         ),
-        upstream_module=feedback_module, 
+        upstream_module=feedback_module,
     )
 
-
-
     # patch.add(shader_toy_tester)  # Test feedback module with input
-    # patch.add(spectral_visualizer_module) 
+    # patch.add(spectral_visualizer_module)
     patch.add(feedback_module)  # Test transform module
     return patch
 
@@ -176,9 +172,7 @@ def main():
         default=None,
         help="Monitor index to open window on (use --list-monitors to see available monitors)",
     )
-    parser.add_argument(
-        "--list-monitors", action="store_true", help="List available monitors and exit"
-    )
+    parser.add_argument("--list-monitors", action="store_true", help="List available monitors and exit")
     args = parser.parse_args()
 
     # List monitors if requested
@@ -197,15 +191,11 @@ def main():
         try:
             audio_channels = [int(ch.strip()) for ch in args.audio_channels.split(",")]
         except ValueError:
-            print(
-                "Error: audio-channels must be comma-separated integers (e.g., '0,1')"
-            )
+            print("Error: audio-channels must be comma-separated integers (e.g., '0,1')")
             return
 
     if args.audio_device is not None:
-        audio_input = AudioDeviceInput(
-            device_id=args.audio_device, channels=audio_channels
-        )
+        audio_input = AudioDeviceInput(device_id=args.audio_device, channels=audio_channels)
     elif args.audio_file:
         audio_input = AudioFileInput(file_path=args.audio_file)
     else:
