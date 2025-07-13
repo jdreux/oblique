@@ -2,6 +2,7 @@ import argparse
 
 # --- Core imports ---
 from core import ObliqueEngine, ObliquePatch
+from inputs.audio_device_channel_input import AudioDeviceChannelInput
 from inputs.audio_device_input import AudioDeviceInput, print_audio_devices
 
 # --- Input imports ---
@@ -46,8 +47,13 @@ def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> Obliqu
 
     # audio_input = AudioFileInput(file_path=audio_path)
 
-    patch.input(audio_input)
-    amplitude_processor = NormalizedAmplitudeOperator(audio_input)
+    if isinstance(audio_input, AudioDeviceInput):
+        audio_playback_input = AudioDeviceChannelInput(from_device=audio_input, channels=[0,1])
+    else:
+        audio_playback_input = audio_input
+
+    patch.input(audio_playback_input)
+    amplitude_processor = NormalizedAmplitudeOperator(audio_playback_input)
     debug_module = DebugModule(
         DebugParams(width=width, height=height, number=0.0, text="Debug"),
         amplitude_processor,

@@ -211,6 +211,14 @@ class AudioDeviceInput(BaseInput):
         return self.peek(channels=channels)
 
     @property
+    def is_started(self) -> bool:
+        """
+        Check if the audio input stream is started.
+        :return: True if the stream is started, False otherwise.
+        """
+        return self._stream is not None
+
+    @property
     def sample_rate(self) -> int:
         """
         Get the sample rate of the input source in Hz.
