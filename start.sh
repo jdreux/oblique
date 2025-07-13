@@ -87,4 +87,4 @@ if [ -n "$SYNTAKT_FLAG" ]; then
   echo "[DEBUG] Syntakt mode enabled, using audio device: $AUDIO_DEVICE"
 fi
 # python3 main.py --audio-file "projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav" --width 800 --height 800 $DEBUG_FLAG --monitor "$MONITOR" "$@" 
-python3 main.py --width 800 --height 800 $DEBUG_FLAG --monitor "$MONITOR" "$@" --audio-device "$AUDIO_DEVICE"
+python3 main.py --width 800 --height 800 $DEBUG_FLAG --monitor "$MONITOR" "$@" --audio-device "$AUDIO_DEVICE" --debug

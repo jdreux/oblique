@@ -49,10 +49,11 @@ def _release_shader_cache_entry(entry: tuple) -> None:
 
 def render_fullscreen_quad(
     ctx: moderngl.Context, frag_shader_path: str, uniforms: dict[str, Any]
-) -> None:
+) -> tuple[moderngl.Program, moderngl.VertexArray, moderngl.Buffer]:
     """
     Render a fullscreen quad using the given fragment shader and uniforms.
     Caches the program, VAO, and VBO for efficiency.
+    Returns the program, vao, and vbo.
     """
     global _shader_cache, _debug_mode
 
@@ -120,7 +121,7 @@ def render_fullscreen_quad(
                 program[name] = value
 
     vao.render(moderngl.TRIANGLE_STRIP)
-
+    return program, vao, vbo
 
 def render_to_texture(
     ctx: moderngl.Context,

@@ -244,7 +244,7 @@ class ObliqueEngine:
             tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
             tex.repeat_x = False
             tex.repeat_y = False
-            textures.append(tex)
+            textures = [tex]
 
         # Blend all textures in order (additive)
         if len(textures) == 1:
@@ -290,7 +290,7 @@ class ObliqueEngine:
         self.ctx.clear(1.0, 1.0, 1.0, 1.0)
 
         # Display final texture to screen
-        render_fullscreen_quad(
+        program, vao, vbo = render_fullscreen_quad(
             self.ctx,
             self.passthrough_shader,
             {
@@ -299,8 +299,15 @@ class ObliqueEngine:
                 "u_resolution": (fb_width, fb_height),
             },
         )
+
         final_tex.use(location=0)
         glfw.swap_buffers(self.window)
+
+        program.release()
+        vao.release()
+        vbo.release()
+        final_tex.release()
+
 
     def run(self) -> None:
         """
