@@ -268,6 +268,7 @@ class ObliqueEngine:
                 print("Debug mode enabled - Performance monitoring active")
 
             if self.audio_input is not None:
+                print(f"[INFO] Audio input type: {type(self.audio_input).__name__}")
                 self.audio_input.start()
                 self.audio_thread = threading.Thread(
                     target=self._audio_stream_playback,

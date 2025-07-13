@@ -142,7 +142,7 @@ def main():
     parser.add_argument("--width", type=int, default=800, help="Window width")
     parser.add_argument("--height", type=int, default=600, help="Window height")
     parser.add_argument(
-        "--audio",
+        "--audio-file",
         type=str,
         default=None,
         help="Path to audio file for playback (or 'device' for real-time input)",
@@ -202,12 +202,15 @@ def main():
             )
             return
 
-    if args.audio_device:
+    if args.audio_device is not None:
         audio_input = AudioDeviceInput(
             device_id=args.audio_device, channels=audio_channels
         )
+    elif args.audio_file:
+        audio_input = AudioFileInput(file_path=args.audio_file)
     else:
-        audio_input = AudioFileInput(file_path=args.audio)
+        print("Error: No audio input specified")
+        return
 
     # Create the patch
     patch = create_demo_patch(args.width, args.height, audio_input)
