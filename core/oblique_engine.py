@@ -159,39 +159,16 @@ class ObliqueEngine:
                 latency="low"  # Match input latency mode
             ) as stream:
 
-                # Comprehensive timing diagnostics
+                # Timing monitoring for buffer underruns
                 last_chunk_time = time.time()
                 expected_interval = chunk_size / samplerate
                 buffer_underruns = 0
                 consecutive_underruns = 0
                 chunks_processed = 0
-                
-                # Detailed timing tracking
-                read_times = []
-                write_times = []
-                loop_times = []
-                
-                # Performance counters
-                total_read_time = 0.0
-                total_write_time = 0.0
-                total_loop_time = 0.0
-                max_read_time = 0.0
-                max_write_time = 0.0
-                max_loop_time = 0.0
 
                 while self.running:
-                    loop_start = time.time()
-                    
                     try:
-                        # Time the read operation
-                        read_start = time.time()
                         chunk = audio_input.read()
-                        read_end = time.time()
-                        read_time = read_end - read_start
-                        
-                        read_times.append(read_time)
-                        total_read_time += read_time
-                        max_read_time = max(max_read_time, read_time)
 
                         # Check if we got a zero chunk (no audio data)
                         if chunk.shape[0] == 0:
@@ -202,39 +179,13 @@ class ObliqueEngine:
                             # If we have more channels than expected, take the first ones
                             chunk = chunk[:, :channels]
 
-                        # Time the write operation
-                        write_start = time.time()
+                        # Write to stream with error handling
                         stream.write(chunk.astype("float32"))
-                        write_end = time.time()
-                        write_time = write_end - write_start
-                        
-                        write_times.append(write_time)
-                        total_write_time += write_time
-                        max_write_time = max(max_write_time, write_time)
-                        
                         chunks_processed += 1
-                        loop_end = time.time()
-                        loop_time = loop_end - loop_start
-                        
-                        loop_times.append(loop_time)
-                        total_loop_time += loop_time
-                        max_loop_time = max(max_loop_time, loop_time)
 
-                        # Detailed logging every 50 chunks
-                        if chunks_processed % 50 == 0:
-                            avg_read = total_read_time / chunks_processed
-                            avg_write = total_write_time / chunks_processed
-                            avg_loop = total_loop_time / chunks_processed
-                            
-                            # Get queue status for diagnostics
-                            queue_status = audio_input.get_queue_status()
-                            
-                            print(f"[AUDIO] Chunk {chunks_processed}: "
-                                  f"read={read_time*1000:.1f}ms (avg={avg_read*1000:.1f}ms, max={max_read_time*1000:.1f}ms), "
-                                  f"write={write_time*1000:.1f}ms (avg={avg_write*1000:.1f}ms, max={max_write_time*1000:.1f}ms), "
-                                  f"loop={loop_time*1000:.1f}ms (avg={avg_loop*1000:.1f}ms, max={max_loop_time*1000:.1f}ms), "
-                                  f"queue={queue_status['queue_size']}/{queue_status['queue_maxsize']} "
-                                  f"({'full' if queue_status['is_full'] else 'empty' if queue_status['is_empty'] else 'ok'})")
+                        # Log progress every 100 chunks
+                        if chunks_processed % 100 == 0:
+                            print(f"[AUDIO] Processed {chunks_processed} chunks")
 
                         # Monitor timing for buffer underruns
                         current_time = time.time()
@@ -256,37 +207,7 @@ class ObliqueEngine:
                         # Small delay to prevent tight error loops
                         time.sleep(0.001)
 
-                # Final statistics
-                if chunks_processed > 0:
-                    avg_read = total_read_time / chunks_processed
-                    avg_write = total_write_time / chunks_processed
-                    avg_loop = total_loop_time / chunks_processed
-                    
-                    print(f"\n[AUDIO] Final Statistics:")
-                    print(f"  Total chunks processed: {chunks_processed}")
-                    print(f"  Average read time: {avg_read*1000:.2f}ms")
-                    print(f"  Average write time: {avg_write*1000:.2f}ms")
-                    print(f"  Average loop time: {avg_loop*1000:.2f}ms")
-                    print(f"  Max read time: {max_read_time*1000:.2f}ms")
-                    print(f"  Max write time: {max_write_time*1000:.2f}ms")
-                    print(f"  Max loop time: {max_loop_time*1000:.2f}ms")
-                    print(f"  Buffer underruns: {buffer_underruns}")
-                    
-                    # Performance analysis
-                    total_processing_time = avg_read + avg_write
-                    available_time = expected_interval
-                    utilization = (total_processing_time / available_time) * 100
-                    
-                    print(f"  Processing time: {total_processing_time*1000:.2f}ms")
-                    print(f"  Available time: {available_time*1000:.2f}ms")
-                    print(f"  CPU utilization: {utilization:.1f}%")
-                    
-                    if utilization > 80:
-                        print(f"  [WARNING] High CPU utilization ({utilization:.1f}%). Consider larger chunk size.")
-                    elif buffer_underruns > 0:
-                        print(f"  [WARNING] Buffer underruns detected. Consider larger chunk size.")
-                    else:
-                        print(f"  [OK] Performance looks good for this chunk size.")
+                print(f"[AUDIO] Playback loop ended. Processed {chunks_processed} chunks total.")
 
         except Exception as e:
             print(f"[AUDIO ERROR] Stream setup failed: {e}")

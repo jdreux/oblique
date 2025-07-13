@@ -70,19 +70,7 @@ class AudioDeviceInput(BaseInput):
         if device_blocksize > 0:
             # Convert latency to samples
             device_samples = int(device_blocksize * self.samplerate)
-            # Use the device's recommended size, but don't go smaller than our minimum
-            self.chunk_size = max(device_samples, self.chunk_size)
-            print(f"[AUDIO] Using device-recommended blocksize: {device_samples} samples ({device_blocksize*1000:.1f}ms)")
-        else:
-            print(f"[AUDIO] Using default blocksize: {self.chunk_size} samples")
-
-        # Check if the device supports the requested latency
-        device_max_latency = device_info.get("default_high_input_latency", 0.1)
-        requested_latency = self.chunk_size / self.samplerate
-        
-        if requested_latency < device_blocksize:
-            print(f"[AUDIO WARNING] Requested latency ({requested_latency*1000:.1f}ms) is smaller than device minimum ({device_blocksize*1000:.1f}ms)")
-            print(f"[AUDIO WARNING] This may cause audio glitches. Consider using a larger chunk size.")
+            self.chunk_size = max(self.chunk_size, device_samples)
 
         self._stream = sd.InputStream(
             device=self.device_id,
@@ -130,7 +118,7 @@ class AudioDeviceInput(BaseInput):
                     self._audio_queue.get_nowait()  # Remove oldest
                 except queue.Empty:
                     pass
-            
+
             self._audio_queue.put_nowait(indata.copy())
         except Exception as e:
             print(f"Error in audio callback: {e}")
@@ -151,22 +139,6 @@ class AudioDeviceInput(BaseInput):
             # If no chunk is available, return zeros
             num_channels = self.num_channels
             return np.zeros((self.chunk_size, num_channels), dtype=np.float32)
-
-    def get_queue_status(self) -> Dict[str, Any]:
-        """
-        Get the current status of the audio queue for diagnostics.
-        :return: Dictionary with queue status information
-        """
-        if self._stream is None:
-            return {"error": "Stream not started"}
-        
-        return {
-            "queue_size": self._audio_queue.qsize(),
-            "queue_maxsize": self._audio_queue.maxsize,
-            "is_full": self._audio_queue.full(),
-            "is_empty": self._audio_queue.empty(),
-            "running": self._running
-        }
 
     def peek(self, n_buffers: Optional[int] = None) -> Optional[np.ndarray]:
         """
