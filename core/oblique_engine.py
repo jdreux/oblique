@@ -4,6 +4,7 @@ from typing import Dict, List, Optional
 
 import glfw  # type: ignore
 import moderngl
+import numpy as np
 import sounddevice as sd
 
 from core.oblique_patch import ObliquePatch
@@ -147,8 +148,8 @@ class ObliqueEngine:
         channels = audio_input.num_channels
         chunk_size = audio_input.chunk_size
 
-        print(f"[AUDIO] Streaming audio from {audio_input.device_name} at {samplerate} Hz with {channels} channels")
-        print(f"[AUDIO] Chunk size: {chunk_size} samples ({chunk_size / samplerate * 1000:.1f}ms)")
+        print(f"[AUDIO] Streaming audio from {audio_input.device_name} at {samplerate} Hz with {channels} channels, "
+              f"chunk size: {chunk_size} samples ({chunk_size / samplerate * 1000:.1f}ms)")
 
         try:
             with sd.OutputStream(
@@ -158,37 +159,57 @@ class ObliqueEngine:
                 blocksize=chunk_size,
                 latency="low"  # Match input latency mode
             ) as stream:
-                print(f"[AUDIO] Output stream configured with {chunk_size} sample blocksize")
-
+ 
                 # Timing monitoring for buffer underruns
                 last_chunk_time = time.time()
                 expected_interval = chunk_size / samplerate
                 buffer_underruns = 0
                 consecutive_underruns = 0
+                consecutive_zeros = 0
+                max_consecutive_zeros = 10  # Allow some zeros at startup
+                chunks_processed = 0
 
                 while self.running:
-                    chunk = audio_input.read()
-                    if chunk.shape[0] == 0:
-                        break  # End of file
-
-                    # Ensure chunk is the right shape and type
-                    if chunk.shape[1] != channels:
-                        # If we have more channels than expected, take the first ones
-                        chunk = chunk[:, :channels]
-
-                    # Write to stream with error handling
                     try:
+                        chunk = audio_input.read()
+
+                        # Check if we got a zero chunk (no audio data)
+                        if chunk.shape[0] == 0:
+                            break  # End of file
+
+                        # Check if chunk is all zeros (no audio input)
+                        if np.allclose(chunk, 0.0):
+                            consecutive_zeros += 1
+                            if consecutive_zeros > max_consecutive_zeros:
+                                print(f"[AUDIO] No audio input detected for {consecutive_zeros} chunks")
+                                consecutive_zeros = max_consecutive_zeros  # Cap the message
+                                # Small delay when no audio to prevent tight polling
+                                time.sleep(0.001)
+                        else:
+                            consecutive_zeros = 0
+
+                        # Ensure chunk is the right shape and type
+                        if chunk.shape[1] != channels:
+                            # If we have more channels than expected, take the first ones
+                            chunk = chunk[:, :channels]
+
+                        # Write to stream with error handling
                         stream.write(chunk.astype("float32"))
+                        chunks_processed += 1
+
+                        # Log progress every 100 chunks
+                        if chunks_processed % 100 == 0:
+                            print(f"[AUDIO] Processed {chunks_processed} chunks")
 
                         # Monitor timing for buffer underruns
                         current_time = time.time()
                         actual_interval = current_time - last_chunk_time
-                        if actual_interval > expected_interval:
+                        if actual_interval > expected_interval * 1.2:  # Allow some tolerance
                             buffer_underruns += 1
                             consecutive_underruns += 1
-                            if consecutive_underruns >= 5:  # Log after 5 consecutive underruns
+                            if consecutive_underruns >= 3:  # Log after 3 consecutive underruns
                                 print(f"[AUDIO] Sustained buffer underruns detected (total: {buffer_underruns}). "
-                                f"Last expected: {expected_interval:.2f}ms, actual: {actual_interval:.2f}ms")
+                                f"Last expected: {expected_interval*1000:.1f}ms, actual: {actual_interval*1000:.1f}ms")
                                 consecutive_underruns = 0
                         else:
                             consecutive_underruns = 0
@@ -196,9 +217,11 @@ class ObliqueEngine:
                         last_chunk_time = current_time
 
                     except Exception as e:
-                        print(f"[AUDIO ERROR] Failed to write chunk: {e}")
+                        print(f"[AUDIO ERROR] Failed to process chunk: {e}")
                         # Small delay to prevent tight error loops
                         time.sleep(0.001)
+
+                print(f"[AUDIO] Playback loop ended. Processed {chunks_processed} chunks total.")
 
         except Exception as e:
             print(f"[AUDIO ERROR] Stream setup failed: {e}")

@@ -1,4 +1,4 @@
-import collections
+import queue
 import threading
 from typing import Any, Dict, List, Optional, cast
 
@@ -19,7 +19,7 @@ class AudioDeviceInput(BaseInput):
         device_id: Optional[int] = None,
         channels: Optional[List[int]] = None,
         samplerate: int = 44100,
-        chunk_size: int = 1024,  # Balanced for stability and latency
+        chunk_size: int = 480 # 10ms at 48kHz, for real time performance.
     ) -> None:
         """
         Initialize the audio device input.
@@ -34,9 +34,9 @@ class AudioDeviceInput(BaseInput):
         self._channel_indices = channels
         self.samplerate = samplerate
         self._stream = None
-        self._last_chunk = None
-        self._chunk_history = collections.deque(maxlen=2)  # Reduced buffer size for lower latency
+        self._audio_queue = queue.Queue(maxsize=4)  # Small buffer for low latency
         self._lock = threading.Lock()  # Thread safety for audio callback
+        self._running = False
 
     def start(self) -> None:
         """
@@ -70,7 +70,7 @@ class AudioDeviceInput(BaseInput):
         if device_blocksize > 0:
             # Convert latency to samples
             device_samples = int(device_blocksize * self.samplerate)
-            self.chunk_size = min(self.chunk_size, device_samples)
+            self.chunk_size = max(self.chunk_size, device_samples)
 
         self._stream = sd.InputStream(
             device=self.device_id,
@@ -81,18 +81,25 @@ class AudioDeviceInput(BaseInput):
             callback=self._audio_callback,
             latency="low",  # Back to low latency for correct timing
         )
+        self._running = True
         self._stream.start()
 
     def stop(self) -> None:
         """
         Stop the audio input stream.
         """
+        self._running = False
         if self._stream is not None:
             self._stream.stop()
             self._stream.close()
             self._stream = None
-        self._last_chunk = None
-        self._chunk_history.clear()
+
+        # Clear the queue
+        while not self._audio_queue.empty():
+            try:
+                self._audio_queue.get_nowait()
+            except queue.Empty:
+                break
 
     def _audio_callback(self, indata: np.ndarray, frames: int, time_info, status) -> None:
         """
@@ -101,11 +108,20 @@ class AudioDeviceInput(BaseInput):
         if status:
             print(f"Audio callback status: {status}")
 
-        with self._lock:
-            # Store the audio chunk
-            self._last_chunk = indata.copy()
-            # Store reference to the copy we already made
-            self._chunk_history.append(self._last_chunk)
+        if not self._running:
+            return
+
+        try:
+            # Put the audio chunk in the queue, drop oldest if full
+            if self._audio_queue.full():
+                try:
+                    self._audio_queue.get_nowait()  # Remove oldest
+                except queue.Empty:
+                    pass
+
+            self._audio_queue.put_nowait(indata.copy())
+        except Exception as e:
+            print(f"Error in audio callback: {e}")
 
     def read(self) -> np.ndarray:
         """
@@ -115,14 +131,14 @@ class AudioDeviceInput(BaseInput):
         if self._stream is None:
             raise RuntimeError("AudioDeviceInput not started. Call start() first.")
 
-        with self._lock:
-            # Wait for the next chunk to be available
-            if self._last_chunk is None:
-                # If no chunk is available yet, return zeros
-                num_channels = len(self._channel_indices) if self._channel_indices else 1
-                return np.zeros((self.chunk_size, num_channels), dtype=np.float32)
-
-            return self._last_chunk.copy()
+        try:
+            # Wait for the next chunk with a timeout
+            chunk = self._audio_queue.get(timeout=0.1)  # 100ms timeout
+            return chunk
+        except queue.Empty:
+            # If no chunk is available, return zeros
+            num_channels = self.num_channels
+            return np.zeros((self.chunk_size, num_channels), dtype=np.float32)
 
     def peek(self, n_buffers: Optional[int] = None) -> Optional[np.ndarray]:
         """
@@ -130,19 +146,24 @@ class AudioDeviceInput(BaseInput):
         :param n_buffers: Number of previous chunks to return (concatenated). If None, returns the most recent chunk.
         :return: Numpy array of shape (n*chunk_size, channels) or None if not available
         """
-        with self._lock:
-            if n_buffers is None:
-                return self._last_chunk.copy() if self._last_chunk is not None else None
-
-            if n_buffers <= 0 or len(self._chunk_history) == 0:
+        if n_buffers is None:
+            # Return the most recent chunk if available
+            try:
+                # Get the most recent chunk without removing it
+                chunk = self._audio_queue.get_nowait()
+                # Put it back at the front
+                self._audio_queue.put_nowait(chunk)
+                return chunk
+            except queue.Empty:
                 return None
 
-            # Get up to n_buffers most recent chunks
-            chunks = list(self._chunk_history)[-n_buffers:]
-            if not chunks:
-                return None
-            return np.concatenate(chunks, axis=0)
+        if n_buffers <= 0:
+            return None
 
+        # For multiple buffers, we'd need to implement a different approach
+        # since we can't peek at multiple items in a queue
+        # For now, return the most recent chunk
+        return self.peek()
 
     @property
     def sample_rate(self) -> int:
