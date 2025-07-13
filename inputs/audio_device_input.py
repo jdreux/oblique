@@ -19,7 +19,7 @@ class AudioDeviceInput(BaseInput):
         device_id: Optional[int] = None,
         channels: Optional[List[int]] = None,
         samplerate: int = 44100,
-        chunk_size: int = 1024 # 10ms at 48kHz, for real time performance.
+        chunk_size: int = 1024,  # 10ms at 48kHz, for real time performance.
     ) -> None:
         """
         Initialize the audio device input.
@@ -37,7 +37,7 @@ class AudioDeviceInput(BaseInput):
         self._audio_queue = queue.Queue(maxsize=4)  # Small buffer for low latency
         self._lock = threading.Lock()  # Thread safety for audio callback
         self._running = False
-        self._selected_channels = None  # Will be set in start() method
+        self._max_channels = 0  # Will be set in start() method
 
     def start(self) -> None:
         """
@@ -48,35 +48,23 @@ class AudioDeviceInput(BaseInput):
 
         # Get device info
         device_info = cast(Dict[str, Any], sd.query_devices(self.device_id, "input"))
-        max_channels = device_info.get("max_input_channels", 1)
-
-
+        self._max_channels = device_info.get("max_input_channels", 1)
 
         # Use device's native sample rate instead of configured one
         device_samplerate = device_info.get("default_samplerate", 44100)
         self.samplerate = int(device_samplerate)
 
-        # Determine which channels to capture
-        if self._channel_indices is None:
-            # Capture all available channels
-            channels_to_capture = list(range(max_channels))
-        else:
-            # Validate channel selection
-            channels_to_capture = [ch for ch in self._channel_indices if ch < max_channels]
-            if not channels_to_capture:
+        # Validate channel selection if provided
+        if self._channel_indices is not None:
+            valid_channels = [ch for ch in self._channel_indices if ch < self._max_channels]
+            if not valid_channels:
                 # Provide more helpful error message
                 requested_channels = self._channel_indices
                 device_name = device_info.get("name", "Unknown Device")
                 raise ValueError(
-                    f"No valid channels selected. Device {device_name} has {max_channels} channels "
-                    f"(0-{max_channels-1}), but requested channels {requested_channels}."
+                    f"No valid channels selected. Device {device_name} has {self._max_channels} channels "
+                    f"(0-{self._max_channels - 1}), but requested channels {requested_channels}."
                 )
-
-        # Store the selected channels for filtering in callback
-        self._selected_channels = channels_to_capture
-
-        print(f"AudioDeviceInput: Requesting {max_channels} channels from device, filtering to {len(channels_to_capture)}"
-        f" selected channels: {channels_to_capture}")
 
         # Use device's recommended blocksize for stability
         # Don't force small buffers if device doesn't support them
@@ -86,10 +74,10 @@ class AudioDeviceInput(BaseInput):
             device_samples = int(device_blocksize * self.samplerate)
             self.chunk_size = max(self.chunk_size, device_samples)
 
-        # Always request all channels from the device, we'll filter in the callback
+        # Always request all channels from the device, filtering will be done in read/peek
         self._stream = sd.InputStream(
             device=self.device_id,
-            channels=max_channels,  # Request all channels from device
+            channels=self._max_channels,  # Request all channels from device
             samplerate=self.samplerate,
             blocksize=self.chunk_size,
             dtype=np.float32,
@@ -127,29 +115,52 @@ class AudioDeviceInput(BaseInput):
             return
 
         try:
-            # Filter to only the selected channels
-            if self._selected_channels is not None:
-                # indata shape is (frames, channels) - select only the specified channels
-                filtered_data = indata[:, self._selected_channels]
-            else:
-                # If no channel selection, use all channels
-                filtered_data = indata
-
-            # Put the filtered audio chunk in the queue, drop oldest if full
+            # Store all channels in the queue, filtering will be done in read/peek methods
+            # Put the audio chunk in the queue, drop oldest if full
             if self._audio_queue.full():
                 try:
                     self._audio_queue.get_nowait()  # Remove oldest
                 except queue.Empty:
                     pass
 
-            self._audio_queue.put_nowait(filtered_data.copy())
+            self._audio_queue.put_nowait(indata.copy())
         except Exception as e:
             print(f"Error in audio callback: {e}")
 
-    def read(self) -> np.ndarray:
+    def _filter_channels(self, data: np.ndarray, channels: Optional[List[int]] = None) -> np.ndarray:
+        """
+        Filter audio data to specific channels.
+
+        :param data: Audio data of shape (frames, all_channels)
+        :param channels: List of channel indices to keep. If None, uses the default channel selection.
+        :return: Filtered audio data of shape (frames, selected_channels)
+        """
+        if channels is not None:
+            # Use provided channel selection
+            selected_channels = channels
+        elif self._channel_indices is not None:
+            # Use default channel selection from constructor
+            selected_channels = self._channel_indices
+        else:
+            # Return all channels
+            return np.ascontiguousarray(data, dtype=np.float32)
+
+        # Validate channel indices
+        valid_channels = [ch for ch in selected_channels if 0 <= ch < data.shape[1]]
+        if not valid_channels:
+            raise ValueError(
+                f"No valid channels selected. Available: 0-{data.shape[1] - 1}, requested: {selected_channels}"
+            )
+
+        # Return a contiguous copy to avoid C-contiguous issues
+        return np.ascontiguousarray(data[:, valid_channels], dtype=np.float32)
+
+    def read(self, channels: Optional[List[int]] = None) -> np.ndarray:
         """
         Read the next chunk of audio data.
-        :return: Numpy array of shape (chunk_size, channels)
+
+        :param channels: List of channel indices to return. If None, uses the default channel selection.
+        :return: Numpy array of shape (chunk_size, selected_channels)
         """
         if self._stream is None:
             raise RuntimeError("AudioDeviceInput not started. Call start() first.")
@@ -157,17 +168,26 @@ class AudioDeviceInput(BaseInput):
         try:
             # Wait for the next chunk with a timeout
             chunk = self._audio_queue.get(timeout=0.1)  # 100ms timeout
-            return chunk
+            filtered_chunk = self._filter_channels(chunk, channels)
+            # Ensure the result is C-contiguous for sounddevice compatibility
+            return np.ascontiguousarray(filtered_chunk, dtype=np.float32)
         except queue.Empty:
             # If no chunk is available, return zeros
-            num_channels = self.num_channels
+            if channels is not None:
+                num_channels = len([ch for ch in channels if 0 <= ch < self._max_channels])
+            elif self._channel_indices is not None:
+                num_channels = len(self._channel_indices)
+            else:
+                num_channels = self._max_channels
             return np.zeros((self.chunk_size, num_channels), dtype=np.float32)
 
-    def peek(self, n_buffers: Optional[int] = None) -> Optional[np.ndarray]:
+    def peek(self, n_buffers: Optional[int] = None, channels: Optional[List[int]] = None) -> Optional[np.ndarray]:
         """
         Return the most recently captured chunk or up to the last n_buffers chunks concatenated.
+
         :param n_buffers: Number of previous chunks to return (concatenated). If None, returns the most recent chunk.
-        :return: Numpy array of shape (n*chunk_size, channels) or None if not available
+        :param channels: List of channel indices to return. If None, uses the default channel selection.
+        :return: Numpy array of shape (n*chunk_size, selected_channels) or None if not available
         """
         if n_buffers is None:
             # Return the most recent chunk if available
@@ -176,7 +196,9 @@ class AudioDeviceInput(BaseInput):
                 chunk = self._audio_queue.get_nowait()
                 # Put it back at the front
                 self._audio_queue.put_nowait(chunk)
-                return chunk
+                filtered_chunk = self._filter_channels(chunk, channels)
+                # Ensure the result is C-contiguous
+                return np.ascontiguousarray(filtered_chunk, dtype=np.float32)
             except queue.Empty:
                 return None
 
@@ -186,7 +208,7 @@ class AudioDeviceInput(BaseInput):
         # For multiple buffers, we'd need to implement a different approach
         # since we can't peek at multiple items in a queue
         # For now, return the most recent chunk
-        return self.peek()
+        return self.peek(channels=channels)
 
     @property
     def sample_rate(self) -> int:
@@ -208,14 +230,21 @@ class AudioDeviceInput(BaseInput):
             raise RuntimeError("AudioDeviceInput not started. Call start() first.")
 
         # Return the number of selected channels, not the total device channels
-        if self._selected_channels is not None:
-            return len(self._selected_channels)
+        if self._channel_indices is not None:
+            return len(self._channel_indices)
         else:
-            # Fallback to stream channels if no selection was made
-            channels = self._stream.channels
-            if isinstance(channels, tuple):
-                return channels[0]  # Return the first element if it's a tuple
-            return int(channels)
+            # Return the total number of available channels
+            return self._max_channels
+
+    # @property
+    # def max_channels(self) -> int:
+    #     """
+    #     Get the maximum number of channels available on the device.
+    #     :return: Maximum number of channels.
+    #     """
+    #     if self._stream is None:
+    #         raise RuntimeError("AudioDeviceInput not started. Call start() first.")
+    #     return self._max_channels
 
     @property
     def device_name(self) -> str:

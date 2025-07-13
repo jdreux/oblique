@@ -60,18 +60,22 @@ class BaseInput(ObliqueNode, ABC):
         pass
 
     @abstractmethod
-    def read(self) -> Any:
+    def read(self, channels=None) -> Any:
         """
         Read data from the input source, potentially advancing the input cursor.
+        :param channels: Optional channel selection (implementation specific).
         :return: Data from the input source (type depends on implementation).
         """
         pass
 
     @abstractmethod
-    def peek(self) -> Any:
+    def peek(self, n_buffers=None, channels=None) -> Any:
         """
         Return the most recent data chunk without advancing the input cursor.
         This allows consumers (e.g., video/visual analysis) to access the latest data
         being played or processed, without interfering with the main data stream.
+        :param n_buffers: Optional number of buffers to peek (implementation specific).
+        :param channels: Optional channel selection (implementation specific).
+        :return: Data from the input source (type depends on implementation).
         """
         pass

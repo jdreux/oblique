@@ -49,9 +49,10 @@ class AudioFileInput(BaseInput):
         self._last_chunk = None  # Clear cached chunk on stop
         self._chunk_history.clear()
 
-    def read(self) -> np.ndarray:
+    def read(self, channels=None) -> np.ndarray:
         """
         Read the next chunk of audio data, advancing the buffer position.
+        :param channels: Ignored for file input (all channels are returned).
         :return: Numpy array of shape (chunk_size, channels)
         """
         if self._buffer is None:
@@ -64,10 +65,11 @@ class AudioFileInput(BaseInput):
         self._chunk_history.append(chunk)
         return chunk
 
-    def peek(self, n_buffers: Optional[int] = None) -> Optional[np.ndarray]:
+    def peek(self, n_buffers: Optional[int] = None, channels=None) -> Optional[np.ndarray]:
         """
         Return the most recently read chunk or up to the last n_buffers chunks concatenated.
         :param n_buffers: Number of previous chunks to return (concatenated). If None, returns the most recent chunk.
+        :param channels: Ignored for file input (all channels are returned).
         :return: Numpy array of shape (n*chunk_size, channels) or None if not available
         """
         if n_buffers is None:
