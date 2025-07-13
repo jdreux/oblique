@@ -1,9 +1,11 @@
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 import numpy as np
 
-from .audio_device_input import AudioDeviceInput
 from .base_input import BaseInput
+
+if TYPE_CHECKING:
+    from .audio_device_input import AudioDeviceInput
 
 
 class AudioDeviceChannelInput(BaseInput):
@@ -15,7 +17,7 @@ class AudioDeviceChannelInput(BaseInput):
 
     def __init__(
         self,
-        from_device: AudioDeviceInput,
+        from_device: "AudioDeviceInput",
         channels: List[int],
     ) -> None:
         """

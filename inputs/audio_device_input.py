@@ -1,11 +1,14 @@
 import queue
 import threading
-from typing import Any, Dict, List, Optional, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 import numpy as np
 import sounddevice as sd
 
 from .base_input import BaseInput
+
+if TYPE_CHECKING:
+    from .audio_device_channel_input import AudioDeviceChannelInput
 
 
 class AudioDeviceInput(BaseInput):
@@ -209,6 +212,13 @@ class AudioDeviceInput(BaseInput):
         # since we can't peek at multiple items in a queue
         # For now, return the most recent chunk
         return self.peek(channels=channels)
+
+    def get_audio_input_for_channels(self, channels: List[int]) -> "AudioDeviceChannelInput":
+        """
+        Get a new AudioDeviceChannelInput instance that captures only the specified channels.
+        """
+        from .audio_device_channel_input import AudioDeviceChannelInput
+        return AudioDeviceChannelInput(from_device=self, channels=channels)
 
     @property
     def is_started(self) -> bool:

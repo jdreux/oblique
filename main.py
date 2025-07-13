@@ -47,13 +47,11 @@ def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> Obliqu
 
     # audio_input = AudioFileInput(file_path=audio_path)
 
-    if isinstance(audio_input, AudioDeviceInput):
-        audio_playback_input = AudioDeviceChannelInput(from_device=audio_input, channels=[0,1])
-    else:
-        audio_playback_input = audio_input
+    if not isinstance(audio_input, AudioDeviceInput):
+        raise ValueError("Audio input must be an instance of AudioDeviceInput")
 
-    patch.input(audio_playback_input)
-    amplitude_processor = NormalizedAmplitudeOperator(audio_playback_input)
+    patch.input(audio_input.get_audio_input_for_channels([0,1]))
+    amplitude_processor = NormalizedAmplitudeOperator(audio_input)
     debug_module = DebugModule(
         DebugParams(width=width, height=height, number=0.0, text="Debug"),
         amplitude_processor,
