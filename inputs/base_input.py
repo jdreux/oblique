@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Dict
 
 from core.oblique_node import ObliqueNode
 
@@ -75,3 +75,17 @@ class BaseInput(ObliqueNode, ABC):
         being played or processed, without interfering with the main data stream.
         """
         pass
+
+    def get_queue_status(self) -> Dict[str, Any]:
+        """
+        Get the current status of the input queue for diagnostics.
+        Default implementation returns basic status.
+        :return: Dictionary with queue status information
+        """
+        return {
+            "queue_size": 0,
+            "queue_maxsize": 0,
+            "is_full": False,
+            "is_empty": True,
+            "running": False
+        }
