@@ -80,7 +80,7 @@ class ObliqueLogger:
 
         # Default format string
         if format_string is None:
-            format_string = '%(asctime)s [%(levelname)s] %(name)s:%(funcName)s:%(lineno)d - %(message)s'
+            format_string = '%(asctime)s [%(levelname)s] %(message)s'
 
         formatter = logging.Formatter(format_string)
 
@@ -155,47 +155,6 @@ class ObliqueLogger:
             formatted_message = message
 
         self._logger.log(level, formatted_message)
-
-    def log_audio_info(self, device_name: str, samplerate: int, channels: int) -> None:
-        """Log audio device information."""
-        self.info(f"[AUDIO] Streaming audio from {device_name} at {samplerate} Hz with {channels} channels")
-
-    def log_audio_performance(self, chunks_processed: int, latency: float) -> None:
-        """Log audio performance metrics."""
-        self.debug(f"[AUDIO] Processed {chunks_processed} chunks, latency: {latency:.1f}ms")
-
-    def log_audio_error(self, error: Exception) -> None:
-        """Log audio-related errors."""
-        self.error(f"[AUDIO ERROR] {error}")
-
-    def log_audio_warning(self, message: str) -> None:
-        """Log audio-related warnings."""
-        self.warning(f"[AUDIO WARNING] {message}")
-
-    def log_module_creation(self, module_name: str, params: Dict[str, Any]) -> None:
-        """Log module creation."""
-        self.debug(f"Created {module_name} module with parameters: {params}")
-
-    def log_render_info(self, module_name: str, render_data: Dict[str, Any]) -> None:
-        """Log render information."""
-        self.trace(f"Module {module_name} render data: {render_data}")
-
-    def log_performance(self, fps: float, frame_time: float) -> None:
-        """Log performance metrics."""
-        self.debug(f"Performance: {fps:.1f} FPS, {frame_time:.2f}ms frame time")
-
-    def log_system_info(self, info: Dict[str, Any]) -> None:
-        """Log system information."""
-        self.info(f"System info: {info}")
-
-    def log_device_info(self, device_info: Dict[str, Any]) -> None:
-        """Log device information."""
-        self.info(f"Device: {device_info}")
-
-    def log_shader_info(self, shader_name: str, uniform_count: int) -> None:
-        """Log shader information."""
-        self.debug(f"Shader {shader_name} loaded with {uniform_count} uniforms")
-
 
 # Global logger instance
 logger = ObliqueLogger()

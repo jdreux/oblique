@@ -1,150 +1,18 @@
 import argparse
 
 # --- Core imports ---
-from core import ObliqueEngine, ObliquePatch
+from core import ObliqueEngine
 from core.logger import configure_logging, debug, error, info
 from inputs.audio_device_input import AudioDeviceInput, print_audio_devices
 
 # --- Input imports ---
 from inputs.audio_file_input import AudioFileInput
-from inputs.base_input import BaseInput
-
-# --- Module imports ---
-from modules.circle_echo import CircleEcho, CircleEchoParams
-from modules.debug import DebugModule, DebugParams
-from modules.feedback import Feedback, FeedbackParams
-from modules.iked_grid import IkedGrid, IkedGridParams
-from modules.ikeda_test_pattern import IkedaTestPatternModule, IkedaTestPatternParams
-from modules.ikeda_tiny_barcode import IkedaTinyBarcodeModule, IkedaTinyBarcodeParams
-from modules.mesh_shroud import MeshShroudModule, MeshShroudParams
-from modules.ryoji_grid import RyojiGrid, RyojiGridParams
-from modules.ryoji_lines import RyojiLines, RyojiLinesParams
-from modules.shader_toy_tester import ShaderToyTesterModule
-from modules.spectral_visualizer import (
-    SpectralVisualizerModule,
-    SpectralVisualizerParams,
-)
-from modules.transform import TransformModule, TransformParams
-from modules.visual_noise import VisualNoiseModule, VisualNoiseParams
-from processing.fft_bands import FFTBands
-from processing.normalized_amplitude import NormalizedAmplitudeOperator
-from processing.spectral_centroid import SpectralCentroid
-
-
-def create_demo_patch(width: int, height: int, audio_input: BaseInput) -> ObliquePatch:
-    """
-    Create a demo patch with some example modules.
-    This function can be easily modified to create different patch configurations.
-
-    Args:
-        width: Window width
-        height: Window height
-
-    Returns:
-        Configured ObliquePatch instance
-    """
-    patch = ObliquePatch()
-
-    # audio_input = AudioFileInput(file_path=audio_path)
-
-    if not isinstance(audio_input, AudioDeviceInput):
-        raise ValueError("Audio input must be an instance of AudioDeviceInput")
-
-    mix_LR = audio_input.get_audio_input_for_channels([0,1])
-
-    patch.input(mix_LR)
-
-    kick = audio_input.get_audio_input_for_channels([3])
-    kick2 = audio_input.get_audio_input_for_channels([11])
-
-    amplitude_processor = NormalizedAmplitudeOperator(kick2)
-    debug_module = DebugModule(
-        DebugParams(width=width, height=height, number=0.0, text="Debug"),
-        amplitude_processor,
-    )
-    # patch.add(debug_module)
-
-    fft_bands_processor16 = FFTBands(kick2, perceptual=True, num_bands=16)
-    ryoji_grid_module = RyojiGrid(RyojiGridParams(width=width, height=height))
-    circle_echo_module = CircleEcho(
-        CircleEchoParams(width=width, height=height, n_circles=32),
-        fft_bands_processor16,
-    )
-
-    spectral_centroid_processor = SpectralCentroid(kick2)
-    fft_bands_processor512 = FFTBands(kick2, perceptual=True, num_bands=512)
-    fft_bands_processor64 = FFTBands(kick2, perceptual=True, num_bands=64)
-    ryoji_lines_module = RyojiLines(
-        RyojiLinesParams(width=width, height=height, num_bands=2**7),
-        fft_bands_processor512,
-        spectral_centroid_processor,
-    )
-    visual_noise_module = VisualNoiseModule(
-        VisualNoiseParams(width=width, height=height, color_mode="rgba", noise_size="large", speed=0.1)
-    )
-    ikeda_test_pattern = IkedaTestPatternModule(
-        IkedaTestPatternParams(width=width, height=height), module=circle_echo_module
-    )
-    ikeda_tiny_barcode_module = IkedaTinyBarcodeModule(
-        IkedaTinyBarcodeParams(width=width, height=height), fft_bands_processor512
-    )
-    spectral_visualizer_module = SpectralVisualizerModule(
-        SpectralVisualizerParams(width=width, height=height), fft_bands_processor512
-    )
-
-    mesh_module = MeshShroudModule(
-        MeshShroudParams(width=width, height=height), fft_bands_processor64, amplitude_processor
-    )
-
-    shader_toy_tester = ShaderToyTesterModule()
-
-    # Create IkedGrid module that creates its own pattern and swaps squares
-    iked_grid_module = IkedGrid(
-        IkedGridParams(
-            width=width,
-            height=height,
-            grid_size=3,
-            swap_frequency=2.0,  # Increased frequency for more visible swaps
-            swap_phase=0.0,
-            num_swaps=4,
-        ),
-        module=circle_echo_module,
-    )
-
-    # Add feedback module with spectral visualizer as input
-    feedback_module = Feedback(
-        FeedbackParams(
-            width=width,
-            height=height,
-            feedback_strength=0.95,
-            reset_on_start=True,
-        ),
-        upstream_module=mesh_module,
-    )
-
-    # Test transform module
-    transform_module = TransformModule(
-        TransformParams(
-            width=width,
-            height=height,
-            scale=(0.94, 0.78),
-            angle=67,
-            pivot=(0.7, 0.3),
-            translate=(0.05, -0.5),
-            transform_order="SRT",
-        ),
-        upstream_module=feedback_module,
-    )
-
-    # patch.add(shader_toy_tester)  # Test feedback module with input
-    # patch.add(spectral_visualizer_module)
-    patch.add(feedback_module)  # Test transform module
-    return patch
+from projects.demo.demo_syntakt import create_demo_syntakt
 
 
 def main():
-    """Main entry point for Oblique MVP."""
-    parser = argparse.ArgumentParser(description="Oblique MVP - Minimal AV Synthesizer")
+    """Main entry point for Oblique."""
+    parser = argparse.ArgumentParser(description="Oblique - Minimal AV Synthesizer")
     parser.add_argument("--width", type=int, default=800, help="Window width")
     parser.add_argument("--height", type=int, default=600, help="Window height")
     parser.add_argument(
@@ -240,7 +108,11 @@ def main():
         return
 
     # Create the patch
-    patch = create_demo_patch(args.width, args.height, audio_input)
+    if isinstance(audio_input, AudioDeviceInput) and audio_input.device_name.lower() == "syntakt":
+        patch = create_demo_syntakt(args.width, args.height, audio_input)
+    else:
+        raise ValueError("Only syntakt demo supported for now")
+
 
     # Create and run the engine
     engine = ObliqueEngine(

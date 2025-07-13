@@ -256,25 +256,13 @@ class AudioDeviceInput(BaseInput):
             # Return the total number of available channels
             return self._max_channels
 
-    # @property
-    # def max_channels(self) -> int:
-    #     """
-    #     Get the maximum number of channels available on the device.
-    #     :return: Maximum number of channels.
-    #     """
-    #     if self._stream is None:
-    #         raise RuntimeError("AudioDeviceInput not started. Call start() first.")
-    #     return self._max_channels
-
     @property
     def device_name(self) -> str:
         """
         Get a human-readable name for the input device/source.
         :return: Human-readable device name.
         """
-        if self._stream is None:
-            raise RuntimeError("AudioDeviceInput not started. Call start() first.")
-
+        
         try:
             device_info = cast(Dict[str, Any], sd.query_devices(self.device_id, "input"))
             return device_info.get("name", f"Unknown Device {self.device_id}")
