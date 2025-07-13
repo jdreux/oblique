@@ -31,4 +31,4 @@ if [ -n "$DEBUG_FLAG" ]; then
   echo "[DEBUG] Debug mode enabled"
 fi
 # python3 main.py --audio-file "projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav" --width 800 --height 800 $DEBUG_FLAG --monitor "$MONITOR" "$@" 
-python3 main.py --width 800 --height 800 $DEBUG_FLAG --monitor "$MONITOR" "$@" --audio-device 1 --audio-channels 2,3
+python3 main.py --width 800 --height 800 $DEBUG_FLAG --monitor "$MONITOR" "$@" --audio-device 0 --audio-channels 0,1 

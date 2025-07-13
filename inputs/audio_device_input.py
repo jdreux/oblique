@@ -37,6 +37,7 @@ class AudioDeviceInput(BaseInput):
         self._audio_queue = queue.Queue(maxsize=4)  # Small buffer for low latency
         self._lock = threading.Lock()  # Thread safety for audio callback
         self._running = False
+        self._selected_channels = None  # Will be set in start() method
 
     def start(self) -> None:
         """
@@ -48,6 +49,8 @@ class AudioDeviceInput(BaseInput):
         # Get device info
         device_info = cast(Dict[str, Any], sd.query_devices(self.device_id, "input"))
         max_channels = device_info.get("max_input_channels", 1)
+
+
 
         # Use device's native sample rate instead of configured one
         device_samplerate = device_info.get("default_samplerate", 44100)
@@ -61,8 +64,19 @@ class AudioDeviceInput(BaseInput):
             # Validate channel selection
             channels_to_capture = [ch for ch in self._channel_indices if ch < max_channels]
             if not channels_to_capture:
-                raise ValueError(f"No valid channels selected. Device has {max_channels} channels.")
+                # Provide more helpful error message
+                requested_channels = self._channel_indices
+                device_name = device_info.get("name", "Unknown Device")
+                raise ValueError(
+                    f"No valid channels selected. Device {device_name} has {max_channels} channels "
+                    f"(0-{max_channels-1}), but requested channels {requested_channels}."
+                )
 
+        # Store the selected channels for filtering in callback
+        self._selected_channels = channels_to_capture
+
+        print(f"AudioDeviceInput: Requesting {max_channels} channels from device, filtering to {len(channels_to_capture)}"
+        f" selected channels: {channels_to_capture}")
 
         # Use device's recommended blocksize for stability
         # Don't force small buffers if device doesn't support them
@@ -72,9 +86,10 @@ class AudioDeviceInput(BaseInput):
             device_samples = int(device_blocksize * self.samplerate)
             self.chunk_size = max(self.chunk_size, device_samples)
 
+        # Always request all channels from the device, we'll filter in the callback
         self._stream = sd.InputStream(
             device=self.device_id,
-            channels=len(channels_to_capture),
+            channels=max_channels,  # Request all channels from device
             samplerate=self.samplerate,
             blocksize=self.chunk_size,
             dtype=np.float32,
@@ -112,14 +127,22 @@ class AudioDeviceInput(BaseInput):
             return
 
         try:
-            # Put the audio chunk in the queue, drop oldest if full
+            # Filter to only the selected channels
+            if self._selected_channels is not None:
+                # indata shape is (frames, channels) - select only the specified channels
+                filtered_data = indata[:, self._selected_channels]
+            else:
+                # If no channel selection, use all channels
+                filtered_data = indata
+
+            # Put the filtered audio chunk in the queue, drop oldest if full
             if self._audio_queue.full():
                 try:
                     self._audio_queue.get_nowait()  # Remove oldest
                 except queue.Empty:
                     pass
 
-            self._audio_queue.put_nowait(indata.copy())
+            self._audio_queue.put_nowait(filtered_data.copy())
         except Exception as e:
             print(f"Error in audio callback: {e}")
 
@@ -183,10 +206,16 @@ class AudioDeviceInput(BaseInput):
         """
         if self._stream is None:
             raise RuntimeError("AudioDeviceInput not started. Call start() first.")
-        channels = self._stream.channels
-        if isinstance(channels, tuple):
-            return channels[0]  # Return the first element if it's a tuple
-        return int(channels)
+
+        # Return the number of selected channels, not the total device channels
+        if self._selected_channels is not None:
+            return len(self._selected_channels)
+        else:
+            # Fallback to stream channels if no selection was made
+            channels = self._stream.channels
+            if isinstance(channels, tuple):
+                return channels[0]  # Return the first element if it's a tuple
+            return int(channels)
 
     @property
     def device_name(self) -> str:
