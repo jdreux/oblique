@@ -44,17 +44,19 @@ void main() {
     // u.x/=32.;
     // fragColor+=step(0.,n*(t-N(u)));
 
-    // Convert UV to pixel coordinates
-    vec2 f = v_uv * u_resolution;
+    // // Convert UV to pixel coordinates
+    // vec2 f = v_uv * u_resolution;
     
-    // Normalize coordinates
-    vec2 u = f / u_resolution.y;
+    // // Normalize coordinates
+    // vec2 u = f / u_resolution.y;
+
+    vec2 u = v_uv;
     
     // Apply barcode pattern transformation
     u.y -= mod(u.y, 1.0 / u_noise_scale);
     u *= vec2(exp2(floor(u.y * 5.0)), u.y);
     
-    // Sample input texture for modulation
+    // Sample input fft for modulation
     // float t = texture(tex0, vec2(u.y, 0.0)).r - u_threshold;
     float t = u_fft_bands[int(u.y * 512.0)] - u_threshold;
     float n = N(u) - t;

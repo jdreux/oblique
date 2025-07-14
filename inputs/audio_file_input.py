@@ -32,13 +32,13 @@ class AudioFileInput(BaseInput):
         self._pos = 0
         self._last_chunk = None  # Initialize for peek()
         self._chunk_history = collections.deque(maxlen=self.HISTORY_SIZE)
+        self._buffer, self.samplerate = sf.read(self.file_path, always_2d=True)
+        self.channels = self._buffer.shape[1]
 
     def start(self) -> None:
         """
         Open the audio file and prepare for reading.
         """
-        self._buffer, self.samplerate = sf.read(self.file_path, always_2d=True)
-        self.channels = self._buffer.shape[1]
         self._pos = 0
         self._chunk_history.clear()
 

@@ -69,21 +69,12 @@ class IkedaTinyBarcodeModule(BaseAVModule[IkedaTinyBarcodeParams]):
             "u_threshold": self.params.threshold,
         }
 
-        # Add input texture if available
-        # if self._upstream_tex is not None:
-        #     uniforms["tex0"] = self._upstream_tex
-
         # Add FFT bands
         bands = self.fft_bands_processor.process()
+        debug(bands)
         uniforms["u_fft_bands"] = bands
 
         return {"frag_shader_path": self.frag_shader_path, "uniforms": uniforms}
-
-    # def render_texture(self, ctx: moderngl.Context, width: int, height: int, t: float, filter=moderngl.NEAREST) -> moderngl.Texture:
-    #     self._upstream_tex = self.module.render_texture(ctx, width, height, t);
-
-    #     # Render the module to a texture
-    #     return super().render_texture(ctx, width, height, t)
 
 
 if __name__ == "__main__":

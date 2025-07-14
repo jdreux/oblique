@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Any, List, Tuple, Optional
 from modules.base_av_module import BaseAVModule, Uniforms, BaseAVParams
 from processing.fft_bands import FFTBands
+from core.logger import debug
 
 SHADER_BANDS_SIZE = 512
 
@@ -55,7 +56,8 @@ class SpectralVisualizerModule(BaseAVModule[SpectralVisualizerParams]):
     def render_data(self, t: float) -> dict[str, Any]:
         if self.band_levels_processor is not None:
             processor_bands = self.band_levels_processor.process()
-            self.set_bands(processor_bands)
+            debug(processor_bands)
+            self.set_bands(list(processor_bands))
         uniforms: SpectralVisualizerUniforms = {
             "u_time": t,
             "u_resolution": (self.width, self.height),

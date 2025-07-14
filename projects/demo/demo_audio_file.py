@@ -1,6 +1,7 @@
 from core.oblique_patch import ObliquePatch
 from inputs.audio_file_input import AudioFileInput
 from modules.ikeda_tiny_barcode import IkedaTinyBarcodeModule, IkedaTinyBarcodeParams
+from modules.spectral_visualizer import SpectralVisualizerModule, SpectralVisualizerParams
 from processing.fft_bands import FFTBands
 
 
@@ -24,11 +25,15 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch:
     patch.input(audio_input)
 
 
-    fft_bands_processor512 = FFTBands(audio_input, perceptual=True, num_bands=512)
-    fft_bands_processor64 = FFTBands(audio_input, perceptual=True, num_bands=64)
+    fft_bands_processor512 = FFTBands(audio_input, num_bands=512)
+    # fft_bands_processor64 = FFTBands(audio_input, perceptual=True, num_bands=64)
 
     ikeda_tiny_barcode_module = IkedaTinyBarcodeModule(
         IkedaTinyBarcodeParams(width=width, height=height), fft_bands_processor512
+    )
+
+    spectral_visualizer_module = SpectralVisualizerModule(
+        SpectralVisualizerParams(width=width, height=height), fft_bands_processor512
     )
 
     patch.add(ikeda_tiny_barcode_module)  # Test transform module
