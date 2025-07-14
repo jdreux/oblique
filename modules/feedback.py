@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 from typing import Any, Optional
-from modules.base_av_module import BaseAVModule, Uniforms, BaseAVParams
+
 import moderngl
+
 from core.renderer import render_to_texture
+from modules.base_av_module import BaseAVModule, BaseAVParams, Uniforms
 
 
 @dataclass
@@ -56,6 +58,7 @@ class Feedback(BaseAVModule[FeedbackParams]):
 
     def reset_feedback(self) -> None:
         """Reset the feedback buffer by clearing the previous frame."""
+
         self.previous_frame = None
         self.feedback_initialized = False
 
@@ -86,6 +89,7 @@ class Feedback(BaseAVModule[FeedbackParams]):
             "uniforms": uniforms,
         }
 
+    # TODO: this must be really leaky from memory POV - review.
     def render_texture(
         self,
         ctx: moderngl.Context,
@@ -129,7 +133,7 @@ class Feedback(BaseAVModule[FeedbackParams]):
 
         # Store current frame as previous frame for next render
         # Copy the current frame to the previous frame texture
-        # TODO: note for later: this is this really needed? why can't we just use current_frame, it has alraedy been rendered. 
+        # TODO: note for later: this is this really needed? why can't we just use current_frame, it has alraedy been rendered.
         if self.feedback_initialized:
             # Create a framebuffer to copy the texture
             fbo = ctx.framebuffer(color_attachments=[self.previous_frame])

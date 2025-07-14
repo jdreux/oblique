@@ -1,6 +1,7 @@
+from typing import Any
+
 import moderngl
 import numpy as np
-from typing import Any
 
 _shader_cache = {}
 _debug_mode = False
@@ -142,12 +143,15 @@ def render_to_texture(
     tex.repeat_y = False
 
     fbo = ctx.framebuffer(color_attachments=[tex])
-    ctx.viewport = (0, 0, width, height)
-    fbo.use()
-    ctx.clear(0.0, 0.0, 0.0, 1.0)
+    try:
+        ctx.viewport = (0, 0, width, height)
+        fbo.use()
+        ctx.clear(0.0, 0.0, 0.0, 1.0)
 
-    render_fullscreen_quad(ctx, frag_shader_path, uniforms)
-    fbo.release()
+        render_fullscreen_quad(ctx, frag_shader_path, uniforms)
+    finally:
+        fbo.release()
+
     return tex
 
 
@@ -166,74 +170,77 @@ def blend_textures(
     out_tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
     out_tex.repeat_x = False
     out_tex.repeat_y = False
-    raise Exception("Non tested path - blend_textures")
+
     fbo = ctx.framebuffer(color_attachments=[out_tex])
-    ctx.viewport = (0, 0, width, height)
-    fbo.use()
-    ctx.clear(0.0, 0.0, 0.0, 1.0)
+    try:
+        ctx.viewport = (0, 0, width, height)
+        fbo.use()
+        ctx.clear(0.0, 0.0, 0.0, 1.0)
 
-    global _shader_cache, _debug_mode
+        global _shader_cache, _debug_mode
 
-    # In debug mode, always reload shader from file
-    if _debug_mode and blend_shader_path in _shader_cache:
-        _release_shader_cache_entry(_shader_cache[blend_shader_path])
-        del _shader_cache[blend_shader_path]
+        # In debug mode, always reload shader from file
+        if _debug_mode and blend_shader_path in _shader_cache:
+            _release_shader_cache_entry(_shader_cache[blend_shader_path])
+            del _shader_cache[blend_shader_path]
 
-    if blend_shader_path not in _shader_cache:
-        with open(blend_shader_path, "r") as f:
-            fragment_shader = f.read()
-        vertex_shader = """
-            #version 330
-            in vec2 in_vert;
-            in vec2 in_uv;
-            out vec2 v_uv;
-            void main() {
-                v_uv = in_uv;
-                gl_Position = vec4(in_vert, 0.0, 1.0);
-            }
-        """
-        program = ctx.program(
-            vertex_shader=vertex_shader,
-            fragment_shader=fragment_shader,
-        )
-        vertices = np.array(
-            [
-                -1.0,
-                -1.0,
-                0.0,
-                0.0,
-                1.0,
-                -1.0,
-                1.0,
-                0.0,
-                -1.0,
-                1.0,
-                0.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-            ],
-            dtype="f4",
-        )
-        vbo = ctx.buffer(vertices.tobytes())
-        vao = ctx.simple_vertex_array(program, vbo, "in_vert", "in_uv")
-        _shader_cache[blend_shader_path] = (program, vao, vbo)
-    else:
-        program, vao, vbo = _shader_cache[blend_shader_path]
+        if blend_shader_path not in _shader_cache:
+            with open(blend_shader_path, "r") as f:
+                fragment_shader = f.read()
+            vertex_shader = """
+                #version 330
+                in vec2 in_vert;
+                in vec2 in_uv;
+                out vec2 v_uv;
+                void main() {
+                    v_uv = in_uv;
+                    gl_Position = vec4(in_vert, 0.0, 1.0);
+                }
+            """
+            program = ctx.program(
+                vertex_shader=vertex_shader,
+                fragment_shader=fragment_shader,
+            )
+            vertices = np.array(
+                [
+                    -1.0,
+                    -1.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                    -1.0,
+                    1.0,
+                    0.0,
+                    -1.0,
+                    1.0,
+                    0.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                ],
+                dtype="f4",
+            )
+            vbo = ctx.buffer(vertices.tobytes())
+            vao = ctx.simple_vertex_array(program, vbo, "in_vert", "in_uv")
+            _shader_cache[blend_shader_path] = (program, vao, vbo)
+        else:
+            program, vao, vbo = _shader_cache[blend_shader_path]
 
-    # Efficient texture binding
-    tex0.use(location=0)
-    tex1.use(location=1)
+        # Efficient texture binding
+        tex0.use(location=0)
+        tex1.use(location=1)
 
-    if "tex0" in program:
-        program["tex0"] = 0
-    if "tex1" in program:
-        program["tex1"] = 1
-    if "u_resolution" in program:
-        program["u_resolution"] = (width, height)
+        if "tex0" in program:
+            program["tex0"] = 0
+        if "tex1" in program:
+            program["tex1"] = 1
+        if "u_resolution" in program:
+            program["u_resolution"] = (width, height)
 
-    vao.render(moderngl.TRIANGLE_STRIP)
-    fbo.release()
+        vao.render(moderngl.TRIANGLE_STRIP)
+    finally:
+        fbo.release()
+
     return out_tex

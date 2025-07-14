@@ -1,7 +1,9 @@
-from typing import Any, TypedDict, Dict, TypeVar, Generic
 from dataclasses import dataclass
-from core.oblique_node import ObliqueNode
+from typing import Any, Generic, TypedDict, TypeVar
+
 import moderngl
+
+from core.oblique_node import ObliqueNode
 from core.renderer import render_to_texture
 
 

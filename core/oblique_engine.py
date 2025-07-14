@@ -230,46 +230,51 @@ class ObliqueEngine:
 
         # Render each module to a texture
         textures: List[moderngl.Texture] = []
-        for module in self.patch.modules:
-            tex = module.render_texture(self.ctx, fb_width, fb_height, t)
-            textures.append(tex)
+        try:
+            for module in self.patch.modules:
+                tex = module.render_texture(self.ctx, fb_width, fb_height, t)
+                textures.append(tex)
 
+            final_tex = None
 
-        final_tex = None
+            if len(textures) == 0:
+                # warning("No textures to render")
+                # Create a black texture if no modules
+                tex = self.ctx.texture((fb_width, fb_height), 4, dtype="f1", alignment=1)
+                tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
+                tex.repeat_x = False
+                tex.repeat_y = False
+                textures = [tex]
 
-        if len(textures) == 0:
-            warning("No textures to render")
-            # Create a black texture if no modules
-            tex = self.ctx.texture((fb_width, fb_height), 4, dtype="f1", alignment=1)
-            tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
-            tex.repeat_x = False
-            tex.repeat_y = False
-            textures = [tex]
+            # Blend all textures in order (additive)
+            if len(textures) == 1:
+                final_tex = textures[0]
+            else:
+                final_tex = textures[0]
+                for tex in textures[1:]:
+                    final_tex = blend_textures(
+                        self.ctx,
+                        fb_width,
+                        fb_height,
+                        final_tex,
+                        tex,
+                        self.additive_blend_shader,
+                    )
 
-        # Blend all textures in order (additive)
-        if len(textures) == 1:
-            final_tex = textures[0]
-        else:
-            final_tex = textures[0]
-            for tex in textures[1:]:
-                final_tex = blend_textures(
-                    self.ctx,
-                    fb_width,
-                    fb_height,
-                    final_tex,
-                    tex,
-                    self.additive_blend_shader,
-                )
+            # Display frame
+            self._display_frame(final_tex, t)
 
-        # Display frame
-        self._display_frame(final_tex, t)
+            # Handle events
+            glfw.poll_events()
 
-        # Handle events
-        glfw.poll_events()
-
-        #release all textures
-        for tex in textures:
-            tex.release()
+        finally:
+            # Always release all textures, even if exceptions occur
+            for tex in textures:
+                try:
+                    tex.release()
+                except Exception:
+                    # Ignore errors during cleanup to prevent masking original errors
+                    pass
 
 
     def _display_frame(self, final_tex: moderngl.Texture, t: float) -> None:
