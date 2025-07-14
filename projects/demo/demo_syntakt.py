@@ -26,7 +26,7 @@ from processing.spectral_centroid import SpectralCentroid
 def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) -> ObliquePatch:
     """
     Create a demo patch with some example modules.
-    This function can be easily modified to create different patch configurations.
+    This is a demo of the Syntakt audio interface.
 
     Args:
         width: Window width

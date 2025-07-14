@@ -1,9 +1,7 @@
-from uuid import uuid4
-from typing import Any, Dict, List, Optional, Set, Type, Union
-from modules.base_av_module import BaseAVModule
+from typing import Any, List
+
 from inputs.base_input import BaseInput
-from modules.debug import DebugModule, DebugParams
-from core.oblique_node import ObliqueNode
+from modules.base_av_module import BaseAVModule
 
 
 class ObliquePatch:
@@ -47,10 +45,12 @@ class ObliquePatch:
             return self.modules[-1]
         return None
 
-    def get_audio_input(self) -> BaseInput:
+    def get_audio_input(self) -> BaseInput | None:
         """
         Return the audio input node.
         """
+        if len(self.inputs) == 0:
+            return None
         return self.inputs[0]
 
     def get_graph(self) -> List[Any]:
