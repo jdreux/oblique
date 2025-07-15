@@ -1,5 +1,6 @@
 import queue
 import threading
+import collections
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 import numpy as np
@@ -18,6 +19,8 @@ class AudioDeviceInput(BaseInput):
     Input class that reads audio from a real-time audio device (sound card, BlackHole, etc.).
     Supports multi-channel audio and device selection.
     """
+
+    HISTORY_SIZE = 4  # Class-level constant for buffer history size
 
     def __init__(
         self,
@@ -43,6 +46,8 @@ class AudioDeviceInput(BaseInput):
         self._lock = threading.Lock()  # Thread safety for audio callback
         self._running = False
         self._max_channels = 0  # Will be set in start() method
+        self._last_chunk = None  # Initialize for peek()
+        self._chunk_history = collections.deque(maxlen=self.HISTORY_SIZE)
 
         # Get device info
         device_info = cast(Dict[str, Any], sd.query_devices(self.device_id, "input"))
@@ -93,6 +98,7 @@ class AudioDeviceInput(BaseInput):
         )
         self._running = True
         self._stream.start()
+        self._chunk_history.clear()
 
     def stop(self) -> None:
         """
@@ -104,12 +110,14 @@ class AudioDeviceInput(BaseInput):
             self._stream.close()
             self._stream = None
 
-        # Clear the queue
+        # Clear the queue and history
         while not self._audio_queue.empty():
             try:
                 self._audio_queue.get_nowait()
             except queue.Empty:
                 break
+        self._last_chunk = None
+        self._chunk_history.clear()
 
     def _audio_callback(self, indata: np.ndarray, frames: int, time_info, status) -> None:
         """
@@ -164,8 +172,7 @@ class AudioDeviceInput(BaseInput):
 
     def read(self, channels: Optional[List[int]] = None) -> np.ndarray:
         """
-        Read the next chunk of audio data.
-
+        Read the next chunk of audio data, advancing the buffer position.
         :param channels: List of channel indices to return. If None, uses the default channel selection.
         :return: Numpy array of shape (chunk_size, selected_channels)
         """
@@ -177,7 +184,10 @@ class AudioDeviceInput(BaseInput):
             chunk = self._audio_queue.get(timeout=0.1)  # 100ms timeout
             filtered_chunk = self._filter_channels(chunk, channels)
             # Ensure the result is C-contiguous for sounddevice compatibility
-            return np.ascontiguousarray(filtered_chunk, dtype=np.float32)
+            result = np.ascontiguousarray(filtered_chunk, dtype=np.float32)
+            self._last_chunk = result  # Cache the last chunk for peek()
+            self._chunk_history.append(result)
+            return result
         except queue.Empty:
             # If no chunk is available, return zeros
             if channels is not None:
@@ -186,36 +196,27 @@ class AudioDeviceInput(BaseInput):
                 num_channels = len(self._channel_indices)
             else:
                 num_channels = self._max_channels
-            return np.zeros((self.chunk_size, num_channels), dtype=np.float32)
+            result = np.zeros((self.chunk_size, num_channels), dtype=np.float32)
+            self._last_chunk = result  # Cache the last chunk for peek()
+            self._chunk_history.append(result)
+            return result
 
     def peek(self, n_buffers: Optional[int] = None, channels: Optional[List[int]] = None) -> Optional[np.ndarray]:
         """
-        Return the most recently captured chunk or up to the last n_buffers chunks concatenated.
-
+        Return the most recently read chunk or up to the last n_buffers chunks concatenated. Does not advance the buffer position.
         :param n_buffers: Number of previous chunks to return (concatenated). If None, returns the most recent chunk.
         :param channels: List of channel indices to return. If None, uses the default channel selection.
         :return: Numpy array of shape (n*chunk_size, selected_channels) or None if not available
         """
         if n_buffers is None:
-            # Return the most recent chunk if available
-            try:
-                # Get the most recent chunk without removing it
-                chunk = self._audio_queue.get_nowait()
-                # Put it back at the front
-                self._audio_queue.put_nowait(chunk)
-                filtered_chunk = self._filter_channels(chunk, channels)
-                # Ensure the result is C-contiguous
-                return np.ascontiguousarray(filtered_chunk, dtype=np.float32)
-            except queue.Empty:
-                return None
-
-        if n_buffers <= 0:
+            return self._last_chunk
+        if n_buffers <= 0 or len(self._chunk_history) == 0:
             return None
-
-        # For multiple buffers, we'd need to implement a different approach
-        # since we can't peek at multiple items in a queue
-        # For now, return the most recent chunk
-        return self.peek(channels=channels)
+        # Get up to n_buffers most recent chunks
+        chunks = list(self._chunk_history)[-n_buffers:]
+        if not chunks:
+            return None
+        return np.concatenate(chunks, axis=0)
 
     def get_audio_input_for_channels(self, channels: List[int]) -> "AudioDeviceChannelInput":
         """

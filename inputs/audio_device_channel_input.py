@@ -74,12 +74,7 @@ class AudioDeviceChannelInput(BaseInput):
         :return: Numpy array of shape (n*chunk_size, selected_channels) or None if not available
         """
         # Get all channels from parent
-        r = self.from_device.peek(n_buffers, channels=self.channels)
-        if r is not None:
-            debug(f"peeking {n_buffers} buffers for channels {self.channels}: {len(r)}")
-        else:
-            debug(f"peeking {n_buffers} buffers for channels {self.channels}: None (no data)")
-        return r
+        return self.from_device.peek(n_buffers, channels=self.channels)
 
     @property
     def sample_rate(self) -> int:

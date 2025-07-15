@@ -69,7 +69,7 @@ class AudioFileInput(BaseInput):
 
     def peek(self, n_buffers: Optional[int] = None, channels=None) -> Optional[np.ndarray]:
         """
-        Return the most recently read chunk or up to the last n_buffers chunks concatenated.
+        Return the most recently read chunk or up to the last n_buffers chunks concatenated. Does not advance the buffer position.
         :param n_buffers: Number of previous chunks to return (concatenated). If None, returns the most recent chunk.
         :param channels: Ignored for file input (all channels are returned).
         :return: Numpy array of shape (n*chunk_size, channels) or None if not available
