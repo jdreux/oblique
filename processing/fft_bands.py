@@ -3,9 +3,9 @@ from typing import Any, Sequence
 import numpy as np
 from typing_extensions import Dict
 
+from core.logger import debug
 from inputs.base_input import BaseInput
 from processing.base_processing_operator import BaseProcessingOperator
-from core.logger import debug
 
 
 class FFTBands(BaseProcessingOperator):
@@ -22,6 +22,15 @@ class FFTBands(BaseProcessingOperator):
         Number of logarithmic bands to return.
     f_min       : float
         Low‑cut in Hz.
+    smoothing_factor : float
+        Exponential moving average smoothing factor (0.0 to 1.0).
+        Controls how much smoothing is applied to reduce jumpiness:
+        - 0.0: No smoothing (very jumpy, immediate response)
+        - 0.1: Heavy smoothing (very smooth, slow response)
+        - 0.3: Moderate smoothing (balanced, default)
+        - 0.5: Light smoothing (responsive but smooth)
+        - 1.0: No smoothing (same as 0.0)
+        Lower values = more smoothing, higher values = less smoothing.
     """
 
     metadata: Dict[str, Any] = {
@@ -34,7 +43,8 @@ class FFTBands(BaseProcessingOperator):
                  audio_input: BaseInput,
                  n_fft: int = 4096,
                  num_bands: int = 16,
-                 f_min: float = 20.) -> None:
+                 f_min: float = 20.,
+                 smoothing_factor: float = 0.3) -> None:
 
         self.audio_input = audio_input
         self.sample_rate = audio_input.sample_rate
@@ -49,7 +59,7 @@ class FFTBands(BaseProcessingOperator):
         edges   = np.logspace(np.log10(f_min),
                               np.log10(self.f_max),
                               num_bands + 1)
-        
+
         # Calculate band bins and handle empty bands
         self.band_bins = []
         for i in range(num_bands):
@@ -61,9 +71,9 @@ class FFTBands(BaseProcessingOperator):
                 band_bins = np.array([closest_idx])
             self.band_bins.append(band_bins)
 
-        # dB scale parameters
-        self.db_floor = -60.0   # silence → 0.0
-        self.db_ceil  =   0.0   # full‑scale sine → 1.0
+        # dB scale parameters - much more conservative for electronic music
+        self.db_floor = -60.0  # silence → 0.0 (much lower floor)
+        self.db_ceil  = 60.0   # full‑scale sine → 1.0 (much lower ceiling)
         self.scale = 1.0 / (self.db_ceil - self.db_floor)
 
         # rolling buffer so caller can feed smaller chunks
@@ -71,28 +81,32 @@ class FFTBands(BaseProcessingOperator):
         self._write_pos = 0
         self._samples_accumulated = 0  # Track how many samples we've accumulated
 
+        # Smoothing parameters
+        self._smoothed_bands = None  # Will store the smoothed values
+        self._smoothing_factor = smoothing_factor  # How much to smooth (0.0 = no smoothing, 1.0 = max smoothing)
+
     # -------------------------------------------------------------
 
     def _push_samples(self, chunk: np.ndarray) -> None:
         """Append mono samples into the ring buffer."""
         if chunk.ndim == 2:
             chunk = chunk.mean(axis=1)
-        
+
         n = len(chunk)
         if n == 0:
             return
-            
+
         # Handle the case where chunk is larger than ring buffer
         if n >= self.n_fft:
             # Keep only the last n_fft samples
             chunk = chunk[-self.n_fft:]
             n = self.n_fft
-        
+
         # Write to ring buffer
         for i in range(n):
             pos = (self._write_pos + i) % self.n_fft
             self._ring[pos] = chunk[i]
-        
+
         self._write_pos = (self._write_pos + n) % self.n_fft
         self._samples_accumulated = min(self._samples_accumulated + n, self.n_fft)
 
@@ -106,10 +120,10 @@ class FFTBands(BaseProcessingOperator):
         if chunk is None:
             debug("FFT: No audio chunk available")
             return [0.0] * self.n_bands
-        
+
         debug(f"FFT: Got chunk shape {chunk.shape}, samples accumulated: {self._samples_accumulated}")
         self._push_samples(chunk)
-        
+
         # Check if we have enough samples for a full FFT
         if self._samples_accumulated < self.n_fft:
             debug(f"FFT: Not enough samples ({self._samples_accumulated}/{self.n_fft})")
@@ -118,7 +132,7 @@ class FFTBands(BaseProcessingOperator):
         # windowed FFT
         spectrum = np.fft.rfft(self._ring * self.window)
         mag = np.abs(spectrum)
-        
+
         debug(f"FFT: Spectrum max magnitude: {np.max(mag):.6f}")
 
         # average magnitude per band
@@ -136,6 +150,15 @@ class FFTBands(BaseProcessingOperator):
 
         # map dB range to 0..1
         bands = (bands - self.db_floor) * self.scale
-        result = np.clip(bands, 0.0, 1.0).tolist()
-        debug(f"FFT: Final result (first 5): {result[:5]}")
-        return result
+        result = np.clip(bands, 0.0, 1.0)
+
+        # Apply smoothing
+        if self._smoothed_bands is None:
+            self._smoothed_bands = result.copy()
+        else:
+            # Exponential moving average: new = alpha * current + (1-alpha) * previous
+            self._smoothed_bands = (self._smoothing_factor * result +
+                                   (1.0 - self._smoothing_factor) * self._smoothed_bands)
+
+        debug(f"FFT: Final result (first 5): {self._smoothed_bands[:5]}")
+        return self._smoothed_bands.tolist()
