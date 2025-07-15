@@ -193,7 +193,7 @@ class ObliqueEngine:
                         if actual_interval > expected_interval * 1.2:  # Allow some tolerance
                             buffer_underruns += 1
                             consecutive_underruns += 1
-                            if consecutive_underruns >= 3:  # Log after 3 consecutive underruns
+                            if consecutive_underruns >= 10:  # Log after 3 consecutive underruns
                                 warning(f"[AUDIO] Sustained buffer underruns detected (total: {buffer_underruns}). "
                                 f"Last expected: {expected_interval*1000:.1f}ms, actual: {actual_interval*1000:.1f}ms")
                                 consecutive_underruns = 0

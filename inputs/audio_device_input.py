@@ -1,12 +1,12 @@
+import collections
 import queue
 import threading
-import collections
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 import numpy as np
 import sounddevice as sd
 
-from core.logger import debug, error, info
+from core.logger import debug, error, info, warning
 
 from .base_input import BaseInput
 
@@ -27,7 +27,7 @@ class AudioDeviceInput(BaseInput):
         device_id: Optional[int] = None,
         channels: Optional[List[int]] = None,
         samplerate: int = 44100,
-        chunk_size: int = 1024,  # 10ms at 48kHz, for real time performance.
+        chunk_size: int = 256,  # ~5.3ms at 48kHz, for real time performance.
     ) -> None:
         """
         Initialize the audio device input.
@@ -182,11 +182,13 @@ class AudioDeviceInput(BaseInput):
         try:
             # Wait for the next chunk with a timeout
             chunk = self._audio_queue.get(timeout=0.1)  # 100ms timeout
+            # Store the unfiltered chunk in history
+            self._chunk_history.append(chunk.copy())
+            # Apply channel filtering for the return value
             filtered_chunk = self._filter_channels(chunk, channels)
             # Ensure the result is C-contiguous for sounddevice compatibility
             result = np.ascontiguousarray(filtered_chunk, dtype=np.float32)
-            self._last_chunk = result  # Cache the last chunk for peek()
-            self._chunk_history.append(result)
+            self._last_chunk = result  # Cache the filtered chunk for peek()
             return result
         except queue.Empty:
             # If no chunk is available, return zeros
@@ -212,11 +214,17 @@ class AudioDeviceInput(BaseInput):
             return self._last_chunk
         if n_buffers <= 0 or len(self._chunk_history) == 0:
             return None
-        # Get up to n_buffers most recent chunks
+        # Get up to n_buffers most recent chunks (these are unfiltered)
+        if n_buffers > self.HISTORY_SIZE:
+            warning(f"peek: requested n_buffers {n_buffers} is greater than chunk history max size {self.HISTORY_SIZE}")
         chunks = list(self._chunk_history)[-n_buffers:]
         if not chunks:
             return None
-        return np.concatenate(chunks, axis=0)
+        # Concatenate the unfiltered chunks
+        concatenated = np.concatenate(chunks, axis=0)
+        # Apply channel filtering to the concatenated result
+        filtered_result = self._filter_channels(concatenated, channels)
+        return np.ascontiguousarray(filtered_result, dtype=np.float32)
 
     def get_audio_input_for_channels(self, channels: List[int]) -> "AudioDeviceChannelInput":
         """
@@ -263,7 +271,7 @@ class AudioDeviceInput(BaseInput):
         Get a human-readable name for the input device/source.
         :return: Human-readable device name.
         """
-        
+
         try:
             device_info = cast(Dict[str, Any], sd.query_devices(self.device_id, "input"))
             return device_info.get("name", f"Unknown Device {self.device_id}")

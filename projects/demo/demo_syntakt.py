@@ -42,7 +42,7 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
 
     patch.input(mix_LR)
 
-    melody = audio_input.get_audio_input_for_channels([2, 9])
+    melody = audio_input.get_audio_input_for_channels([2])
 
     kick_snare = audio_input.get_audio_input_for_channels([10])
     bass = audio_input.get_audio_input_for_channels([12])
@@ -63,7 +63,8 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
     )
 
     spectral_centroid_processor = SpectralCentroid(melody)
-    fft_bands_processor512 = FFTBands(melody, num_bands=512)
+    fft_bands_processor512 = FFTBands(melody, num_bands=512, smoothing_factor=1.0)
+    fft_bands_processor512_smooth = FFTBands(melody, num_bands=512, smoothing_factor=0.3)
     fft_bands_processor64 = FFTBands(melody, num_bands=64)
     ryoji_lines_module = RyojiLines(
         RyojiLinesParams(width=width, height=height, num_bands=2**7),
@@ -99,7 +100,7 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
             swap_phase=0.0,
             num_swaps=4,
         ),
-        module=circle_echo_module,
+        module=ikeda_tiny_barcode_module,
     )
 
     # Add feedback module with spectral visualizer as input
@@ -129,5 +130,5 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
 
     # patch.add(shader_toy_tester)  # Test feedback module with input
     # patch.add(spectral_visualizer_module)
-    patch.add(spectral_visualizer_module)  # Test transform module
+    patch.add(iked_grid_module)  # Test transform module
     return patch
