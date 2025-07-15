@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import Any
 
-from core.logger import debug, info
 from processing.fft_bands import FFTBands
 
 from .base_av_module import BaseAVModule, BaseAVParams
@@ -14,8 +13,8 @@ class IkedaTinyBarcodeParams(BaseAVParams):
     speed_scale: float = 1.0
     pattern_intensity: float = 1.0
     barcode_width: float = 32.0
-    noise_scale: float = 128.0
-    threshold: float = 0.3
+    noise_scale: float = 512.0
+    threshold: float = 0.1
     width: int = 800
     height: int = 600
 
@@ -71,23 +70,6 @@ class IkedaTinyBarcodeModule(BaseAVModule[IkedaTinyBarcodeParams]):
 
         # Add FFT bands
         bands = self.fft_bands_processor.process()
-        debug(bands)
         uniforms["u_fft_bands"] = bands
 
         return {"frag_shader_path": self.frag_shader_path, "uniforms": uniforms}
-
-
-if __name__ == "__main__":
-    # Test the module
-    params = IkedaTinyBarcodeParams(
-        speed_scale=1.0,
-        pattern_intensity=1.0,
-        barcode_width=32.0,
-        noise_scale=128.0,
-        threshold=0.3,
-        width=800,
-        height=600,
-    )
-
-    info("Ikeda Tiny Barcode module created successfully!")
-    debug(f"Parameters: {params}")

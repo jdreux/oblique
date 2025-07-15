@@ -2,6 +2,8 @@ from typing import TYPE_CHECKING, List, Optional
 
 import numpy as np
 
+from core.logger import debug
+
 from .base_input import BaseInput
 
 if TYPE_CHECKING:
@@ -35,10 +37,6 @@ class AudioDeviceChannelInput(BaseInput):
         self.from_device = from_device
         self.channels = channels
 
-        # # Validate that parent is started
-        # if not hasattr(parent_input, '_stream') or parent_input._stream is None:
-        #     raise RuntimeError("Parent AudioDeviceInput must be started before creating AudioDeviceChannelInput")
-
     def start(self) -> None:
         """
         Start the channel input. This is a no-op since we delegate to parent.
@@ -64,22 +62,7 @@ class AudioDeviceChannelInput(BaseInput):
         :return: Numpy array of shape (chunk_size, selected_channels)
         """
         # Get all channels from parent
-        return self.from_device.read(channels=self.channels )
-
-        # # Filter to our configured channels
-        # if channels is not None:
-        #     # Map relative channel indices to absolute parent channel indices
-        #     absolute_channels = [self.channels[i] for i in channels if i < len(self.channels)]
-        #     if not absolute_channels:
-        #         raise ValueError(f"No valid channels selected. Available: 0-{len(self.channels)-1}, requested: {channels}")
-
-        #     # Get the filtered data from parent
-        #     filtered_data = self.parent_input._filter_channels(parent_data, absolute_channels)
-        # else:
-        #     # Use our configured channels
-        #     filtered_data = self.parent_input._filter_channels(parent_data, self.channels)
-
-        # return filtered_data
+        return self.from_device.read(channels=self.channels)
 
     def peek(self, n_buffers: Optional[int] = None, channels: Optional[List[int]] = None) -> Optional[np.ndarray]:
         """
@@ -91,25 +74,12 @@ class AudioDeviceChannelInput(BaseInput):
         :return: Numpy array of shape (n*chunk_size, selected_channels) or None if not available
         """
         # Get all channels from parent
-        return self.from_device.peek(n_buffers, channels=self.channels)
-
-        # if parent_data is None:
-        #     return None
-
-        # Filter to our configured channels
-        # if channels is not None:
-        #     # Map relative channel indices to absolute parent channel indices
-        #     absolute_channels = [self.channels[i] for i in channels if i < len(self.channels)]
-        #     if not absolute_channels:
-        #         raise ValueError(f"No valid channels selected. Available: 0-{len(self.channels)-1}, requested: {channels}")
-
-        #     # Get the filtered data from parent
-        #     filtered_data = self.parent_input._filter_channels(parent_data, absolute_channels)
-        # else:
-        #     # Use our configured channels
-        #     filtered_data = self.parent_input._filter_channels(parent_data, self.channels)
-
-        # return filtered_data
+        r = self.from_device.peek(n_buffers, channels=self.channels)
+        if r is not None:
+            debug(f"peeking {n_buffers} buffers for channels {self.channels}: {len(r)}")
+        else:
+            debug(f"peeking {n_buffers} buffers for channels {self.channels}: None (no data)")
+        return r
 
     @property
     def sample_rate(self) -> int:
@@ -137,10 +107,10 @@ class AudioDeviceChannelInput(BaseInput):
         channel_str = ", ".join(str(ch) for ch in self.channels)
         return f"{parent_name} (channels: {channel_str})"
 
-    @property
-    def selected_channels(self) -> List[int]:
-        """
-        Get the list of channel indices this input is configured to capture.
-        :return: List of channel indices.
-        """
-        return self.channels.copy()
+    # @property
+    # def selected_channels(self) -> List[int]:
+    #     """
+    #     Get the list of channel indices this input is configured to capture.
+    #     :return: List of channel indices.
+    #     """
+    #     return self.channels.copy()

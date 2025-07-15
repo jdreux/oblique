@@ -42,26 +42,29 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
 
     patch.input(mix_LR)
 
-    kick = audio_input.get_audio_input_for_channels([3])
-    kick2 = audio_input.get_audio_input_for_channels([11])
+    melody = audio_input.get_audio_input_for_channels([2, 9])
 
-    amplitude_processor = NormalizedAmplitudeOperator(kick2)
+    kick_snare = audio_input.get_audio_input_for_channels([10])
+    bass = audio_input.get_audio_input_for_channels([12])
+    hh = audio_input.get_audio_input_for_channels([13])
+
+    amplitude_processor = NormalizedAmplitudeOperator(kick_snare)
     debug_module = DebugModule(
         DebugParams(width=width, height=height, number=0.0, text="Debug"),
         amplitude_processor,
     )
     # patch.add(debug_module)
 
-    fft_bands_processor16 = FFTBands(kick2, perceptual=True, num_bands=16)
+    fft_bands_processor16 = FFTBands(melody, num_bands=16)
     ryoji_grid_module = RyojiGrid(RyojiGridParams(width=width, height=height))
     circle_echo_module = CircleEcho(
         CircleEchoParams(width=width, height=height, n_circles=32),
         fft_bands_processor16,
     )
 
-    spectral_centroid_processor = SpectralCentroid(kick2)
-    fft_bands_processor512 = FFTBands(kick2, perceptual=True, num_bands=512)
-    fft_bands_processor64 = FFTBands(kick2, perceptual=True, num_bands=64)
+    spectral_centroid_processor = SpectralCentroid(melody)
+    fft_bands_processor512 = FFTBands(melody, num_bands=512)
+    fft_bands_processor64 = FFTBands(melody, num_bands=64)
     ryoji_lines_module = RyojiLines(
         RyojiLinesParams(width=width, height=height, num_bands=2**7),
         fft_bands_processor512,
@@ -126,5 +129,5 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
 
     # patch.add(shader_toy_tester)  # Test feedback module with input
     # patch.add(spectral_visualizer_module)
-    patch.add(feedback_module)  # Test transform module
+    patch.add(spectral_visualizer_module)  # Test transform module
     return patch

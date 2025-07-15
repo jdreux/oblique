@@ -44,13 +44,6 @@ class AudioDeviceInput(BaseInput):
         self._running = False
         self._max_channels = 0  # Will be set in start() method
 
-    def start(self) -> None:
-        """
-        Start the audio input stream.
-        """
-        if self._stream is not None:
-            return
-
         # Get device info
         device_info = cast(Dict[str, Any], sd.query_devices(self.device_id, "input"))
         self._max_channels = device_info.get("max_input_channels", 1)
@@ -58,6 +51,15 @@ class AudioDeviceInput(BaseInput):
         # Use device's native sample rate instead of configured one
         device_samplerate = device_info.get("default_samplerate", 44100)
         self.samplerate = int(device_samplerate)
+
+    def start(self) -> None:
+        """
+        Start the audio input stream.
+        """
+        if self._stream is not None:
+            return
+
+        device_info = cast(Dict[str, Any], sd.query_devices(self.device_id, "input"))
 
         # Validate channel selection if provided
         if self._channel_indices is not None:
@@ -236,8 +238,6 @@ class AudioDeviceInput(BaseInput):
         Get the sample rate of the input source in Hz.
         :return: Sample rate in Hz.
         """
-        if self._stream is None:
-            raise RuntimeError("AudioDeviceInput not started. Call start() first.")
         return self.samplerate
 
     @property
