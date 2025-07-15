@@ -121,7 +121,6 @@ class FFTBands(BaseProcessingOperator):
             debug("FFT: No audio chunk available")
             return [0.0] * self.n_bands
 
-        debug(f"FFT: Got chunk shape {chunk.shape}, samples accumulated: {self._samples_accumulated}")
         self._push_samples(chunk)
 
         # Check if we have enough samples for a full FFT
@@ -132,8 +131,6 @@ class FFTBands(BaseProcessingOperator):
         # windowed FFT
         spectrum = np.fft.rfft(self._ring * self.window)
         mag = np.abs(spectrum)
-
-        debug(f"FFT: Spectrum max magnitude: {np.max(mag):.6f}")
 
         # average magnitude per band
         bands = []
@@ -146,7 +143,6 @@ class FFTBands(BaseProcessingOperator):
 
         # convert to dB (avoid log(0))
         bands = 20 * np.log10(np.maximum(bands, 1e-9))
-        debug(f"FFT: Raw bands (first 5): {bands[:5]}")
 
         # map dB range to 0..1
         bands = (bands - self.db_floor) * self.scale
@@ -160,5 +156,4 @@ class FFTBands(BaseProcessingOperator):
             self._smoothed_bands = (self._smoothing_factor * result +
                                    (1.0 - self._smoothing_factor) * self._smoothed_bands)
 
-        debug(f"FFT: Final result (first 5): {self._smoothed_bands[:5]}")
         return self._smoothed_bands.tolist()
