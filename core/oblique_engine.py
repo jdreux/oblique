@@ -9,7 +9,7 @@ import sounddevice as sd
 from core.logger import debug, error, info, warning
 from core.oblique_patch import ObliquePatch
 from core.performance_monitor import PerformanceMonitor
-from core.renderer import blend_textures, render_fullscreen_quad
+from core.renderer import blend_textures
 from inputs.base_input import BaseInput
 
 
@@ -75,6 +75,71 @@ class ObliqueEngine:
         self.additive_blend_shader = "shaders/additive-blend.frag"
         self.passthrough_shader = "shaders/passthrough.frag"
 
+        # Cached display resources (created in _create_display_resources)
+        self._display_program: Optional[moderngl.Program] = None
+        self._display_vao: Optional[moderngl.VertexArray] = None
+        self._display_vbo: Optional[moderngl.Buffer] = None
+
+    def run(self) -> None:
+        """
+        Run the Oblique engine with the given patch.
+
+        Args:
+        """
+        try:
+            # Setup window and OpenGL context
+            self._create_window()
+
+            # Initialize timing
+            self.start_time = time.time()
+            self.running = True
+
+            info(f"Starting Oblique engine with {len(self.patch.modules)} modules")
+
+            if self.debug:
+                info("Debug mode enabled - Performance monitoring active")
+
+            if self.audio_input is not None:
+                self.audio_input.start()
+                self.audio_thread = threading.Thread(
+                    target=self._audio_stream_playback,
+                    args=(self.audio_input,),
+                    daemon=True,
+                )
+                self.audio_thread.start()
+
+            # Main render loop
+            while not glfw.window_should_close(self.window):
+                # Performance monitoring
+                if self.performance_monitor:
+                    self.performance_monitor.begin_frame()
+
+                frame_start = time.time()
+                t = frame_start - self.start_time
+
+                # Render modules
+                self._render_modules(t)
+
+                # Performance monitoring
+                if self.performance_monitor:
+                    self.performance_monitor.end_frame()
+                    self.performance_monitor.print_stats(every_n_frames=60)
+
+                # Frame rate limiting
+                frame_end = time.time()
+                elapsed = frame_end - frame_start
+                sleep_time = self.frame_duration - elapsed
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
+
+        except Exception as e:
+            error(f"Error in Oblique engine: {e}")
+            raise
+        finally:
+            self.cleanup()
+
+
+
     def _create_window(self) -> None:
         """Create and configure the GLFW window."""
         if not glfw.init():
@@ -113,6 +178,51 @@ class ObliqueEngine:
 
         glfw.make_context_current(self.window)
         self.ctx = moderngl.create_context()
+
+        # Create cached display resources
+        self._create_display_resources()
+
+    def _create_display_resources(self) -> None:
+        """Create and cache the display shader resources for efficient reuse."""
+        if self.ctx is None:
+            raise RuntimeError("OpenGL context not initialized")
+
+        # Create the passthrough shader program once
+        with open(self.passthrough_shader, "r") as f:
+            fragment_shader = f.read()
+        vertex_shader = """
+            #version 330
+            in vec2 in_vert;
+            in vec2 in_uv;
+            out vec2 v_uv;
+            void main() {
+                v_uv = in_uv;
+                gl_Position = vec4(in_vert, 0.0, 1.0);
+            }
+        """
+        self._display_program = self.ctx.program(
+            vertex_shader=vertex_shader,
+            fragment_shader=fragment_shader,
+        )
+
+        # Create vertex data for fullscreen quad
+        import numpy as np
+        vertices = np.array(
+            [
+                -1.0, -1.0, 0.0, 0.0,
+                1.0, -1.0, 1.0, 0.0,
+                -1.0, 1.0, 0.0, 1.0,
+                1.0, 1.0, 1.0, 1.0,
+            ],
+            dtype="f4",
+        )
+        self._display_vbo = self.ctx.buffer(vertices.tobytes())
+        self._display_vao = self.ctx.simple_vertex_array(
+            self._display_program,
+            self._display_vbo,
+            "in_vert",
+            "in_uv"
+        )
 
     @staticmethod
     def list_monitors() -> None:
@@ -274,103 +384,39 @@ class ObliqueEngine:
                     tex.release()
                 except Exception:
                     # Ignore errors during cleanup to prevent masking original errors
-                    pass
+                    warning("Failed to release texture")
 
 
     def _display_frame(self, final_tex: moderngl.Texture, t: float) -> None:
         """
-        Display the final composited texture to the screen.
+        Display the final composited texture to the screen using cached resources.
 
         Args:
             final_tex: The final composited texture
             t: Current time in seconds
         """
-        if self.ctx is None:
-            raise RuntimeError("OpenGL context not initialized")
+        if self.ctx is None or self._display_program is None or self._display_vao is None:
+            raise RuntimeError("OpenGL context or display resources not initialized")
 
-        fb_width, fb_height  = self.ctx.screen.size
+        fb_width, fb_height = self.ctx.screen.size
         self.ctx.viewport = (0, 0, fb_width, fb_height)
 
         # Clear the screen
         self.ctx.clear(1.0, 1.0, 1.0, 1.0)
 
-        # Display final texture to screen
-        program, vao, vbo = render_fullscreen_quad(
-            self.ctx,
-            self.passthrough_shader,
-            {
-                "u_texture": final_tex,
-                "u_time": t,
-                "u_resolution": (fb_width, fb_height),
-            },
-        )
-
+        # Bind texture to texture unit 0
         final_tex.use(location=0)
+
+
+        # Render using cached VAO
+        self._display_vao.render(moderngl.TRIANGLE_STRIP)
+
+        # Swap buffers
         glfw.swap_buffers(self.window)
 
-        program.release()
-        vao.release()
-        vbo.release()
+        # Release the texture (this is the only resource we need to release per frame)
         final_tex.release()
 
-
-    def run(self) -> None:
-        """
-        Run the Oblique engine with the given patch.
-
-        Args:
-        """
-        try:
-            # Setup window and OpenGL context
-            self._create_window()
-
-            # Initialize timing
-            self.start_time = time.time()
-            self.running = True
-
-            info(f"Starting Oblique engine with {len(self.patch.modules)} modules")
-
-            if self.debug:
-                info("Debug mode enabled - Performance monitoring active")
-
-            if self.audio_input is not None:
-                self.audio_input.start()
-                self.audio_thread = threading.Thread(
-                    target=self._audio_stream_playback,
-                    args=(self.audio_input,),
-                    daemon=True,
-                )
-                self.audio_thread.start()
-
-            # Main render loop
-            while not glfw.window_should_close(self.window):
-                # Performance monitoring
-                if self.performance_monitor:
-                    self.performance_monitor.begin_frame()
-
-                frame_start = time.time()
-                t = frame_start - self.start_time
-
-                # Render modules
-                self._render_modules(t)
-
-                # Performance monitoring
-                if self.performance_monitor:
-                    self.performance_monitor.end_frame()
-                    self.performance_monitor.print_stats(every_n_frames=60)
-
-                # Frame rate limiting
-                frame_end = time.time()
-                elapsed = frame_end - frame_start
-                sleep_time = self.frame_duration - elapsed
-                if sleep_time > 0:
-                    time.sleep(sleep_time)
-
-        except Exception as e:
-            error(f"Error in Oblique engine: {e}")
-            raise
-        finally:
-            self.cleanup()
 
     def get_performance_stats(self) -> Optional[Dict[str, float]]:
         """
@@ -392,6 +438,23 @@ class ObliqueEngine:
 
         if self.audio_thread is not None and self.audio_thread.is_alive():
             self.audio_thread.join(timeout=1.0)
+
+        # Clean up cached display resources
+        if self._display_vao is not None:
+            try:
+                self._display_vao.release()
+            except Exception:
+                pass
+        if self._display_vbo is not None:
+            try:
+                self._display_vbo.release()
+            except Exception:
+                pass
+        if self._display_program is not None:
+            try:
+                self._display_program.release()
+            except Exception:
+                pass
 
         # Clean up shader cache
         from core.renderer import cleanup_shader_cache

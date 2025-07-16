@@ -3,6 +3,8 @@ from typing import Any
 import moderngl
 import numpy as np
 
+from core.logger import debug, warning
+
 _shader_cache = {}
 _debug_mode = False
 
@@ -37,14 +39,17 @@ def _release_shader_cache_entry(entry: tuple) -> None:
         try:
             vao.release()
         except Exception:
+            warning("Failed to release VAO")
             pass
         try:
             vbo.release()
         except Exception:
+            warning("Failed to release VBO")
             pass
         try:
             program.release()
         except Exception:
+            warning("Failed to release program")
             pass
 
 
@@ -57,6 +62,7 @@ def render_fullscreen_quad(
     Returns the program, vao, and vbo.
     """
     global _shader_cache, _debug_mode
+
 
     # In debug mode, always reload shader from file
     if _debug_mode and frag_shader_path in _shader_cache:
@@ -136,7 +142,6 @@ def render_to_texture(
     Render a fullscreen quad to an offscreen texture using the given fragment shader and uniforms.
     Returns the resulting texture.
     """
-    # Use more efficient texture format and settings
     tex = ctx.texture((width, height), 4, dtype="f1", alignment=1)
     tex.filter = (filter, filter)
     tex.repeat_x = False
@@ -148,7 +153,10 @@ def render_to_texture(
         fbo.use()
         ctx.clear(0.0, 0.0, 0.0, 1.0)
 
+        # Render the shader to the texture
         render_fullscreen_quad(ctx, frag_shader_path, uniforms)
+    except Exception as e:
+        warning(f"Error rendering to texture: {e}")
     finally:
         fbo.release()
 

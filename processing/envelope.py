@@ -1,5 +1,7 @@
-import numpy as np
 from typing import Any, Callable, Dict
+
+import numpy as np
+
 from processing.base_processing_operator import BaseProcessingOperator
 
 

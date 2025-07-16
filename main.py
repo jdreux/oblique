@@ -7,8 +7,8 @@ from inputs.audio_device_input import AudioDeviceInput, print_audio_devices
 
 # --- Input imports ---
 from inputs.audio_file_input import AudioFileInput
-from projects.demo.demo_syntakt import create_demo_syntakt
 from projects.demo.demo_audio_file import audio_file_demo_patch
+from projects.demo.demo_syntakt import create_demo_syntakt
 
 
 def main():
@@ -44,6 +44,7 @@ def main():
         "--debug",
         action="store_true",
         help="Enable debug mode with performance monitoring",
+        default=False,
     )
     parser.add_argument(
         "--monitor",
@@ -121,7 +122,7 @@ def main():
         width=args.width,
         height=args.height,
         title="Oblique MVP",
-        target_fps=args.fps,
+        target_fps=args.fps*2, #Todo: remove this after testing
         debug=args.debug,
         monitor=args.monitor,
     )

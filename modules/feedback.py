@@ -143,12 +143,8 @@ class Feedback(BaseAVModule[FeedbackParams]):
             # Render the current frame to the previous frame texture
             from core.renderer import render_fullscreen_quad
 
-            program, vao, vbo = render_fullscreen_quad(
+            render_fullscreen_quad(
                 ctx, "shaders/passthrough.frag", {"u_texture": current_frame}
             )
-            program.release()
-            vao.release()
-            vbo.release()
-            fbo.release()
 
         return current_frame
