@@ -5,11 +5,9 @@ from inputs.audio_device_input import AudioDeviceInput
 from modules.circle_echo import CircleEcho, CircleEchoParams
 from modules.debug import DebugModule, DebugParams
 from modules.feedback import Feedback, FeedbackParams
-from modules.iked_grid import IkedGrid, IkedGridParams
-from modules.ikeda_test_pattern import IkedaTestPatternModule, IkedaTestPatternParams
+from modules.grid_swap_module import GridSwapModule, GridSwapModuleParams
 from modules.ikeda_tiny_barcode import IkedaTinyBarcodeModule, IkedaTinyBarcodeParams
 from modules.mesh_shroud import MeshShroudModule, MeshShroudParams
-from modules.ryoji_grid import RyojiGrid, RyojiGridParams
 from modules.ryoji_lines import RyojiLines, RyojiLinesParams
 from modules.shader_toy_tester import ShaderToyTesterModule
 from modules.spectral_visualizer import (
@@ -74,9 +72,7 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
     visual_noise_module = VisualNoiseModule(
         VisualNoiseParams(width=width, height=height, color_mode="rgba", noise_size="large", speed=0.1)
     )
-    ikeda_test_pattern = IkedaTestPatternModule(
-        IkedaTestPatternParams(width=width, height=height), module=circle_echo_module
-    )
+
     ikeda_tiny_barcode_module = IkedaTinyBarcodeModule(
         IkedaTinyBarcodeParams(width=width, height=height), fft_bands_processor512
     )
@@ -91,8 +87,8 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
     shader_toy_tester = ShaderToyTesterModule()
 
     # Create IkedGrid module that creates its own pattern and swaps squares
-    iked_grid_module = IkedGrid(
-        IkedGridParams(
+    grid_swap_module = GridSwapModule(
+        GridSwapModuleParams(
             width=width,
             height=height,
             grid_size=3,
@@ -130,5 +126,5 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
 
     # patch.add(shader_toy_tester)  # Test feedback module with input
     # patch.add(spectral_visualizer_module)
-    patch.add(iked_grid_module)  # Test transform module
+    patch.add(grid_swap_module)  # Test transform module
     return patch

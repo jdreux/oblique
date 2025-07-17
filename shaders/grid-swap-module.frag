@@ -1,7 +1,7 @@
 #version 330
 /*
-iked-grid.frag
-Description: Ikeda Grid - Takes a texture input and performs square swapping operations on an NxN grid.
+grid-swap-module.frag
+Description: Grid Swap Module - Takes a texture input and performs square swapping operations on an NxN grid.
              Inspired by Ryoji Ikeda's geometric manipulations.
 Author: Oblique AI Agent
 Inputs:

@@ -44,9 +44,9 @@ class RyojiLines(BaseAVModule[RyojiLinesParams]):
 
     def __init__(
         self,
-        params: RyojiLinesParams = RyojiLinesParams(),
-        band_levels_processor: Optional[FFTBands] = None,
-        spectral_centroid_processor: Optional[SpectralCentroid] = None,
+        params: RyojiLinesParams,
+        band_levels_processor: FFTBands,
+        spectral_centroid_processor: SpectralCentroid,
     ):
         super().__init__(params)
         self.width = self.params.width

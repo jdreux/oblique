@@ -1,18 +1,20 @@
 from dataclasses import dataclass
-from typing import Any, Tuple, Optional
-from modules.base_av_module import BaseAVModule, Uniforms, BaseAVParams
+from typing import Any, Tuple
+
 import moderngl
+
+from modules.base_av_module import BaseAVModule, BaseAVParams, Uniforms
 
 
 @dataclass
-class IkedGridParams(BaseAVParams):
+class GridSwapModuleParams(BaseAVParams):
     grid_size: int = 8  # NxN grid size
     swap_frequency: float = 1.0  # How often swaps occur (in Hz)
     swap_phase: float = 0.0  # Phase offset for swap timing
     num_swaps: int = 8
 
 
-class IkedGridUniforms(Uniforms, total=True):
+class GridSwapModuleUniforms(Uniforms, total=True):
     u_time: float
     u_resolution: Tuple[int, int]
     u_grid_size: int
@@ -22,24 +24,24 @@ class IkedGridUniforms(Uniforms, total=True):
     tex0: moderngl.Texture
 
 
-class IkedGrid(BaseAVModule[IkedGridParams]):
+class GridSwapModule(BaseAVModule[GridSwapModuleParams]):
     """
-    Ikeda Grid - Takes a texture input and performs square swapping operations on an NxN grid.
+    Grid Swap Module - Takes a texture input and performs square swapping operations on an NxN grid.
     Inspired by Ryoji Ikeda's geometric manipulations.
     """
 
     metadata = {
-        "name": "IkedGrid",
+        "name": "GridSwapModule",
         "description": "Takes a texture input and performs square swapping operations on an NxN grid.",
-        "parameters": IkedGridParams.__annotations__,
+        "parameters": GridSwapModuleParams.__annotations__,
     }
-    frag_shader_path: str = "shaders/iked-grid.frag"
+    frag_shader_path: str = "shaders/grid-swap-module.frag"
 
-    def __init__(self, params: IkedGridParams, module: BaseAVModule):
+    def __init__(self, params: GridSwapModuleParams, module: BaseAVModule):
         """
-        Initialize IkedGrid module.
+        Initialize GridSwapModule module.
         Args:
-            params (IkedGridParams): Parameters for the module.
+            params (GridSwapModuleParams): Parameters for the module.
             module (BaseAVModule): Upstream module to get texture from.
         """
         super().__init__(params)
@@ -55,7 +57,7 @@ class IkedGrid(BaseAVModule[IkedGridParams]):
         """
         Return the data needed for the renderer to render this module.
         """
-        uniforms: IkedGridUniforms = {
+        uniforms: GridSwapModuleUniforms = {
             "u_time": t,
             "u_resolution": (self.width, self.height),
             "u_grid_size": self.grid_size,
@@ -79,11 +81,13 @@ class IkedGrid(BaseAVModule[IkedGridParams]):
     ) -> moderngl.Texture:
         self.upstream_tex = self.upstream_module.render_texture(ctx, width, height, t)
         # Render the module to a texture
-        return super().render_texture(ctx, width, height, t)
+        tex = super().render_texture(ctx, width, height, t)
+        self.upstream_tex.release()
+        return tex
 
 
 if __name__ == "__main__":
     # Test with dynamic swap generation
-    params = IkedGridParams(
+    params = GridSwapModuleParams(
         width=800, height=600, grid_size=8, swap_frequency=2.0, swap_phase=0.0
     )
