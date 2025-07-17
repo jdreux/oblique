@@ -179,6 +179,10 @@ class ObliqueEngine:
         glfw.make_context_current(self.window)
         self.ctx = moderngl.create_context()
 
+        # Set the context globally
+        from core.renderer import set_ctx
+        set_ctx(self.ctx)
+
         # Create cached display resources
         self._create_display_resources()
 
@@ -335,56 +339,52 @@ class ObliqueEngine:
         if self.ctx is None:
             raise RuntimeError("OpenGL context not initialized")
 
+        if len(self.patch.modules) == 0:
+            warning("No modules to render")
+            time.sleep(1/60) # Sleep for 1 frame
+            return
+
         # Get framebuffer size to account for Retina display scaling
         fb_width, fb_height = self.ctx.screen.size
 
         # Render each module to a texture
         textures: List[moderngl.Texture] = []
-        try:
-            for module in self.patch.modules:
-                tex = module.render_texture(self.ctx, fb_width, fb_height, t)
-                textures.append(tex)
 
-            final_tex = None
+        for module in self.patch.modules:
+            tex = module.render_texture(self.ctx, fb_width, fb_height, t)
+            textures.append(tex)
 
-            if len(textures) == 0:
-                # warning("No textures to render")
-                # Create a black texture if no modules
-                tex = self.ctx.texture((fb_width, fb_height), 4, dtype="f1", alignment=1)
-                tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
-                tex.repeat_x = False
-                tex.repeat_y = False
-                textures = [tex]
+        final_tex = None
 
-            # Blend all textures in order (additive)
-            if len(textures) == 1:
-                final_tex = textures[0]
-            else:
-                final_tex = textures[0]
-                for tex in textures[1:]:
-                    final_tex = blend_textures(
-                        self.ctx,
-                        fb_width,
-                        fb_height,
-                        final_tex,
-                        tex,
-                        self.additive_blend_shader,
-                    )
+        # if len(textures) == 0:
+        #     # warning("No textures to render")
+        #     # Create a black texture if no modules
+        #     tex = self.ctx.texture((fb_width, fb_height), 4, dtype="f1", alignment=1)
+        #     tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
+        #     tex.repeat_x = False
+        #     tex.repeat_y = False
+        #     textures = [tex]
 
-            # Display frame
-            self._display_frame(final_tex, t)
+        # Blend all textures in order (additive)
+        if len(textures) == 1:
+            final_tex = textures[0]
+        else:
+            final_tex = textures[0]
+            for tex in textures[1:]:
+                final_tex = blend_textures(
+                    self.ctx,
+                    fb_width,
+                    fb_height,
+                    final_tex,
+                    tex,
+                    self.additive_blend_shader,
+                )
 
-            # Handle events
-            glfw.poll_events()
+        # Display frame
+        self._display_frame(final_tex, t)
 
-        finally:
-            # Always release all textures, even if exceptions occur
-            for tex in textures:
-                try:
-                    tex.release()
-                except Exception:
-                    # Ignore errors during cleanup to prevent masking original errors
-                    warning("Failed to release texture")
+        # Handle events
+        glfw.poll_events()
 
 
     def _display_frame(self, final_tex: moderngl.Texture, t: float) -> None:
@@ -414,8 +414,6 @@ class ObliqueEngine:
         # Swap buffers
         glfw.swap_buffers(self.window)
 
-        # Release the texture (this is the only resource we need to release per frame)
-        final_tex.release()
 
 
     def get_performance_stats(self) -> Optional[Dict[str, float]]:

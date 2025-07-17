@@ -1,13 +1,18 @@
-from typing import Any
+
+from typing import Any, TYPE_CHECKING
 
 import moderngl
 import numpy as np
 
-from core.logger import debug, warning
+from core.logger import warning, debug
+
+if TYPE_CHECKING:
+    from modules.base_av_module import BaseAVModule
 
 _shader_cache = {}
+_texture_cache = {}
 _debug_mode = False
-
+_ctx = None
 
 def set_debug_mode(debug: bool) -> None:
     """
@@ -19,6 +24,12 @@ def set_debug_mode(debug: bool) -> None:
     global _debug_mode
     _debug_mode = debug
 
+def set_ctx(ctx: moderngl.Context) -> None:
+    """
+    Set the context globally.
+    """
+    global _ctx
+    _ctx = ctx
 
 def cleanup_shader_cache() -> None:
     """
@@ -131,7 +142,7 @@ def render_fullscreen_quad(
     return program, vao, vbo
 
 def render_to_texture(
-    ctx: moderngl.Context,
+    module: "BaseAVModule",
     width: int,
     height: int,
     frag_shader_path: str,
@@ -142,29 +153,41 @@ def render_to_texture(
     Render a fullscreen quad to an offscreen texture using the given fragment shader and uniforms.
     Returns the resulting texture.
     """
-    tex = ctx.texture((width, height), 4, dtype="f1", alignment=1)
-    tex.filter = (filter, filter)
-    tex.repeat_x = False
-    tex.repeat_y = False
+    global _texture_cache
+    global _ctx
 
-    fbo = ctx.framebuffer(color_attachments=[tex])
+    if _ctx is None:
+        raise RuntimeError("OpenGL Context not set")
+
+    cache_key = f"{module.__class__.__name__}_{width}_{height}_{filter}"
+
+    if cache_key in _texture_cache:
+        tex = _texture_cache[cache_key]
+    else:
+        tex = _ctx.texture((width, height), 4, dtype="f1", alignment=1)
+        tex.filter = (filter, filter)
+        tex.repeat_x = False
+        tex.repeat_y = False
+
+    fbo = _ctx.framebuffer(color_attachments=[tex])
     try:
-        ctx.viewport = (0, 0, width, height)
+        _ctx.viewport = (0, 0, width, height)
         fbo.use()
-        ctx.clear(0.0, 0.0, 0.0, 1.0)
+        _ctx.clear(0.0, 0.0, 0.0, 1.0)
 
         # Render the shader to the texture
-        render_fullscreen_quad(ctx, frag_shader_path, uniforms)
+        render_fullscreen_quad(_ctx, frag_shader_path, uniforms)
     except Exception as e:
         warning(f"Error rendering to texture: {e}")
     finally:
         fbo.release()
 
+    _texture_cache[cache_key] = tex
+
     return tex
 
 
 def blend_textures(
-    ctx: moderngl.Context,
     width: int,
     height: int,
     tex0: moderngl.Texture,
@@ -174,6 +197,12 @@ def blend_textures(
     """
     Blend two textures using the specified blend shader and return the result as a new texture.
     """
+    global _ctx
+
+    if _ctx is None:
+        raise RuntimeError("OpenGL Context not set")
+
+    ctx = _ctx
     out_tex = ctx.texture((width, height), 4, dtype="f1", alignment=1)
     out_tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
     out_tex.repeat_x = False

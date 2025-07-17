@@ -102,7 +102,7 @@ class BaseAVModule(ObliqueNode, Generic[P]):
         """
         render_data = self.render_data(t)
         return render_to_texture(
-            ctx,
+            self,
             width,
             height,
             render_data["frag_shader_path"],

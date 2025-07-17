@@ -73,7 +73,7 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
             # contrast=1.5,
             # opacity=0.9,
         ),
-        circle_echo_module,
+        grid_swap_module,
     )
 
     patch.add(level_module)  # Test transform module

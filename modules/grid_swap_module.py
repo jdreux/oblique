@@ -81,9 +81,7 @@ class GridSwapModule(BaseAVModule[GridSwapModuleParams]):
     ) -> moderngl.Texture:
         self.upstream_tex = self.upstream_module.render_texture(ctx, width, height, t)
         # Render the module to a texture
-        tex = super().render_texture(ctx, width, height, t)
-        self.upstream_tex.release()
-        return tex
+        return super().render_texture(ctx, width, height, t)
 
 
 if __name__ == "__main__":
