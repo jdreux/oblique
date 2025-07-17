@@ -2,6 +2,7 @@ from core.oblique_patch import ObliquePatch
 from inputs.audio_file_input import AudioFileInput
 from modules.circle_echo import CircleEcho, CircleEchoParams
 from modules.grid_swap_module import GridSwapModule, GridSwapModuleParams
+from modules.level_module import LevelModule, LevelParams
 from modules.ryoji_lines import RyojiLines, RyojiLinesParams
 from modules.ikeda_tiny_barcode import IkedaTinyBarcodeModule, IkedaTinyBarcodeParams
 from modules.spectral_visualizer import SpectralVisualizerModule, SpectralVisualizerParams
@@ -63,5 +64,17 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
         fft_bands_processor16,
     )
 
-    patch.add(ryoji_lines_module)  # Test transform module
+    level_module = LevelModule(
+        LevelParams(
+            invert=True,
+            # black_level=0.1,
+            # brightness=0.2,
+            # gamma=0.8,
+            # contrast=1.5,
+            # opacity=0.9,
+        ),
+        circle_echo_module,
+    )
+
+    patch.add(level_module)  # Test transform module
     return patch
