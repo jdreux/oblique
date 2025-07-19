@@ -1,6 +1,7 @@
 from core.oblique_patch import ObliquePatch
 from inputs.audio_device_input import AudioDeviceInput
-from modules.base_av_module import BaseAVModule
+from core.logger import debug
+from modules.base_av_module import P, BaseAVModule
 
 # --- Module imports ---
 from modules.circle_echo import CircleEcho, CircleEchoParams
@@ -17,9 +18,11 @@ from modules.spectral_visualizer import (
 )
 from modules.transform import TransformModule, TransformParams
 from modules.visual_noise import VisualNoiseModule, VisualNoiseParams
+from modules.level_module import LevelModule, LevelParams
 from processing.fft_bands import FFTBands
 from processing.normalized_amplitude import NormalizedAmplitudeOperator
 from processing.spectral_centroid import SpectralCentroid
+from processing.envelope import Envelope
 
 
 def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) -> ObliquePatch:
@@ -38,93 +41,50 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
 
     mix_LR = audio_input.get_audio_input_for_channels([0,1])
 
-    melody = audio_input.get_audio_input_for_channels([2])
+    clap = audio_input.get_audio_input_for_channels([4])
 
-    kick_snare = audio_input.get_audio_input_for_channels([10])
-    bass = audio_input.get_audio_input_for_channels([12])
-    hh = audio_input.get_audio_input_for_channels([13])
+    bass_drum = audio_input.get_audio_input_for_channels([10])
 
-    amplitude_processor = NormalizedAmplitudeOperator(kick_snare)
-    debug_module = DebugModule(
-        DebugParams(width=width, height=height, number=0.0, text="Debug"),
-        amplitude_processor,
-    )
-    # patch.add(debug_module)
+    clap_amplitude = NormalizedAmplitudeOperator(clap)
 
-    fft_bands_processor16 = FFTBands(melody, num_bands=16)
+    bass_drum_amplitude = NormalizedAmplitudeOperator(bass_drum)
+
+    bass_drum_envelope = Envelope(bass_drum_amplitude.process)
+
+    clap_counter: int = 0
+
+    fft_bands_processor16 = FFTBands(mix_LR, num_bands=16)
+
     circle_echo_module = CircleEcho(
         CircleEchoParams(width=width, height=height, n_circles=32),
         fft_bands_processor16,
     )
 
-    spectral_centroid_processor = SpectralCentroid(melody)
-    fft_bands_processor512 = FFTBands(melody, num_bands=512, smoothing_factor=1.0)
-    fft_bands_processor512_smooth = FFTBands(melody, num_bands=512, smoothing_factor=0.3)
-    fft_bands_processor64 = FFTBands(melody, num_bands=64)
-    ryoji_lines_module = RyojiLines(
-        RyojiLinesParams(width=width, height=height, num_bands=2**7),
-        fft_bands_processor512,
-        spectral_centroid_processor,
-    )
-    visual_noise_module = VisualNoiseModule(
-        VisualNoiseParams(width=width, height=height, color_mode="rgba", noise_size="large", speed=0.1)
-    )
-
-    ikeda_tiny_barcode_module = IkedaTinyBarcodeModule(
-        IkedaTinyBarcodeParams(width=width, height=height), fft_bands_processor512
-    )
-    spectral_visualizer_module = SpectralVisualizerModule(
-        SpectralVisualizerParams(width=width, height=height), fft_bands_processor512
-    )
-
-    mesh_module = MeshShroudModule(
-        MeshShroudParams(width=width, height=height), fft_bands_processor64, amplitude_processor
-    )
-
-    shader_toy_tester = ShaderToyTesterModule()
-
-    # Create IkedGrid module that creates its own pattern and swaps squares
     grid_swap_module = GridSwapModule(
-        GridSwapModuleParams(
-            width=width,
-            height=height,
-            grid_size=3,
-            swap_frequency=2.0,  # Increased frequency for more visible swaps
-            swap_phase=0.0,
-            num_swaps=4,
-        ),
-        module=ikeda_tiny_barcode_module,
+        GridSwapModuleParams(width=width, height=height, grid_size=16, num_swaps=128),
+        circle_echo_module,
     )
 
-    # Add feedback module with spectral visualizer as input
-    feedback_module = Feedback(
-        FeedbackParams(
-            width=width,
-            height=height,
-            feedback_strength=0.95,
-            reset_on_start=True,
+    level_module = LevelModule(
+        LevelParams(
+            invert=False,
         ),
-        upstream_module=mesh_module,
-    )
-
-    # Test transform module
-    transform_module = TransformModule(
-        TransformParams(
-            width=width,
-            height=height,
-            scale=(0.94, 0.78),
-            angle=67,
-            pivot=(0.7, 0.3),
-            translate=(0.05, -0.5),
-            transform_order="SRT",
-        ),
-        upstream_module=feedback_module,
+        grid_swap_module,
     )
 
     def tick_callback(t: float) -> BaseAVModule:
-        return grid_swap_module
+
+        amplitude: float = clap_amplitude.process()
+        bass_intensity: float = bass_drum_envelope.process()
+
+        level_module.params.invert = amplitude > 0.001
+
+        grid_swap_module.params.grid_size = int(16 * bass_intensity*10)
+        grid_swap_module.params.num_swaps = int(128 * bass_intensity*10)
+
+        return level_module
 
     return ObliquePatch(
-        audio_input=audio_input,
+        audio_output=mix_LR,
         tick_callback=tick_callback,
     )

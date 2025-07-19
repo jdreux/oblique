@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, List, Optional
 
 from core.oblique_node import ObliqueNode
 
@@ -69,7 +69,7 @@ class BaseInput(ObliqueNode, ABC):
         pass
 
     @abstractmethod
-    def peek(self, n_buffers=None, channels=None) -> Any:
+    def peek(self, n_buffers: int = 1, channels: Optional[List[int]] = None) -> Any:
         """
         Return the most recent data chunk without advancing the input cursor.
         This allows consumers (e.g., video/visual analysis) to access the latest data

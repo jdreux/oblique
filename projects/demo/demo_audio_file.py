@@ -1,4 +1,3 @@
-import math
 
 from core.oblique_patch import ObliquePatch
 from inputs.audio_file_input import AudioFileInput
@@ -10,6 +9,7 @@ from modules.level_module import LevelModule, LevelParams
 from modules.ryoji_lines import RyojiLines, RyojiLinesParams
 from modules.spectral_visualizer import SpectralVisualizerModule, SpectralVisualizerParams
 from processing.fft_bands import FFTBands
+from processing.normalized_amplitude import NormalizedAmplitudeOperator
 from processing.spectral_centroid import SpectralCentroid
 
 
@@ -44,17 +44,7 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
         SpectralVisualizerParams(width=width, height=height), fft_bands_processor512
     )
 
-    grid_swap_module = GridSwapModule(
-        GridSwapModuleParams(
-            width=width,
-            height=height,
-            grid_size=16,
-            swap_frequency=2.0,  # Increased frequency for more visible swaps
-            swap_phase=0.0,
-            num_swaps=128,
-        ),
-        module=spectral_visualizer_module,
-    )
+
     ryoji_lines_module = RyojiLines(
         RyojiLinesParams(width=width, height=height, num_bands=2**7),
         fft_bands_processor512,
@@ -65,29 +55,42 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
         fft_bands_processor16,
     )
 
+    grid_swap_module = GridSwapModule(
+        GridSwapModuleParams(
+            width=width,
+            height=height,
+            grid_size=0,
+            swap_frequency=2.0,  # Increased frequency for more visible swaps
+            swap_phase=0.0,
+            num_swaps=128,
+        ),
+        module=ryoji_lines_module,
+    )
+
     level_module = LevelModule(
         LevelParams(
             invert=True,
-            # black_level=0.1,
-            # brightness=0.2,
-            # gamma=0.8,
-            # contrast=1.5,
-            # opacity=0.9,
         ),
         grid_swap_module,
     )
 
-    # patch.add(grid_swap_module)  # Test transform module
+
+    normalized_amplitude_processor = NormalizedAmplitudeOperator(audio_input)
 
     def _tick_callback(t: float) -> BaseAVModule:
+        amplitude: float = normalized_amplitude_processor.process()
 
+        # grid_swap_module.params.grid_size = int(16 + 16 * math.sin(t * 2.0))
+        # grid_swap_module.params.num_swaps = int(128 + 128 * math.sin(t * 2.0))
 
-        grid_swap_module.params.grid_size = int(16 + 16 * math.sin(t * 2.0))
-        grid_swap_module.params.num_swaps = int(128 + 128 * math.sin(t * 2.0))
+        grid_swap_module.params.grid_size = int(16 * amplitude)
+        grid_swap_module.params.num_swaps = int(128 * amplitude)
+
+        level_module.params.invert = t % 4 < 2
 
         print(f"Grid size: {grid_swap_module.params.grid_size}, Num swaps: {grid_swap_module.params.num_swaps}")
 
-        return grid_swap_module
+        return level_module
 
 
     return ObliquePatch(audio_input=audio_input, tick_callback=_tick_callback)

@@ -118,7 +118,7 @@ class FFTBands(BaseProcessingOperator):
         """
         chunk = self.audio_input.peek(n_buffers=1)
         if chunk is None:
-            debug("FFT: No audio chunk available")
+            # debug("FFT: No audio chunk available")
             return [0.0] * self.n_bands
 
         self._push_samples(chunk)

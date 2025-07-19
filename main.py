@@ -8,7 +8,7 @@ from inputs.audio_device_input import AudioDeviceInput, print_audio_devices
 # --- Input imports ---
 from inputs.audio_file_input import AudioFileInput
 from projects.demo.demo_audio_file import audio_file_demo_patch
-# from projects.demo.demo_syntakt import create_demo_syntakt
+from projects.demo.demo_syntakt import create_demo_syntakt
 
 
 def main():

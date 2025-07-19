@@ -1,7 +1,9 @@
+
 import numpy as np
-from typing import Any
-from .base_processing_operator import BaseProcessingOperator
+
 from inputs.base_input import BaseInput
+
+from .base_processing_operator import BaseProcessingOperator
 
 
 class NormalizedAmplitudeOperator(BaseProcessingOperator):
@@ -48,6 +50,7 @@ class NormalizedAmplitudeOperator(BaseProcessingOperator):
 
 if __name__ == "__main__":
     import sys
+
     from inputs.audio_file_input import AudioFileInput
 
     file_path = (

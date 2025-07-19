@@ -1,5 +1,5 @@
 import collections
-from typing import Optional
+from typing import List, Optional
 
 import numpy as np
 import soundfile as sf
@@ -67,14 +67,14 @@ class AudioFileInput(BaseInput):
         self._chunk_history.append(chunk)
         return chunk
 
-    def peek(self, n_buffers: Optional[int] = None, channels=None) -> Optional[np.ndarray]:
+    def peek(self, n_buffers: int = 1, channels: Optional[List[int]] = None) -> Optional[np.ndarray]:
         """
         Return the most recently read chunk or up to the last n_buffers chunks concatenated. Does not advance the buffer position.
         :param n_buffers: Number of previous chunks to return (concatenated). If None, returns the most recent chunk.
         :param channels: Ignored for file input (all channels are returned).
         :return: Numpy array of shape (n*chunk_size, channels) or None if not available
         """
-        if n_buffers is None:
+        if n_buffers == 1:
             return self._last_chunk
         if n_buffers <= 0 or len(self._chunk_history) == 0:
             return None

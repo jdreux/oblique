@@ -203,15 +203,13 @@ class AudioDeviceInput(BaseInput):
             self._chunk_history.append(result)
             return result
 
-    def peek(self, n_buffers: Optional[int] = None, channels: Optional[List[int]] = None) -> Optional[np.ndarray]:
+    def peek(self, n_buffers: int = 1, channels: Optional[List[int]] = None) -> Optional[np.ndarray]:
         """
         Return the most recently read chunk or up to the last n_buffers chunks concatenated. Does not advance the buffer position.
         :param n_buffers: Number of previous chunks to return (concatenated). If None, returns the most recent chunk.
         :param channels: List of channel indices to return. If None, uses the default channel selection.
         :return: Numpy array of shape (n*chunk_size, selected_channels) or None if not available
         """
-        if n_buffers is None:
-            return self._last_chunk
         if n_buffers <= 0 or len(self._chunk_history) == 0:
             return None
         # Get up to n_buffers most recent chunks (these are unfiltered)

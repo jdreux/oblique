@@ -36,6 +36,7 @@ class AudioDeviceChannelInput(BaseInput):
 
         self.from_device = from_device
         self.channels = channels
+        debug(f"AudioDeviceChannelInput: {self.channels}")
 
     def start(self) -> None:
         """
@@ -61,10 +62,10 @@ class AudioDeviceChannelInput(BaseInput):
                        If None, returns all channels configured for this input.
         :return: Numpy array of shape (chunk_size, selected_channels)
         """
-        # Get all channels from parent
+        # Get all channels from parent, filtering handled by parent.
         return self.from_device.read(channels=self.channels)
 
-    def peek(self, n_buffers: Optional[int] = None, channels: Optional[List[int]] = None) -> Optional[np.ndarray]:
+    def peek(self, n_buffers: int = 1, channels: Optional[List[int]] = None) -> Optional[np.ndarray]:
         """
         Return the most recently captured chunk or up to the last n_buffers chunks concatenated.
 

@@ -139,10 +139,6 @@ class ObliqueLogger:
         """Log a debug message."""
         self._log(logging.DEBUG, message, **kwargs)
 
-    def trace(self, message: str, **kwargs: Any) -> None:
-        """Log a trace message (maps to DEBUG level)."""
-        self._log(logging.DEBUG, f"[TRACE] {message}", **kwargs)
-
     def _log(self, level: int, message: str, **kwargs: Any) -> None:
         """Internal logging method."""
         if self._logger is None:

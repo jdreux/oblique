@@ -72,6 +72,10 @@ void main() {
 
     // Map pixel to grid cell and cell-local UV
     float N = float(u_grid_size);
+    if (N == 0.0) {
+        fragColor = texture(tex0, uv);
+        return;
+    }
     vec2 cell = floor(uv * N);
     vec2 local = fract(uv * N);
 

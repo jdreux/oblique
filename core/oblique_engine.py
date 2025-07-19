@@ -1,6 +1,6 @@
 import threading
 import time
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 import glfw  # type: ignore
 import moderngl
@@ -9,7 +9,6 @@ import sounddevice as sd
 from core.logger import debug, error, info, warning
 from core.oblique_patch import ObliquePatch
 from core.performance_monitor import PerformanceMonitor
-from core.renderer import blend_textures
 from inputs.base_input import BaseInput
 
 
@@ -62,10 +61,10 @@ class ObliqueEngine:
         self.ctx: Optional[moderngl.Context] = None
 
         # Audio handling
-        self.audio_input: Optional[BaseInput] = None
+        self.audio_output: Optional[BaseInput] = None
         self.audio_thread: Optional[threading.Thread] = None
 
-        self.audio_input = patch.audio_input    
+        self.audio_output = patch.audio_output
 
         # Timing
         self.start_time = 0.0
@@ -99,11 +98,11 @@ class ObliqueEngine:
             if self.debug:
                 info("Debug mode enabled - Performance monitoring active")
 
-            if self.audio_input is not None:
-                self.audio_input.start()
+            if self.audio_output is not None:
+                self.audio_output.start()
                 self.audio_thread = threading.Thread(
                     target=self._audio_stream_playback,
-                    args=(self.audio_input,),
+                    args=(self.audio_output,),
                     daemon=True,
                 )
                 self.audio_thread.start()
@@ -397,8 +396,8 @@ class ObliqueEngine:
         """Clean up resources."""
         self.running = False
 
-        if self.audio_input is not None:
-            self.audio_input.stop()
+        if self.audio_output is not None:
+            self.audio_output.stop()
 
         if self.audio_thread is not None and self.audio_thread.is_alive():
             self.audio_thread.join(timeout=1.0)
