@@ -45,12 +45,6 @@ class GridSwapModule(BaseAVModule[GridSwapModuleParams]):
             module (BaseAVModule): Upstream module to get texture from.
         """
         super().__init__(params)
-        self.width = self.params.width
-        self.height = self.params.height
-        self.grid_size = self.params.grid_size
-        self.swap_frequency = self.params.swap_frequency
-        self.swap_phase = self.params.swap_phase
-        self.num_swaps = self.params.num_swaps
         self.upstream_module = module
 
     def render_data(self, t: float) -> dict[str, Any]:
@@ -59,11 +53,11 @@ class GridSwapModule(BaseAVModule[GridSwapModuleParams]):
         """
         uniforms: GridSwapModuleUniforms = {
             "u_time": t,
-            "u_resolution": (self.width, self.height),
-            "u_grid_size": self.grid_size,
-            "u_swap_frequency": self.swap_frequency,
-            "u_swap_phase": self.swap_phase,
-            "u_num_swaps": self.num_swaps,
+            "u_resolution": (self.params.width, self.params.height),
+            "u_grid_size": self.params.grid_size,
+            "u_swap_frequency": self.params.swap_frequency,
+            "u_swap_phase": self.params.swap_phase,
+            "u_num_swaps": self.params.num_swaps,
             "tex0": self.upstream_tex,
         }
         return {

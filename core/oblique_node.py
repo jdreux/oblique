@@ -1,5 +1,5 @@
-from uuid import uuid4
 from typing import Any, Dict, Set
+from uuid import uuid4
 
 
 class ObliqueNode:

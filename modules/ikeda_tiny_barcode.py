@@ -46,7 +46,6 @@ class IkedaTinyBarcodeModule(BaseAVModule[IkedaTinyBarcodeParams]):
 
     def __init__(self, params: IkedaTinyBarcodeParams, fft_bands_processor: FFTBands):
         super().__init__(params)
-        # self.module = module
         self.fft_bands_processor = fft_bands_processor
 
     def render_data(self, t: float) -> dict[str, Any]:

@@ -1,14 +1,16 @@
 from dataclasses import dataclass
 from typing import Any, Tuple
-from modules.base_av_module import BaseAVModule, Uniforms, BaseAVParams
-import numpy as np
+
 import moderngl
+import numpy as np
+
+from modules.base_av_module import BaseAVModule, BaseAVParams, Uniforms
 
 
 @dataclass
 class TransformParams(BaseAVParams):
     scale: Tuple[float, float] = (1.0, 1.0)  # 2D scale factors (x, y) - values >1 enlarge, <1 shrink
-    angle: float = 0.0  # Rotation angle in degrees 
+    angle: float = 0.0  # Rotation angle in degrees
     pivot: Tuple[float, float] = (0.5, 0.5)  # Pivot point for rotation (0-1 UV space)
     translate: Tuple[float, float] = (0.0, 0.0)  # Translation in UV space
     transform_order: str = "SRT"  # Scale, Rotate, Translate order
@@ -49,13 +51,6 @@ class TransformModule(BaseAVModule[TransformParams]):
             upstream_module (BaseAVModule): Upstream module to transform
         """
         super().__init__(params, upstream_module)
-        self.width = self.params.width
-        self.height = self.params.height
-        self.scale = self.params.scale
-        self.angle = self.params.angle
-        self.pivot = self.params.pivot
-        self.translate = self.params.translate
-        self.transform_order = self.params.transform_order
         self.upstream_module = upstream_module
 
     def _build_transform_matrix(self) -> np.ndarray:
@@ -69,36 +64,36 @@ class TransformModule(BaseAVModule[TransformParams]):
         matrix = np.eye(3)
 
         # Parse transform order (default: Scale, Rotate, Translate)
-        order = self.transform_order.upper()
+        order = self.params.transform_order.upper()
 
         for op in order:
             if op == "S":  # Scale
-                sx, sy = self.scale
+                sx, sy = self.params.scale
                 scale = np.array([[sx, 0.0, 0.0],
                     [0.0, sy, 0.0],
                     [0.0, 0.0, 1.0]])
 
                 # use pivot (same as rotation)
-                pivot = np.array([[1, 0, -self.pivot[0]],
-                    [0, 1, -self.pivot[1]],
+                pivot = np.array([[1, 0, -self.params.pivot[0]],
+                    [0, 1, -self.params.pivot[1]],
                     [0, 0,  1]])
-                pivot_inv = np.array([[1, 0,  self.pivot[0]],
-                    [0, 1,  self.pivot[1]],
+                pivot_inv = np.array([[1, 0,  self.params.pivot[0]],
+                    [0, 1,  self.params.pivot[1]],
                     [0, 0,  1]])
 
                 matrix = pivot_inv @ scale @ pivot @ matrix
 
             elif op == "R":  # Rotate
                 # Convert degrees to radians
-                angle_rad = np.radians(self.angle)
+                angle_rad = np.radians(self.params.angle)
                 cos_a = np.cos(angle_rad)
                 sin_a = np.sin(angle_rad)
 
                 # Move to pivot point
                 pivot_matrix = np.array(
                     [
-                        [1.0, 0.0, -self.pivot[0]],
-                        [0.0, 1.0, -self.pivot[1]],
+                        [1.0, 0.0, -self.params.pivot[0]],
+                        [0.0, 1.0, -self.params.pivot[1]],
                         [0.0, 0.0, 1.0],
                     ]
                 )
@@ -111,8 +106,8 @@ class TransformModule(BaseAVModule[TransformParams]):
                 # Move back from pivot point
                 pivot_inv_matrix = np.array(
                     [
-                        [1.0, 0.0, self.pivot[0]],
-                        [0.0, 1.0, self.pivot[1]],
+                        [1.0, 0.0, self.params.pivot[0]],
+                        [0.0, 1.0, self.params.pivot[1]],
                         [0.0, 0.0, 1.0],
                     ]
                 )
@@ -123,8 +118,8 @@ class TransformModule(BaseAVModule[TransformParams]):
             elif op == "T":  # Translate
                 translate_matrix = np.array(
                     [
-                        [1.0, 0.0, self.translate[0]],
-                        [0.0, 1.0, self.translate[1]],
+                        [1.0, 0.0, self.params.translate[0]],
+                        [0.0, 1.0, self.params.translate[1]],
                         [0.0, 0.0, 1.0],
                     ]
                 )
@@ -150,7 +145,7 @@ class TransformModule(BaseAVModule[TransformParams]):
 
         uniforms: TransformUniforms = {
             "u_time": t,
-            "u_resolution": (self.width, self.height),
+            "u_resolution": (self.params.width, self.params.height),
             "u_transform_matrix": matrix_flattened,
             "u_texture": self.upstream_tex,
         }

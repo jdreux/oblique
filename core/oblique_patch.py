@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Callable, List
 
 from inputs.base_input import BaseInput
 from modules.base_av_module import BaseAVModule
@@ -10,51 +10,56 @@ class ObliquePatch:
     Manages modules, connections, and output selection.
     """
 
-    def __init__(self) -> None:
+    def __init__(self,
+        audio_input: BaseInput,
+        tick_callback: Callable[[float], BaseAVModule]) -> None:
         """
         Initialize an empty patch.
         """
-        self.inputs: List[BaseInput] = []
-        self.modules: List[BaseAVModule] = []
-        self._graph: List[Any] = []  # Could be refined to a DAG structure
+        self.audio_input: BaseInput = audio_input
+        self.tick_callback: Callable[[float], BaseAVModule] = tick_callback
 
-    def input(self, input_module: BaseInput) -> BaseInput:
-        """
-        Register an input module (e.g., audio, MIDI).
-        Returns a handle to the input's output for chaining.
-        """
-        self.inputs.append(input_module)
-        self._graph.append(input_module)
-        return input_module
+    # def set_inputs(self, inputs: List[BaseInput]) -> None:
+    #     """
+    #     Register an input module (e.g., audio, MIDI).
+    #     Returns a handle to the input's output for chaining.
+    #     """
+    #     self.inputs = inputs
 
-    def add(self, module: BaseAVModule) -> BaseAVModule:
-        """
-        Add a processing or rendering module to the patch.
-        Returns a handle to the module's output for chaining.
-        """
-        self.modules.append(module)
-        self._graph.append(module)
-        return module
+    # def set_tick_callback(self, callback: Callable[[float, int, int, List[BaseInput]], BaseAVModule]) -> None:
+    #     """
+    #     Register a callback to be called on each tick (every frame).
+    #     """
+    #     self.tick_callback = callback
 
-    def get_output(self) -> BaseAVModule | None:
+    def tick(self, t: float) -> BaseAVModule:
         """
-        Return the final output node (renderer or passthrough).
-        If no renderer is present, returns a default DebugModule instance.
+        Call the tick callback.
         """
-        if self.modules:
-            return self.modules[-1]
-        return None
+        return self.tick_callback(t)
 
-    def get_audio_input(self) -> BaseInput | None:
-        """
-        Return the audio input node.
-        """
-        if len(self.inputs) == 0:
-            return None
-        return self.inputs[0]
+    # def add(self, module: BaseAVModule) -> BaseAVModule:
+    #     """
+    #     Add a processing or rendering module to the patch.
+    #     Returns a handle to the module's output for chaining.
+    #     """
+    #     self.modules.append(module)
+    #     self._graph.append(module)
+    #     return module
 
-    def get_graph(self) -> List[Any]:
-        """
-        Return a representation of the patch's module graph (for debugging or introspection).
-        """
-        return self._graph
+    # def get_output(self) -> BaseAVModule | None:
+    #     """
+    #     Return the final output node (renderer or passthrough).
+    #     If no renderer is present, returns a default DebugModule instance.
+    #     """
+    #     if self.modules:
+    #         return self.modules[-1]
+    #     return None
+
+    # def get_audio_input(self) -> BaseInput | None:
+    #     """
+    #     Return the audio input node.
+    #     """
+    #     if len(self.inputs) == 0:
+    #         return None
+    #     return self.inputs[0]

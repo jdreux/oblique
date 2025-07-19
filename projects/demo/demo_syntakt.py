@@ -1,5 +1,6 @@
 from core.oblique_patch import ObliquePatch
 from inputs.audio_device_input import AudioDeviceInput
+from modules.base_av_module import BaseAVModule
 
 # --- Module imports ---
 from modules.circle_echo import CircleEcho, CircleEchoParams
@@ -33,12 +34,9 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
     Returns:
         Configured ObliquePatch instance
     """
-    patch = ObliquePatch()
 
 
     mix_LR = audio_input.get_audio_input_for_channels([0,1])
-
-    patch.input(mix_LR)
 
     melody = audio_input.get_audio_input_for_channels([2])
 
@@ -54,7 +52,6 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
     # patch.add(debug_module)
 
     fft_bands_processor16 = FFTBands(melody, num_bands=16)
-    ryoji_grid_module = RyojiGrid(RyojiGridParams(width=width, height=height))
     circle_echo_module = CircleEcho(
         CircleEchoParams(width=width, height=height, n_circles=32),
         fft_bands_processor16,
@@ -124,7 +121,10 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
         upstream_module=feedback_module,
     )
 
-    # patch.add(shader_toy_tester)  # Test feedback module with input
-    # patch.add(spectral_visualizer_module)
-    patch.add(grid_swap_module)  # Test transform module
-    return patch
+    def tick_callback(t: float) -> BaseAVModule:
+        return grid_swap_module
+
+    return ObliquePatch(
+        audio_input=audio_input,
+        tick_callback=tick_callback,
+    )

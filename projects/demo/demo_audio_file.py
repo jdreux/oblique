@@ -1,10 +1,13 @@
+import math
+
 from core.oblique_patch import ObliquePatch
 from inputs.audio_file_input import AudioFileInput
+from modules.base_av_module import BaseAVModule
 from modules.circle_echo import CircleEcho, CircleEchoParams
 from modules.grid_swap_module import GridSwapModule, GridSwapModuleParams
+from modules.ikeda_tiny_barcode import IkedaTinyBarcodeModule, IkedaTinyBarcodeParams
 from modules.level_module import LevelModule, LevelParams
 from modules.ryoji_lines import RyojiLines, RyojiLinesParams
-from modules.ikeda_tiny_barcode import IkedaTinyBarcodeModule, IkedaTinyBarcodeParams
 from modules.spectral_visualizer import SpectralVisualizerModule, SpectralVisualizerParams
 from processing.fft_bands import FFTBands
 from processing.spectral_centroid import SpectralCentroid
@@ -23,13 +26,11 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
         Configured ObliquePatch instance
     """
 
-    patch = ObliquePatch()
+
 
     audio_input = AudioFileInput(
         file_path="projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav"
     )
-
-    patch.input(audio_input)
 
     fft_bands_processor16 = FFTBands(audio_input, num_bands=16)
     fft_bands_processor512 = FFTBands(audio_input, num_bands=512)
@@ -76,5 +77,17 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
         grid_swap_module,
     )
 
-    patch.add(level_module)  # Test transform module
-    return patch
+    # patch.add(grid_swap_module)  # Test transform module
+
+    def _tick_callback(t: float) -> BaseAVModule:
+
+
+        grid_swap_module.params.grid_size = int(16 + 16 * math.sin(t * 2.0))
+        grid_swap_module.params.num_swaps = int(128 + 128 * math.sin(t * 2.0))
+
+        print(f"Grid size: {grid_swap_module.params.grid_size}, Num swaps: {grid_swap_module.params.num_swaps}")
+
+        return grid_swap_module
+
+
+    return ObliquePatch(audio_input=audio_input, tick_callback=_tick_callback)

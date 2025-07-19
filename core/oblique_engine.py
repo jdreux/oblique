@@ -65,7 +65,7 @@ class ObliqueEngine:
         self.audio_input: Optional[BaseInput] = None
         self.audio_thread: Optional[threading.Thread] = None
 
-        self.audio_input = patch.get_audio_input()
+        self.audio_input = patch.audio_input    
 
         # Timing
         self.start_time = 0.0
@@ -94,7 +94,7 @@ class ObliqueEngine:
             self.start_time = time.time()
             self.running = True
 
-            info(f"Starting Oblique engine with {len(self.patch.modules)} modules")
+            info(f"Starting Oblique engine with patch {self.patch}")
 
             if self.debug:
                 info("Debug mode enabled - Performance monitoring active")
@@ -118,7 +118,7 @@ class ObliqueEngine:
                 t = frame_start - self.start_time
 
                 # Render modules
-                self._render_modules(t)
+                self._render_patch(t, self.patch)
 
                 # Performance monitoring
                 if self.performance_monitor:
@@ -326,7 +326,7 @@ class ObliqueEngine:
         except Exception as e:
             error(f"[AUDIO ERROR] Stream setup failed: {e}")
 
-    def _render_modules(self, t: float):
+    def _render_patch(self, t: float, patch: ObliquePatch):
         """
         Render all modules in the patch and blend them together.
 
@@ -339,46 +339,12 @@ class ObliqueEngine:
         if self.ctx is None:
             raise RuntimeError("OpenGL context not initialized")
 
-        if len(self.patch.modules) == 0:
-            warning("No modules to render")
-            time.sleep(1/60) # Sleep for 1 frame
-            return
+        module = patch.tick(t)
 
         # Get framebuffer size to account for Retina display scaling
         fb_width, fb_height = self.ctx.screen.size
 
-        # Render each module to a texture
-        textures: List[moderngl.Texture] = []
-
-        for module in self.patch.modules:
-            tex = module.render_texture(self.ctx, fb_width, fb_height, t)
-            textures.append(tex)
-
-        final_tex = None
-
-        # if len(textures) == 0:
-        #     # warning("No textures to render")
-        #     # Create a black texture if no modules
-        #     tex = self.ctx.texture((fb_width, fb_height), 4, dtype="f1", alignment=1)
-        #     tex.filter = (moderngl.NEAREST, moderngl.NEAREST)
-        #     tex.repeat_x = False
-        #     tex.repeat_y = False
-        #     textures = [tex]
-
-        # Blend all textures in order (additive)
-        if len(textures) == 1:
-            final_tex = textures[0]
-        else:
-            final_tex = textures[0]
-            for tex in textures[1:]:
-                final_tex = blend_textures(
-                    self.ctx,
-                    fb_width,
-                    fb_height,
-                    final_tex,
-                    tex,
-                    self.additive_blend_shader,
-                )
+        final_tex = module.render_texture(self.ctx, fb_width, fb_height, t)
 
         # Display frame
         self._display_frame(final_tex, t)

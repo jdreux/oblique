@@ -41,8 +41,6 @@ class SpectralVisualizerModule(BaseAVModule[SpectralVisualizerParams]):
         band_levels_processor: Optional[FFTBands] = None,
     ):
         super().__init__(params)
-        self.width = self.params.width
-        self.height = self.params.height
         self.bands: List[float] = [0.0] * SHADER_BANDS_SIZE
         self.band_levels_processor = band_levels_processor
 
@@ -60,7 +58,7 @@ class SpectralVisualizerModule(BaseAVModule[SpectralVisualizerParams]):
             self.set_bands(list(processor_bands))
         uniforms: SpectralVisualizerUniforms = {
             "u_time": t,
-            "u_resolution": (self.width, self.height),
+            "u_resolution": (self.params.width, self.params.height),
             "u_bands": self.bands,
             "u_num_bands": self.params.num_bands,
         }
