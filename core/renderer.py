@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any
 import moderngl
 import numpy as np
 
-from core.logger import warning
+from core.logger import error, warning
 from core.shader_preprocessor import preprocess_shader
 
 if TYPE_CHECKING:
@@ -179,7 +179,8 @@ def render_to_texture(
         # Render the shader to the texture
         render_fullscreen_quad(_ctx, frag_shader_path, uniforms)
     except Exception as e:
-        warning(f"Error rendering to texture: {e}")
+        error(f"Error rendering to texture: {e}")
+        raise e
     finally:
         fbo.release()
 
