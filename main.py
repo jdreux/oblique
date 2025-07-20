@@ -7,6 +7,7 @@ from inputs.audio_device_input import AudioDeviceInput, print_audio_devices
 
 # --- Input imports ---
 from inputs.audio_file_input import AudioFileInput
+from projects.demo.shader_test import shader_test
 from projects.demo.demo_audio_file import audio_file_demo_patch
 from projects.demo.demo_syntakt import create_demo_syntakt
 
@@ -110,10 +111,12 @@ def main():
         return
 
     # Create the patch
-    if isinstance(audio_input, AudioDeviceInput) and audio_input.device_name.lower() == "syntakt":
-        patch = create_demo_syntakt(args.width, args.height, audio_input)
-    else:
-        patch = audio_file_demo_patch(args.width, args.height)
+    # if isinstance(audio_input, AudioDeviceInput) and audio_input.device_name.lower() == "syntakt":
+    #     patch = create_demo_syntakt(args.width, args.height, audio_input)
+    # else:
+    #     patch = audio_file_demo_patch(args.width, args.height)
+
+    patch = shader_test(args.width, args.height)
 
 
     # Create and run the engine
@@ -122,7 +125,7 @@ def main():
         width=args.width,
         height=args.height,
         title="Oblique MVP",
-        target_fps=args.fps*2, #Todo: remove this after testing
+        target_fps=args.fps,
         debug=args.debug,
         monitor=args.monitor,
     )

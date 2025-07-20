@@ -16,7 +16,6 @@ from modules.spectral_visualizer import (
     SpectralVisualizerModule,
     SpectralVisualizerParams,
 )
-from modules.test_include_module import TestIncludeModule, TestIncludeParams
 from modules.transform import TransformModule, TransformParams
 from modules.visual_noise import VisualNoiseModule, VisualNoiseParams
 from modules.level_module import LevelModule, LevelParams
@@ -89,13 +88,7 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
         level_module,
     )
 
-    test_include_module = TestIncludeModule(
-        TestIncludeParams(
-            width=width,
-            height=height,
-        ),
-        barrel_distortion_module,
-    )
+
 
     def tick_callback(t: float) -> BaseAVModule:
 
@@ -109,7 +102,7 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
 
         barrel_distortion_module.params.strength = (amplitude * 50)
 
-        return test_include_module
+        return barrel_distortion_module
 
     return ObliquePatch(
         audio_output=mix_LR,

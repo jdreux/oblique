@@ -1,4 +1,4 @@
-from typing import Callable, List
+from typing import Callable, List, Optional
 
 from inputs.base_input import BaseInput
 from modules.base_av_module import BaseAVModule
@@ -11,12 +11,13 @@ class ObliquePatch:
     """
 
     def __init__(self,
-        audio_output: BaseInput,
-        tick_callback: Callable[[float], BaseAVModule]) -> None:
+        tick_callback: Callable[[float], BaseAVModule],
+        audio_output: Optional[BaseInput] = None,
+    ) -> None:
         """
         Initialize an empty patch.
         """
-        self.audio_output: BaseInput = audio_output
+        self.audio_output: Optional[BaseInput] = audio_output
         self.tick_callback: Callable[[float], BaseAVModule] = tick_callback
 
     # def set_inputs(self, inputs: List[BaseInput]) -> None:

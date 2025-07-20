@@ -1,7 +1,6 @@
 #version 330
 /*
 Debug shader for Oblique
-Author: AI/Oblique
 Inputs:
   uniform float u_number; // Number to display
   uniform sampler2D u_font; // Font texture atlas (optional, for text rendering)
@@ -29,6 +28,17 @@ void main() {
     vec2 uv = v_uv;
     // Simple color: number modulates red, text not shown in MVP
     // fragColor = vec4(u_number, uv.x, uv.y, 1.0);
-    fragColor = vec4(gl_FragCoord.x / u_resolution.x, gl_FragCoord.y / u_resolution.y, u_number, 1.0);
-    // TODO: Text rendering can be added with a font atlas and SDF in future
+    // Render a simple grid of white squares on a black background for debug.
+    // Each square is 0.1 x 0.1 in UV space, spaced in a 5x5 grid.
+    vec2 grid = floor(v_uv * 5.0);
+    vec2 cell_uv = fract(v_uv * 5.0);
+
+    // Draw a filled square in each cell if inside 0.2 x 0.2 region
+    float square = step(0.2, cell_uv.x) * step(0.2, cell_uv.y); // 0 outside, 1 inside
+
+    // Color gradient based on UV coordinates (simple rainbow)
+    vec3 gradient_color = vec3(v_uv.x, v_uv.y, 1.0 - v_uv.x);
+
+    // Only show gradient inside the squares, black outside
+    fragColor = vec4(gradient_color * square, 1.0);
 } 
