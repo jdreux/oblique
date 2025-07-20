@@ -23,6 +23,7 @@ from processing.fft_bands import FFTBands
 from processing.normalized_amplitude import NormalizedAmplitudeOperator
 from processing.spectral_centroid import SpectralCentroid
 from processing.envelope import Envelope
+from modules.barrel_distortion import BarrelDistortionModule, BarrelDistortionParams
 
 
 def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) -> ObliquePatch:
@@ -78,6 +79,15 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
         grid_swap_module,
     )
 
+    barrel_distortion_module = BarrelDistortionModule(
+        BarrelDistortionParams(
+            width=width,
+            height=height,
+            strength=10,
+        ),
+        level_module,
+    )
+
     def tick_callback(t: float) -> BaseAVModule:
 
         amplitude: float = clap_amplitude.process()
@@ -88,7 +98,9 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
         grid_swap_module.params.grid_size = int(16 * bass_intensity*10)
         grid_swap_module.params.num_swaps = int(128 * bass_intensity*10)
 
-        return level_module
+        barrel_distortion_module.params.strength = (amplitude * 50)
+
+        return barrel_distortion_module
 
     return ObliquePatch(
         audio_output=mix_LR,
