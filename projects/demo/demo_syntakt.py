@@ -54,15 +54,21 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
     clap_counter: int = 0
 
     fft_bands_processor16 = FFTBands(mix_LR, num_bands=16)
+    fft_bands_processor512 = FFTBands(mix_LR, num_bands=512)
 
     circle_echo_module = CircleEcho(
         CircleEchoParams(width=width, height=height, n_circles=32),
         fft_bands_processor16,
     )
 
+    barcode_module = IkedaTinyBarcodeModule(
+        IkedaTinyBarcodeParams(width=width, height=height),
+        fft_bands_processor512,
+    )
+
     grid_swap_module = GridSwapModule(
         GridSwapModuleParams(width=width, height=height, grid_size=16, num_swaps=128),
-        circle_echo_module,
+        barcode_module,
     )
 
     level_module = LevelModule(
