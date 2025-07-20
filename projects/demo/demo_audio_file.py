@@ -93,4 +93,4 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
         return level_module
 
 
-    return ObliquePatch(audio_input=audio_input, tick_callback=_tick_callback)
+    return ObliquePatch(audio_output=audio_input, tick_callback=_tick_callback)

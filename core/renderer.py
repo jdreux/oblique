@@ -1,10 +1,11 @@
 
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import moderngl
 import numpy as np
 
-from core.logger import warning, debug
+from core.logger import warning
+from core.shader_preprocessor import preprocess_shader
 
 if TYPE_CHECKING:
     from modules.base_av_module import BaseAVModule
@@ -81,8 +82,8 @@ def render_fullscreen_quad(
         del _shader_cache[frag_shader_path]
 
     if frag_shader_path not in _shader_cache:
-        with open(frag_shader_path, "r") as f:
-            fragment_shader = f.read()
+        # Pre-process the shader to resolve includes
+        fragment_shader = preprocess_shader(frag_shader_path)
         vertex_shader = """
             #version 330
             in vec2 in_vert;
@@ -222,8 +223,8 @@ def blend_textures(
             del _shader_cache[blend_shader_path]
 
         if blend_shader_path not in _shader_cache:
-            with open(blend_shader_path, "r") as f:
-                fragment_shader = f.read()
+            # Pre-process the shader to resolve includes
+            fragment_shader = preprocess_shader(blend_shader_path)
             vertex_shader = """
                 #version 330
                 in vec2 in_vert;
