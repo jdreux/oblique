@@ -25,12 +25,12 @@ in vec2 v_uv;
 out vec4 fragColor;
 
 void main() {
-    // vec2 uv = gl_FragCoord.xy / u_resolution.xy;
     vec2 uv = v_uv;
-    // 
 
-    // Sample the current input and previous frame
+    // Sample the current input
     vec4 current = texture(u_input_texture, uv);
+    
+    // Sample the previous frame
     vec4 previous = texture(u_feedback_texture, uv);
 
     // Additive feedback blending

@@ -26,19 +26,26 @@ in vec2 v_uv;
 
 void main() {
     vec2 uv = v_uv;
-    // Simple color: number modulates red, text not shown in MVP
-    // fragColor = vec4(u_number, uv.x, uv.y, 1.0);
-    // Render a simple grid of white squares on a black background for debug.
-    // Each square is 0.1 x 0.1 in UV space, spaced in a 5x5 grid.
-    vec2 grid = floor(v_uv * 5.0);
-    vec2 cell_uv = fract(v_uv * 5.0);
 
-    // Draw a filled square in each cell if inside 0.2 x 0.2 region
-    float square = step(0.2, cell_uv.x) * step(0.2, cell_uv.y); // 0 outside, 1 inside
+    // Animate the grid over time using u_number as a time uniform (MVP: no u_time, so use u_number)
+    float t = u_number;
 
-    // Color gradient based on UV coordinates (simple rainbow)
-    vec3 gradient_color = vec3(v_uv.x, v_uv.y, 1.0 - v_uv.x);
+    // Animate grid position: make the grid "slide" diagonally over time
+    vec2 animated_uv = uv + vec2(sin(t * 0.5), cos(t * 0.5)) * 0.1;
+
+    // 5x5 grid
+    vec2 grid = floor(animated_uv * 5.0);
+    vec2 cell_uv = fract(animated_uv * 5.0);
+
+    // Animate the size of the squares with a pulsating effect
+    float pulse = 0.15 + 0.05 * sin(t * 2.0 + grid.x + grid.y);
+
+    // Draw a filled square in each cell if inside pulse x pulse region
+    float square = step(pulse, cell_uv.x) * step(pulse, cell_uv.y);
+
+    // Color gradient based on animated UV coordinates (simple rainbow)
+    vec3 gradient_color = vec3(animated_uv.x, animated_uv.y, 1.0 - animated_uv.x);
 
     // Only show gradient inside the squares, black outside
     fragColor = vec4(gradient_color * square, 1.0);
-} 
+}

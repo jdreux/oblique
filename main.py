@@ -116,7 +116,7 @@ def main():
     # else:
     #     patch = audio_file_demo_patch(args.width, args.height)
 
-    patch = shader_test(args.width, args.height)
+    patch = audio_file_demo_patch(args.width, args.height)
 
 
     # Create and run the engine

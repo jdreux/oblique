@@ -6,7 +6,7 @@ from modules.base_av_module import P, BaseAVModule
 # --- Module imports ---
 from modules.circle_echo import CircleEcho, CircleEchoParams
 from modules.debug import DebugModule, DebugParams
-from modules.feedback import Feedback, FeedbackParams
+from modules.feedback import FeedbackModule, FeedbackParams
 from modules.grid_swap_module import GridSwapModule, GridSwapModuleParams
 from modules.ikeda_tiny_barcode import IkedaTinyBarcodeModule, IkedaTinyBarcodeParams
 from modules.mesh_shroud import MeshShroudModule, MeshShroudParams

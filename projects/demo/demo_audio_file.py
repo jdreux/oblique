@@ -3,6 +3,7 @@ from core.oblique_patch import ObliquePatch
 from inputs.audio_file_input import AudioFileInput
 from modules.base_av_module import BaseAVModule
 from modules.circle_echo import CircleEcho, CircleEchoParams
+from modules.feedback import FeedbackModule, FeedbackParams
 from modules.grid_swap_module import GridSwapModule, GridSwapModuleParams
 from modules.ikeda_tiny_barcode import IkedaTinyBarcodeModule, IkedaTinyBarcodeParams
 from modules.level_module import LevelModule, LevelParams
@@ -64,14 +65,23 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
             swap_phase=0.0,
             num_swaps=128,
         ),
-        module=ryoji_lines_module,
+        module=circle_echo_module,
     )
 
     level_module = LevelModule(
         LevelParams(
-            invert=True,
+            invert=False,
         ),
         grid_swap_module,
+    )
+
+    feedback_module = FeedbackModule(
+        FeedbackParams(
+            width=width,
+            height=height,
+            feedback_strength=0.95,
+        ),
+        circle_echo_module,
     )
 
 
@@ -86,11 +96,11 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
         grid_swap_module.params.grid_size = int(16 * amplitude)
         grid_swap_module.params.num_swaps = int(128 * amplitude)
 
-        level_module.params.invert = t % 4 < 2
+        # level_module.params.invert = t % 4 < 2
 
         print(f"Grid size: {grid_swap_module.params.grid_size}, Num swaps: {grid_swap_module.params.num_swaps}")
 
-        return level_module
+        return feedback_module
 
 
     return ObliquePatch(audio_output=audio_input, tick_callback=_tick_callback)
