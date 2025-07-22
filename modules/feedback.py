@@ -17,7 +17,7 @@ class FeedbackParams(BaseAVParams):
 class FeedbackUniforms(Uniforms, total=True):
     u_time: float
     u_resolution: tuple[int, int]
-    u_feedback_strength: float§
+    u_feedback_strength: float
     u_feedback_texture: moderngl.Texture | None
     u_input_texture: moderngl.Texture | None
 
