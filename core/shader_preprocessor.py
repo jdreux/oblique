@@ -51,7 +51,16 @@ class ShaderPreprocessor:
         self._processed_files.clear()
         self._include_stack.clear()
 
-        return self._process_file(shader_path)
+        result = self._process_file(shader_path)
+
+        # Debug: Print the final resolved shader content
+        print("=" * 80)
+        print(f"FINAL RESOLVED SHADER: {shader_path}")
+        print("=" * 80)
+        print(result)
+        print("=" * 80)
+
+        return result
 
     def _process_file(self, file_path: str) -> str:
         """
@@ -98,12 +107,16 @@ class ShaderPreprocessor:
         Returns:
             Content with includes resolved
         """
-        # Pattern to match #include directives
-        include_pattern = r'#include\s+["<]([^">]+)[">]'
+        # Pattern to match #include directives (including optional trailing semicolon)
+        include_pattern = r'#include\s+["<]([^">]+)[">]\s*;?'
 
         def replace_include(match: re.Match) -> str:
             include_path = match.group(1)
-            return self._resolve_include(include_path, base_dir)
+            print(f"DEBUG: Including file: {include_path}")
+            included_content = self._resolve_include(include_path, base_dir)
+            print(f"DEBUG: Included content length: {len(included_content)} characters")
+            # Add a newline after each include to prevent syntax errors
+            return included_content + '\n'
 
         return re.sub(include_pattern, replace_include, content)
 

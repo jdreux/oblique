@@ -8,6 +8,7 @@ from modules.feedback import FeedbackModule, FeedbackParams
 from modules.grid_swap_module import GridSwapModule, GridSwapModuleParams
 from modules.ikeda_tiny_barcode import IkedaTinyBarcodeModule, IkedaTinyBarcodeParams
 from modules.level_module import LevelModule, LevelParams
+from modules.pauric_squares_module import PauricSquaresModule, PauricSquaresParams
 from modules.ryoji_lines import RyojiLines, RyojiLinesParams
 from modules.spectral_visualizer import SpectralVisualizerModule, SpectralVisualizerParams
 from modules.transform import TransformModule, TransformParams
@@ -70,11 +71,20 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
         module=circle_echo_module,
     )
 
+    # normalized_amplitude_processor = NormalizedAmplitudeOperator(audio_input)
+
     level_module = LevelModule(
         LevelParams(
             parent_module=grid_swap_module,
             invert=False,
         ),
+    )
+
+    pauric_squares_module = PauricSquaresModule(
+        PauricSquaresParams(
+            width=width,
+            height=height,
+        )
     )
 
     transform_module = TransformModule(
@@ -85,18 +95,21 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
             # translate=(0.0, 0.0),
             transform_order="SRT",
         ),
-        upstream_module=circle_echo_module,
+        upstream_module=pauric_squares_module,
     )
+
+   
 
     feedback_module = FeedbackModule(
         FeedbackParams(
             width=width,
             height=height,
-            feedback_strength=0.7,
+            feedback_strength=0.99
         ),
-        ryoji_lines_module,
+        transform_module,
     )
 
+ 
 
     normalized_amplitude_processor = NormalizedAmplitudeOperator(audio_input)
 
@@ -111,8 +124,9 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
 
         #slide content vertically over time
         transform_module.params.translate = (math.sin(t * 2.0)*0.1, 0.0)
-        feedback_module.params.direction = (0.0, -0.01)
-        # level_module.params.invert = t % 4 < 2
+        feedback_module.params.direction = (0.0, -0.001)
+        pauric_squares_module.params.tile_size = int(2 + 8000 * amplitude)
+        # level_module.params.invert = t % 4 < 
 
         print(f"Grid size: {grid_swap_module.params.grid_size}, Num swaps: {grid_swap_module.params.num_swaps}")
 
