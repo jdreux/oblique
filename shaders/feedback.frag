@@ -20,6 +20,7 @@ uniform vec2 u_resolution;
 uniform float u_feedback_strength;
 uniform sampler2D u_feedback_texture;
 uniform sampler2D u_input_texture;
+uniform vec2 u_direction;
 
 in vec2 v_uv;
 out vec4 fragColor;
@@ -29,9 +30,12 @@ void main() {
 
     // Sample the current input
     vec4 current = texture(u_input_texture, uv);
+
+    // Apply direction
+    // uv += u_direction * u_time;
     
     // Sample the previous frame
-    vec4 previous = texture(u_feedback_texture, uv);
+    vec4 previous = texture(u_feedback_texture, uv-u_direction);
 
     // Additive feedback blending
     vec4 result = current + previous * u_feedback_strength;

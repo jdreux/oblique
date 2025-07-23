@@ -12,7 +12,7 @@ class FeedbackParams(BaseAVParams):
 
     feedback_strength: float = 0.97     # How much previous frame to blend. Decay rate per second is
                                         # feedback_strength^frame_rate so it decays very quickly.
-
+    direction: tuple[float, float] = (0,0) # direction of the feedback effect -- 0,0 is in place
 
 class FeedbackUniforms(Uniforms, total=True):
     u_time: float
@@ -20,6 +20,7 @@ class FeedbackUniforms(Uniforms, total=True):
     u_feedback_strength: float
     u_feedback_texture: moderngl.Texture | None
     u_input_texture: moderngl.Texture | None
+    u_direction: tuple[float, float]
 
 
 class FeedbackModule(BaseAVModule[FeedbackParams]):
@@ -65,6 +66,10 @@ class FeedbackModule(BaseAVModule[FeedbackParams]):
             self._cached_fbo.release()
             self._cached_fbo = None
 
+        if self.previous_frame is not None:
+            self.previous_frame.release()
+            self.previous_frame = None
+
 
     def render_data(self, t: float) -> RenderData:
         """
@@ -76,6 +81,7 @@ class FeedbackModule(BaseAVModule[FeedbackParams]):
             "u_feedback_strength": self.params.feedback_strength,
             "u_feedback_texture": self.previous_frame if self.previous_frame else None,
             "u_input_texture": self.upstream_tex if self.upstream_tex else None,
+            "u_direction": self.params.direction,
         }
 
         return RenderData(

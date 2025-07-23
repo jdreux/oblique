@@ -1,3 +1,4 @@
+import math
 
 from core.oblique_patch import ObliquePatch
 from inputs.audio_file_input import AudioFileInput
@@ -9,6 +10,7 @@ from modules.ikeda_tiny_barcode import IkedaTinyBarcodeModule, IkedaTinyBarcodeP
 from modules.level_module import LevelModule, LevelParams
 from modules.ryoji_lines import RyojiLines, RyojiLinesParams
 from modules.spectral_visualizer import SpectralVisualizerModule, SpectralVisualizerParams
+from modules.transform import TransformModule, TransformParams
 from processing.fft_bands import FFTBands
 from processing.normalized_amplitude import NormalizedAmplitudeOperator
 from processing.spectral_centroid import SpectralCentroid
@@ -75,13 +77,24 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
         ),
     )
 
+    transform_module = TransformModule(
+        TransformParams(
+            # scale=(1.0, 1.0),
+            # angle=0.0,
+            # pivot=(0.5, 0.5),
+            # translate=(0.0, 0.0),
+            transform_order="SRT",
+        ),
+        upstream_module=circle_echo_module,
+    )
+
     feedback_module = FeedbackModule(
         FeedbackParams(
             width=width,
             height=height,
-            feedback_strength=0.95,
+            feedback_strength=0.7,
         ),
-        circle_echo_module,
+        ryoji_lines_module,
     )
 
 
@@ -96,6 +109,9 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
         grid_swap_module.params.grid_size = int(16 * amplitude)
         grid_swap_module.params.num_swaps = int(128 * amplitude)
 
+        #slide content vertically over time
+        transform_module.params.translate = (math.sin(t * 2.0)*0.1, 0.0)
+        feedback_module.params.direction = (0.0, -0.01)
         # level_module.params.invert = t % 4 < 2
 
         print(f"Grid size: {grid_swap_module.params.grid_size}, Num swaps: {grid_swap_module.params.num_swaps}")
