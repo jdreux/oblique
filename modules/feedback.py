@@ -1,9 +1,9 @@
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Optional
 
 import moderngl
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
 
 
 @dataclass
@@ -66,7 +66,7 @@ class FeedbackModule(BaseAVModule[FeedbackParams]):
             self._cached_fbo = None
 
 
-    def render_data(self, t: float) -> dict[str, Any]:
+    def render_data(self, t: float) -> RenderData:
         """
         Return the data needed for the renderer to render this module.
         """
@@ -78,10 +78,10 @@ class FeedbackModule(BaseAVModule[FeedbackParams]):
             "u_input_texture": self.upstream_tex if self.upstream_tex else None,
         }
 
-        return {
-            "frag_shader_path": self.frag_shader_path,
-            "uniforms": uniforms,
-        }
+        return RenderData(
+            frag_shader_path=self.frag_shader_path,
+            uniforms=uniforms,
+        )
 
     def copy_texture_to_previous_frame(self, ctx: moderngl.Context,
         width: int, height: int, texture: moderngl.Texture) -> None:

@@ -1,17 +1,18 @@
 from dataclasses import dataclass
-from typing import Any, Tuple
+from typing import Tuple
 
 import moderngl
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
 
 
-@dataclass
+@dataclass(kw_only=True)
 class LevelParams(BaseAVParams):
     """
     Parameters for the Level module.
     
     Attributes:
+        parent_module (BaseAVModule): Parent module providing the input texture.
         invert (bool): Invert colors (black↔white, red↔cyan, etc.)
         black_level (float): Clamp pixels with luminance <= this value to black (0.0-1.0)
         brightness (float): Add/subtract offset to RGB channels (-1.0 to 1.0)
@@ -19,6 +20,7 @@ class LevelParams(BaseAVParams):
         contrast (float): Scale factor for RGB channels around mid-gray (0.5-2.0 typical)
         opacity (float): Alpha channel adjustment (0.0-1.0)
     """
+    parent_module: BaseAVModule
     # Pre-processing operations
     invert: bool = False
     black_level: float = 0.0  # Any pixel <= this becomes black
@@ -28,6 +30,7 @@ class LevelParams(BaseAVParams):
 
     # Post-processing
     opacity: float = 1.0  # Alpha channel adjustment (0.0 to 1.0)
+    
 
 
 class LevelUniforms(Uniforms, total=True):
@@ -73,7 +76,7 @@ class LevelModule(BaseAVModule[LevelParams]):
     }
     frag_shader_path: str = "shaders/level-module.frag"
 
-    def __init__(self, params: LevelParams, parent_module: BaseAVModule):
+    def __init__(self, params: LevelParams):
         """
         Initialize Level module.
 
@@ -81,12 +84,9 @@ class LevelModule(BaseAVModule[LevelParams]):
             params (LevelParams): Parameters for the level adjustments
             parent_module (BaseAVModule): Parent module to apply level adjustments to
         """
-        super().__init__(params, parent_module)
-        self.width = self.params.width
-        self.height = self.params.height
-        self.parent_module = parent_module
-
-    def render_data(self, t: float) -> dict[str, Any]:
+        super().__init__(params)
+        
+    def render_data(self, t: float) -> RenderData:
         """
         Return shader data with level adjustment uniforms.
 
@@ -98,7 +98,7 @@ class LevelModule(BaseAVModule[LevelParams]):
         """
         uniforms: LevelUniforms = {
             "u_time": t,
-            "u_resolution": (self.width, self.height),
+            "u_resolution": (self.params.width, self.params.height),
             "u_texture": self.parent_tex,
             "u_invert": 1.0 if self.params.invert else 0.0,
             "u_black_level": self.params.black_level,
@@ -108,10 +108,10 @@ class LevelModule(BaseAVModule[LevelParams]):
             "u_opacity": self.params.opacity,
         }
 
-        return {
-            "frag_shader_path": self.frag_shader_path,
-            "uniforms": uniforms,
-        }
+        return RenderData(
+            frag_shader_path=self.frag_shader_path,
+            uniforms=uniforms,
+        )
 
     def render_texture(
         self,
@@ -126,7 +126,7 @@ class LevelModule(BaseAVModule[LevelParams]):
         then applying the level adjustments using that texture as input.
         """
         # Render parent module to texture
-        self.parent_tex = self.parent_module.render_texture(ctx, width, height, t, filter)
+        self.parent_tex = self.params.parent_module.render_texture(ctx, width, height, t, filter)
 
         # Render the level adjustments
         return super().render_texture(ctx, width, height, t, filter)

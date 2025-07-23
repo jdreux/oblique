@@ -1,9 +1,8 @@
 from dataclasses import dataclass
-from typing import Any
 
 from processing.fft_bands import FFTBands
 
-from .base_av_module import BaseAVModule, BaseAVParams
+from .base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
 
 
 @dataclass
@@ -17,6 +16,16 @@ class IkedaTinyBarcodeParams(BaseAVParams):
     threshold: float = 0.1
     width: int = 800
     height: int = 600
+
+
+class IkedaTinyBarcodeUniforms(Uniforms, total=True):
+    u_resolution: tuple[int, int]
+    u_time: float
+    u_pattern_intensity: float
+    u_barcode_width: float
+    u_noise_scale: float
+    u_threshold: float
+    u_fft_bands: list[float]
 
 
 class IkedaTinyBarcodeModule(BaseAVModule[IkedaTinyBarcodeParams]):
@@ -48,7 +57,7 @@ class IkedaTinyBarcodeModule(BaseAVModule[IkedaTinyBarcodeParams]):
         super().__init__(params)
         self.fft_bands_processor = fft_bands_processor
 
-    def render_data(self, t: float) -> dict[str, Any]:
+    def render_data(self, t: float) -> RenderData:
         """
         Return shader path and uniforms for rendering.
 
@@ -58,17 +67,17 @@ class IkedaTinyBarcodeModule(BaseAVModule[IkedaTinyBarcodeParams]):
         Returns:
             dict[str, Any]: Shader data and uniforms
         """
-        uniforms = {
+        uniforms: IkedaTinyBarcodeUniforms = {
             "u_resolution": (self.params.width, self.params.height),
             "u_time": t * self.params.speed_scale,
             "u_pattern_intensity": self.params.pattern_intensity,
             "u_barcode_width": self.params.barcode_width,
             "u_noise_scale": self.params.noise_scale,
             "u_threshold": self.params.threshold,
+            "u_fft_bands": list(self.fft_bands_processor.process()),
         }
 
-        # Add FFT bands
-        bands = self.fft_bands_processor.process()
-        uniforms["u_fft_bands"] = bands
-
-        return {"frag_shader_path": self.frag_shader_path, "uniforms": uniforms}
+        return RenderData(
+            frag_shader_path=self.frag_shader_path,
+            uniforms=uniforms,
+        )

@@ -70,9 +70,9 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
 
     level_module = LevelModule(
         LevelParams(
+            parent_module=grid_swap_module,
             invert=False,
         ),
-        grid_swap_module,
     )
 
     feedback_module = FeedbackModule(

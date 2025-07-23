@@ -22,6 +22,11 @@ class Uniforms(TypedDict, total=True):
 P = TypeVar("P", bound="BaseAVParams")
 
 
+class RenderData(TypedDict):
+    frag_shader_path: str
+    uniforms: Uniforms
+
+
 class BaseAVModule(ObliqueNode, Generic[P]):
     """
     Base class for all AV modules. Defines the required interface for AV modules.
@@ -67,7 +72,7 @@ class BaseAVModule(ObliqueNode, Generic[P]):
         if parent:
             self.add_parent(parent)
 
-    def render_data(self, t: float) -> dict[str, Any]:
+    def render_data(self, t: float) -> RenderData:
         """
         Return the data needed for the renderer to render this module.
 
@@ -75,9 +80,9 @@ class BaseAVModule(ObliqueNode, Generic[P]):
             t (float): Current time or frame time.
 
         Returns:
-            dict[str, Any]: Dictionary with at least 'frag_shader_path' and 'uniforms'.
+            RenderData: Dictionary with 'frag_shader_path' (str) and 'uniforms' (Uniforms TypedDict).
         """
-        raise NotImplementedError("Subclasses must implement the render_data() method.")
+        raise NotImplementedError("Subclasses must implement the render_data() method returning a RenderData dict.")
 
     def render_texture(
         self,
@@ -101,11 +106,13 @@ class BaseAVModule(ObliqueNode, Generic[P]):
             moderngl.Texture: The rendered texture for this module
         """
         render_data = self.render_data(t)
+        # Uniforms is a TypedDict, but render_to_texture expects dict[str, Any].
+        # This cast is safe because TypedDict is a dict at runtime.
         return render_to_texture(
             self,
             width,
             height,
             render_data["frag_shader_path"],
-            render_data["uniforms"],
+            dict(render_data["uniforms"]),  # type: ignore
             filter,
         )

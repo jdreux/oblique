@@ -1,10 +1,9 @@
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Literal
 
-from core.logger import debug, info
 from processing.base_processing_operator import BaseProcessingOperator
 
-from .base_av_module import BaseAVModule, BaseAVParams
+from .base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
 
 
 @dataclass
@@ -17,6 +16,14 @@ class VisualNoiseParams(BaseAVParams):
     speed: float = 1.0
     width: int = 800
     height: int = 600
+
+class VisualNoiseUniforms(Uniforms, total=True):
+    u_resolution: tuple[int, int]
+    u_time: float
+    u_noise_scale: float
+    u_intensity: float
+    u_color_mode: float
+    u_speed: float
 
 
 class VisualNoiseModule(BaseAVModule[VisualNoiseParams]):
@@ -50,7 +57,7 @@ class VisualNoiseModule(BaseAVModule[VisualNoiseParams]):
         super().__init__(params, parent)
         self.parent = parent
 
-    def render_data(self, t: float) -> dict[str, Any]:
+    def render_data(self, t: float) -> RenderData:
         """
         Return shader path and uniforms for rendering.
 
@@ -66,31 +73,14 @@ class VisualNoiseModule(BaseAVModule[VisualNoiseParams]):
         # Map color mode to shader flag
         color_mode_flag = 1.0 if self.params.color_mode == "rgba" else 0.0
 
-        return {
-            "frag_shader_path": self.frag_shader_path,
-            "uniforms": {
-                "u_resolution": (self.params.width, self.params.height),
-                "u_time": t,
-                "u_noise_scale": size_scale[self.params.noise_size],
-                "u_intensity": self.params.intensity,
-                "u_color_mode": color_mode_flag,
-                "u_speed": self.params.speed,
-            },
-        }
-
-
-if __name__ == "__main__":
-    # Test the module
-    params = VisualNoiseParams(
-        noise_size="medium",
-        color_mode="rgba",
-        intensity=0.8,
-        speed=2.0,
-        width=800,
-        height=600,
-    )
-
-    noise_module = VisualNoiseModule(params)
-    info("Visual Noise Module created successfully!")
-    debug(f"Parameters: {params}")
-    debug("Initial render data:", noise_module.render_data(0.0))
+        return RenderData(
+            frag_shader_path=self.frag_shader_path,
+            uniforms=VisualNoiseUniforms(
+                u_resolution=(self.params.width, self.params.height),
+                u_time=t,
+                u_noise_scale=size_scale[self.params.noise_size],
+                u_intensity=self.params.intensity,
+                u_color_mode=color_mode_flag,
+                u_speed=self.params.speed,
+            ),
+        )

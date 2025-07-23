@@ -8,7 +8,7 @@ from core.logger import error, warning
 from core.shader_preprocessor import preprocess_shader
 
 if TYPE_CHECKING:
-    from modules.base_av_module import BaseAVModule
+    from modules.base_av_module import BaseAVModule, Uniforms
 
 _shader_cache = {}
 _texture_cache = {}
@@ -147,7 +147,7 @@ def render_to_texture(
     width: int,
     height: int,
     frag_shader_path: str,
-    uniforms: dict[str, Any],
+    uniforms: "Uniforms",
     filter=moderngl.NEAREST,
 ) -> moderngl.Texture:
     """
@@ -177,7 +177,7 @@ def render_to_texture(
         _ctx.clear(0.0, 0.0, 0.0, 1.0)
 
         # Render the shader to the texture
-        render_fullscreen_quad(_ctx, frag_shader_path, uniforms)
+        render_fullscreen_quad(_ctx, frag_shader_path, dict(uniforms))
     except Exception as e:
         error(f"Error rendering to texture: {e}")
         raise e

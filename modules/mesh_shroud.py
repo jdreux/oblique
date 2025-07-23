@@ -1,6 +1,6 @@
-from typing import Any, Tuple
+from typing import Tuple
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
 from processing.fft_bands import FFTBands
 from processing.normalized_amplitude import NormalizedAmplitudeOperator
 
@@ -40,12 +40,14 @@ class MeshShroudModule(BaseAVModule[MeshShroudParams]):
         self.amplitude_processor = amplitude_processor
 
 
-    def render_data(self, t: float) -> dict[str, Any]:
+    def render_data(self, t: float) -> RenderData:
         uniforms: MeshShroudUniforms = {
             "u_time": t,
             "u_resolution": (self.params.width, self.params.height),
             "u_fft_bands": tuple(self.band_levels_processor.process()),
             "u_amp": self.amplitude_processor.process()
         }
-        return {"frag_shader_path": self.frag_shader_path,
-                "uniforms": uniforms}
+        return RenderData(
+            frag_shader_path=self.frag_shader_path,
+            uniforms=uniforms,
+        )

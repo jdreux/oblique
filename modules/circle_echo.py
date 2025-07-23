@@ -1,7 +1,7 @@
 from dataclasses import dataclass
-from typing import Any, Tuple
+from typing import Tuple
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
 from processing.fft_bands import FFTBands
 
 
@@ -45,7 +45,7 @@ class CircleEcho(BaseAVModule[CircleEchoParams]):
         super().__init__(params)
         self.band_levels_processor = band_levels_processor
 
-    def render_data(self, t: float) -> dict[str, Any]:
+    def render_data(self, t: float) -> RenderData:
         uniforms: CircleEchoUniforms = {
             "u_time": t,
             "u_resolution": (self.params.width, self.params.height),
@@ -54,7 +54,7 @@ class CircleEcho(BaseAVModule[CircleEchoParams]):
             "u_audio_level": self.params.audio_level,
             "u_band_amps": tuple(self.band_levels_processor.process())
         }
-        return {
-            "frag_shader_path": self.frag_shader_path,
-            "uniforms": uniforms,
-        }
+        return RenderData(
+            frag_shader_path=self.frag_shader_path,
+            uniforms=uniforms,
+        )

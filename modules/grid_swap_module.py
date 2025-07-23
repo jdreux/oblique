@@ -1,9 +1,9 @@
 from dataclasses import dataclass
-from typing import Any, Tuple
+from typing import Tuple
 
 import moderngl
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
 
 
 @dataclass
@@ -47,7 +47,7 @@ class GridSwapModule(BaseAVModule[GridSwapModuleParams]):
         super().__init__(params)
         self.upstream_module = module
 
-    def render_data(self, t: float) -> dict[str, Any]:
+    def render_data(self, t: float) -> RenderData:
         """
         Return the data needed for the renderer to render this module.
         """
@@ -60,10 +60,10 @@ class GridSwapModule(BaseAVModule[GridSwapModuleParams]):
             "u_num_swaps": self.params.num_swaps,
             "tex0": self.upstream_tex,
         }
-        return {
-            "frag_shader_path": self.frag_shader_path,
-            "uniforms": uniforms,
-        }
+        return RenderData(
+            frag_shader_path=self.frag_shader_path,
+            uniforms=uniforms,
+        )
 
     def render_texture(
         self,

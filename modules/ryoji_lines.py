@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any, List, Optional, Tuple
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
 from processing.fft_bands import FFTBands
 from processing.spectral_centroid import SpectralCentroid
 
@@ -54,7 +54,7 @@ class RyojiLines(BaseAVModule[RyojiLinesParams]):
         self.band_levels_processor = band_levels_processor
         self.spectral_centroid_processor = spectral_centroid_processor
 
-    def render_data(self, t: float) -> dict[str, Any]:
+    def render_data(self, t: float) -> RenderData:
         """
         Return the data needed for the renderer to render this module.
         """
@@ -80,7 +80,7 @@ class RyojiLines(BaseAVModule[RyojiLinesParams]):
             ),  # Use actual number of bands (up to 512)
             "u_spectral_brightness": spectral_brightness,
         }
-        return {
-            "frag_shader_path": self.frag_shader_path,
-            "uniforms": uniforms,
-        }
+        return RenderData(
+            frag_shader_path=self.frag_shader_path,
+            uniforms=uniforms,
+        )

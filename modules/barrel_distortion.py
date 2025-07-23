@@ -1,9 +1,8 @@
 from dataclasses import dataclass
-from typing import Any
 
 import moderngl
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
 
 
 @dataclass
@@ -48,7 +47,7 @@ class BarrelDistortionModule(BaseAVModule[BarrelDistortionParams]):
         super().__init__(params, parent_module)
         self.parent_module = parent_module
 
-    def render_data(self, t: float) -> dict[str, Any]:
+    def render_data(self, t: float) -> RenderData:
         """
         Return shader data with distortion parameters.
 
@@ -66,10 +65,10 @@ class BarrelDistortionModule(BaseAVModule[BarrelDistortionParams]):
             "u_texture": self.parent_tex,
         }
 
-        return {
-            "frag_shader_path": self.frag_shader_path,
-            "uniforms": uniforms,
-        }
+        return RenderData(
+            frag_shader_path=self.frag_shader_path,
+            uniforms=uniforms,
+        )
 
     def render_texture(
         self,
@@ -91,11 +90,11 @@ class BarrelDistortionModule(BaseAVModule[BarrelDistortionParams]):
 if __name__ == "__main__":
     # Test the barrel distortion module
     from modules.debug import DebugModule, DebugParams
-    
+
     # Create a debug module as parent
     debug_params = DebugParams(width=800, height=600)
     debug_module = DebugModule(debug_params)
-    
+
     # Create barrel distortion module
     barrel_params = BarrelDistortionParams(
         width=800,
@@ -103,9 +102,9 @@ if __name__ == "__main__":
         strength=0.2,  # Barrel distortion
         center=(0.5, 0.5),
     )
-    
+
     barrel_module = BarrelDistortionModule(barrel_params, debug_module)
-    
+
     print("Barrel Distortion Module created successfully!")
     print(f"Parameters: {barrel_params}")
-    print(f"Metadata: {barrel_module.metadata}") 
+    print(f"Metadata: {barrel_module.metadata}")

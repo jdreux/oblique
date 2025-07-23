@@ -1,29 +1,16 @@
 from core.oblique_patch import ObliquePatch
 from inputs.audio_device_input import AudioDeviceInput
-from core.logger import debug
-from modules.base_av_module import P, BaseAVModule
+from modules.barrel_distortion import BarrelDistortionModule, BarrelDistortionParams
+from modules.base_av_module import BaseAVModule
 
 # --- Module imports ---
 from modules.circle_echo import CircleEcho, CircleEchoParams
-from modules.debug import DebugModule, DebugParams
-from modules.feedback import FeedbackModule, FeedbackParams
 from modules.grid_swap_module import GridSwapModule, GridSwapModuleParams
 from modules.ikeda_tiny_barcode import IkedaTinyBarcodeModule, IkedaTinyBarcodeParams
-from modules.mesh_shroud import MeshShroudModule, MeshShroudParams
-from modules.ryoji_lines import RyojiLines, RyojiLinesParams
-from modules.shader_toy_tester import ShaderToyTesterModule
-from modules.spectral_visualizer import (
-    SpectralVisualizerModule,
-    SpectralVisualizerParams,
-)
-from modules.transform import TransformModule, TransformParams
-from modules.visual_noise import VisualNoiseModule, VisualNoiseParams
 from modules.level_module import LevelModule, LevelParams
+from processing.envelope import Envelope
 from processing.fft_bands import FFTBands
 from processing.normalized_amplitude import NormalizedAmplitudeOperator
-from processing.spectral_centroid import SpectralCentroid
-from processing.envelope import Envelope
-from modules.barrel_distortion import BarrelDistortionModule, BarrelDistortionParams
 
 
 def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) -> ObliquePatch:
@@ -74,9 +61,9 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
 
     level_module = LevelModule(
         LevelParams(
+            parent_module=grid_swap_module,
             invert=False,
         ),
-        grid_swap_module,
     )
 
     barrel_distortion_module = BarrelDistortionModule(

@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from typing import Any, Tuple
+from typing import Tuple
 
 import moderngl
 import numpy as np
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
 
 
 @dataclass
@@ -127,7 +127,7 @@ class TransformModule(BaseAVModule[TransformParams]):
 
         return matrix
 
-    def render_data(self, t: float) -> dict[str, Any]:
+    def render_data(self, t: float) -> RenderData:
         """
         Return shader data with transformation matrix.
 
@@ -150,10 +150,10 @@ class TransformModule(BaseAVModule[TransformParams]):
             "u_texture": self.upstream_tex,
         }
 
-        return {
-            "frag_shader_path": self.frag_shader_path,
-            "uniforms": uniforms,
-        }
+        return RenderData(
+            frag_shader_path=self.frag_shader_path,
+            uniforms=uniforms,
+        )
 
     def render_texture(
         self,

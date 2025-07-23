@@ -1,9 +1,8 @@
 from dataclasses import dataclass
-from typing import Any
 
 import moderngl
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
 
 
 @dataclass
@@ -46,7 +45,7 @@ class BlurModule(BaseAVModule[BlurParams]):
         # Upstream module for input texture
         self.upstream_module = upstream_module
 
-    def render_data(self, t: float) -> dict[str, Any]:
+    def render_data(self, t: float) -> RenderData:
         """
         Return the data needed for the renderer to render this module.
         """
@@ -58,10 +57,10 @@ class BlurModule(BaseAVModule[BlurParams]):
             "u_input_texture": self.upstream_tex,  # Will be set in render_texture
         }
 
-        return {
-            "frag_shader_path": self.frag_shader_path,
-            "uniforms": uniforms,
-        }
+        return RenderData(
+            frag_shader_path=self.frag_shader_path,
+            uniforms=uniforms,
+        )
 
     def render_texture(
         self,
