@@ -32,8 +32,8 @@ class CompositeOp(int, Enum):
     HARDMIX = 21
     DARKEN = 22
     LIGHTEN = 23
-    PASSTHROUGH_LEFT = 24
-    PASSTHROUGH_RIGHT = 25
+    PASSTHROUGH_TOP = 24
+    PASSTHROUGH_BOTTOM = 25
     ATOP = 26
 
 @dataclass
@@ -51,8 +51,8 @@ class CompositeParams(BaseAVParams):
 
 class CompositeUniforms(Uniforms, total=True):
     u_resolution: Tuple[int, int]
-    tex0: moderngl.Texture
-    tex1: moderngl.Texture
+    top_tex: moderngl.Texture
+    bottom_tex: moderngl.Texture
     u_op: int
 
 class CompositeModule(BaseAVModule[CompositeParams]):
@@ -67,19 +67,19 @@ class CompositeModule(BaseAVModule[CompositeParams]):
     }
     frag_shader_path: str = "shaders/composite.frag"
 
-    def __init__(self, params: CompositeParams, module0: BaseAVModule, module1: BaseAVModule):
+    def __init__(self, params: CompositeParams, top_module: BaseAVModule, bottom_module: BaseAVModule):
         super().__init__(params)
-        self.module0 = module0
-        self.module1 = module1
+        self.top_module = top_module
+        self.bottom_module = bottom_module
         self.width = self.params.width
         self.height = self.params.height
 
     def render_data(self, t: float) -> RenderData:
         uniforms: CompositeUniforms = {
             "u_resolution": (self.width, self.height),
-            "tex0": self.tex0,
-            "tex1": self.tex1,
-            "u_op": self.params.operation.value,
+            "top_tex": self.top_tex,
+            "bottom_tex": self.bottom_tex,
+            "u_op": int(self.params.operation),
         }
         return RenderData(
             frag_shader_path=self.frag_shader_path,
@@ -94,8 +94,8 @@ class CompositeModule(BaseAVModule[CompositeParams]):
         t: float,
         filter=moderngl.NEAREST,
     ) -> moderngl.Texture:
-        self.tex0 = self.module0.render_texture(ctx, width, height, t)
-        self.tex1 = self.module1.render_texture(ctx, width, height, t)
+        self.top_tex = self.top_module.render_texture(ctx, width, height, t)
+        self.bottom_tex = self.bottom_module.render_texture(ctx, width, height, t)
         return super().render_texture(ctx, width, height, t)
 
 if __name__ == "__main__":
