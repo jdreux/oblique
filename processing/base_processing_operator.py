@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Generic, TypeVar
+
 from core.oblique_node import ObliqueNode
 
+T = TypeVar("T")
 
-class BaseProcessingOperator(ObliqueNode, ABC):
+class BaseProcessingOperator(ObliqueNode, ABC, Generic[T]):
     """
     Abstract base class for all processing operators in Oblique.
     Defines the interface for feature extraction, normalization, and event detection modules.
@@ -19,7 +21,7 @@ class BaseProcessingOperator(ObliqueNode, ABC):
             self.add_parent(parent)
 
     @abstractmethod
-    def process(self) -> Any:
+    def process(self) -> T:
         """
         Process input data and return the result.
         :param data: Input data (e.g., audio chunk as np.ndarray)

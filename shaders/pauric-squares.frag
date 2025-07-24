@@ -21,6 +21,7 @@ precision mediump float;
 uniform vec2 u_resolution;
 uniform float u_time;
 uniform int u_tile_size;
+uniform sampler2D u_texture;
 out vec4 fragColor;
 in vec2 v_uv;
 
@@ -33,8 +34,9 @@ void main()
   vec2 ij      = T.zw;      // integer cell coords [0..7]
 
   vec3 color = vec3(0.0);
-  float sdf = circleSDF(localUV);
-  color += fill(sdf, 0.1, 0.05);
+  // float sdf = circleSDF(localUV);
+  // color += fill(sdf, 0.1, 0.05);
+  color = texture(u_texture, localUV).rgb;
 
   // color+= rect(localUV, 0.1, 0.1);
   fragColor = vec4(color, 1.0);

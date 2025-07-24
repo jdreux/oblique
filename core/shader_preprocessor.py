@@ -54,11 +54,11 @@ class ShaderPreprocessor:
         result = self._process_file(shader_path)
 
         # Debug: Print the final resolved shader content
-        print("=" * 80)
-        print(f"FINAL RESOLVED SHADER: {shader_path}")
-        print("=" * 80)
-        print(result)
-        print("=" * 80)
+        # print("=" * 80)
+        # print(f"FINAL RESOLVED SHADER: {shader_path}")
+        # print("=" * 80)
+        # print(result)
+        # print("=" * 80)
 
         return result
 
@@ -112,9 +112,7 @@ class ShaderPreprocessor:
 
         def replace_include(match: re.Match) -> str:
             include_path = match.group(1)
-            print(f"DEBUG: Including file: {include_path}")
             included_content = self._resolve_include(include_path, base_dir)
-            print(f"DEBUG: Included content length: {len(included_content)} characters")
             # Add a newline after each include to prevent syntax errors
             return included_content + '\n'
 

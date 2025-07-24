@@ -1,10 +1,12 @@
-import numpy as np
 from typing import Any, Dict
-from processing.base_processing_operator import BaseProcessingOperator
+
+import numpy as np
+
 from inputs.audio_device_input import AudioDeviceInput
+from processing.base_processing_operator import BaseProcessingOperator
 
 
-class SpectralFlux(BaseProcessingOperator):
+class SpectralFlux(BaseProcessingOperator[float]):
     """
     Computes the spectral flux (rate of change in the spectrum) of the audio signal.
     Returns a float >= 0.
@@ -40,6 +42,7 @@ class SpectralFlux(BaseProcessingOperator):
 
 if __name__ == "__main__":
     import sys
+
     from inputs.audio_device_input import AudioDeviceInput
 
     file_path = (

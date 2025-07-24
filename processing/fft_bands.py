@@ -1,4 +1,4 @@
-from typing import Any, Sequence
+from typing import Any, List, Sequence
 
 import numpy as np
 from typing_extensions import Dict
@@ -8,7 +8,7 @@ from inputs.base_input import BaseInput
 from processing.base_processing_operator import BaseProcessingOperator
 
 
-class FFTBands(BaseProcessingOperator):
+class FFTBands(BaseProcessingOperator[List[float]]):
     """
     Minimal, log‑spaced FFT band analyser for music visualisation.
 
@@ -110,7 +110,7 @@ class FFTBands(BaseProcessingOperator):
         self._write_pos = (self._write_pos + n) % self.n_fft
         self._samples_accumulated = min(self._samples_accumulated + n, self.n_fft)
 
-    def process(self) -> Sequence[float]:
+    def process(self) -> List[float]:
         """
         Feed a new audio chunk and get `n_bands` floats in [0..1].
 

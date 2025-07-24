@@ -1,10 +1,12 @@
-import numpy as np
 from typing import Any, Dict
-from processing.base_processing_operator import BaseProcessingOperator
+
+import numpy as np
+
 from inputs.audio_device_input import AudioDeviceInput
+from processing.base_processing_operator import BaseProcessingOperator
 
 
-class ZeroCrossingRate(BaseProcessingOperator):
+class ZeroCrossingRate(BaseProcessingOperator[float]):
     """
     Computes the zero crossing rate of the audio signal.
     Returns the rate as a float in [0, 1].
@@ -35,6 +37,7 @@ class ZeroCrossingRate(BaseProcessingOperator):
 
 if __name__ == "__main__":
     import sys
+
     from inputs.audio_device_input import AudioDeviceInput
 
     file_path = (

@@ -1,10 +1,12 @@
-import numpy as np
 from typing import Any, Dict
-from processing.base_processing_operator import BaseProcessingOperator
+
+import numpy as np
+
 from inputs.base_input import BaseInput
+from processing.base_processing_operator import BaseProcessingOperator
 
 
-class SpectralCentroid(BaseProcessingOperator):
+class SpectralCentroid(BaseProcessingOperator[float]):
     """
     Computes the spectral centroid (brightness) of the audio signal.
     Returns a float in [0, 1] humanized for techno music.
@@ -74,6 +76,7 @@ class SpectralCentroid(BaseProcessingOperator):
 
 if __name__ == "__main__":
     import sys
+
     from inputs.audio_file_input import AudioFileInput
 
     file_path = (

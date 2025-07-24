@@ -111,12 +111,12 @@ def main():
         return
 
     # Create the patch
-    # if isinstance(audio_input, AudioDeviceInput) and audio_input.device_name.lower() == "syntakt":
-    #     patch = create_demo_syntakt(args.width, args.height, audio_input)
-    # else:
-    #     patch = audio_file_demo_patch(args.width, args.height)
+    if isinstance(audio_input, AudioDeviceInput) and audio_input.device_name.lower() == "syntakt":
+        patch = create_demo_syntakt(args.width, args.height, audio_input)
+    else:
+        patch = audio_file_demo_patch(args.width, args.height)
 
-    patch = audio_file_demo_patch(args.width, args.height)
+    # patch = audio_file_demo_patch(args.width, args.height)
 
 
     # Create and run the engine

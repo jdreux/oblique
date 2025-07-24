@@ -6,7 +6,7 @@ from inputs.base_input import BaseInput
 from .base_processing_operator import BaseProcessingOperator
 
 
-class NormalizedAmplitudeOperator(BaseProcessingOperator):
+class NormalizedAmplitudeOperator(BaseProcessingOperator[float]):
     """
     Computes the normalized amplitude (RMS) of an audio chunk.
     Expects input as a numpy ndarray of shape (chunk_size, channels).

@@ -1,15 +1,14 @@
 from core.oblique_patch import ObliquePatch
 from inputs.audio_device_input import AudioDeviceInput
-from modules.barrel_distortion import BarrelDistortionModule, BarrelDistortionParams
 from modules.base_av_module import BaseAVModule
+from modules.media_module import MediaModule, MediaParams, AspectMode
 
 # --- Module imports ---
-from modules.circle_echo import CircleEcho, CircleEchoParams
-from modules.grid_swap_module import GridSwapModule, GridSwapModuleParams
-from modules.ikeda_tiny_barcode import IkedaTinyBarcodeModule, IkedaTinyBarcodeParams
-from modules.level_module import LevelModule, LevelParams
+from modules.broken_circles import BrokenCirclesModule, BrokenCirclesParams
+from modules.pauric_squares_module import PauricSquaresModule, PauricSquaresParams
+from modules.composite_module import CompositeModule, CompositeParams
+from modules.composite_module import CompositeOp
 from processing.envelope import Envelope
-from processing.fft_bands import FFTBands
 from processing.normalized_amplitude import NormalizedAmplitudeOperator
 
 
@@ -26,70 +25,75 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
         Configured ObliquePatch instance
     """
 
+    mix_LR = audio_input.get_audio_input_for_channels([0, 1])
 
-    mix_LR = audio_input.get_audio_input_for_channels([0,1])
+    t1 = audio_input.get_audio_input_for_channels([2])
+    t2 = audio_input.get_audio_input_for_channels([3])
+    t3 = audio_input.get_audio_input_for_channels([4])
+    t4 = audio_input.get_audio_input_for_channels([5])
+    t5 = audio_input.get_audio_input_for_channels([6])
+    t8 = audio_input.get_audio_input_for_channels([9])
+    t9 = audio_input.get_audio_input_for_channels([10])
+    t10 = audio_input.get_audio_input_for_channels([11])
+    t11 = audio_input.get_audio_input_for_channels([12])
 
-    clap = audio_input.get_audio_input_for_channels([4])
+    a1 = NormalizedAmplitudeOperator(t1)
+    a2 = NormalizedAmplitudeOperator(t2)
+    a3 = NormalizedAmplitudeOperator(t3)
+    a4 = NormalizedAmplitudeOperator(t4)
+    a5 = NormalizedAmplitudeOperator(t5)
+    a8 = NormalizedAmplitudeOperator(t8)
 
-    bass_drum = audio_input.get_audio_input_for_channels([10])
+    a9 = Envelope(NormalizedAmplitudeOperator(t9).process, decay=0.01)
+    a10 = Envelope(NormalizedAmplitudeOperator(t10).process, decay=0.1)
+    a11 = Envelope(NormalizedAmplitudeOperator(t11).process, decay=0.1)
 
-    clap_amplitude = NormalizedAmplitudeOperator(clap)
-
-    bass_drum_amplitude = NormalizedAmplitudeOperator(bass_drum)
-
-    bass_drum_envelope = Envelope(bass_drum_amplitude.process)
-
-    clap_counter: int = 0
-
-    fft_bands_processor16 = FFTBands(mix_LR, num_bands=16)
-    fft_bands_processor512 = FFTBands(mix_LR, num_bands=512)
-
-    circle_echo_module = CircleEcho(
-        CircleEchoParams(width=width, height=height, n_circles=32),
-        fft_bands_processor16,
-    )
-
-    barcode_module = IkedaTinyBarcodeModule(
-        IkedaTinyBarcodeParams(width=width, height=height),
-        fft_bands_processor512,
-    )
-
-    grid_swap_module = GridSwapModule(
-        GridSwapModuleParams(width=width, height=height, grid_size=16, num_swaps=128),
-        barcode_module,
-    )
-
-    level_module = LevelModule(
-        LevelParams(
-            parent_module=grid_swap_module,
-            invert=False,
-        ),
-    )
-
-    barrel_distortion_module = BarrelDistortionModule(
-        BarrelDistortionParams(
+    broken_circles_module = BrokenCirclesModule(
+        BrokenCirclesParams(
             width=width,
             height=height,
-            strength=10,
-        ),
-        level_module,
+            modulators=[a9, a2, a3, a4, a5],
+        )
     )
 
+    pauric_squares_module = PauricSquaresModule(
+        PauricSquaresParams(
+            width=width,
+            height=height,
+            tile_size=1,
+        ),
+        motif_module=broken_circles_module,
+    )
 
+    media_module = MediaModule(
+        MediaParams(
+            file_path="./projects/demo/media/banana-alpha.png",
+            width=width,
+            height=height,
+            aspect_mode=AspectMode.PRESERVE,
+        ),
+    )
+
+    composite_module = CompositeModule(
+        CompositeParams(
+            width=width,
+            height=height,
+            operation=CompositeOp.ATOP,
+        ),
+        top_module=pauric_squares_module,
+        bottom_module=media_module,
+    )
 
     def tick_callback(t: float) -> BaseAVModule:
+        # respond to bass intensity
+        pauric_squares_module.params.tile_size = int(1 + 100 * max(a10.process(), a11.process()))
 
-        amplitude: float = clap_amplitude.process()
-        bass_intensity: float = bass_drum_envelope.process()
+        print(f"a8: {a8.process()}")
 
-        level_module.params.invert = amplitude > 0.001
-
-        grid_swap_module.params.grid_size = int(16 * bass_intensity*10)
-        grid_swap_module.params.num_swaps = int(128 * bass_intensity*10)
-
-        barrel_distortion_module.params.strength = (amplitude * 50)
-
-        return barrel_distortion_module
+        if a8.process() > 0.001:
+            return composite_module
+        else:
+            return pauric_squares_module
 
     return ObliquePatch(
         audio_output=mix_LR,
