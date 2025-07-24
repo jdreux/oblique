@@ -11,6 +11,7 @@ Inputs:
 #include "lygia/space/sqTile.glsl";
 #include "lygia/draw/fill.glsl"
 #include "lygia/sdf/rectSDF.glsl"
+#include "lygia/sdf/circleSDF.glsl"
 #include "lygia/draw/rect.glsl"
 
 #ifdef GL_ES
@@ -32,7 +33,10 @@ void main()
   vec2 ij      = T.zw;      // integer cell coords [0..7]
 
   vec3 color = vec3(0.0);
-  color+= rect(localUV, 0.1, 0.1);
+  float sdf = circleSDF(localUV);
+  color += fill(sdf, 0.1, 0.05);
+
+  // color+= rect(localUV, 0.1, 0.1);
   fragColor = vec4(color, 1.0);
 
 } 

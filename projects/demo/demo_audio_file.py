@@ -2,6 +2,8 @@ import math
 
 from core.oblique_patch import ObliquePatch
 from inputs.audio_file_input import AudioFileInput
+from modules.barrel_distortion import BarrelDistortionModule, BarrelDistortionParams
+from modules.composite_module import CompositeModule, CompositeParams, CompositeOp
 from modules.base_av_module import BaseAVModule
 from modules.circle_echo import CircleEcho, CircleEchoParams
 from modules.feedback import FeedbackModule, FeedbackParams
@@ -15,6 +17,7 @@ from modules.transform import TransformModule, TransformParams
 from processing.fft_bands import FFTBands
 from processing.normalized_amplitude import NormalizedAmplitudeOperator
 from processing.spectral_centroid import SpectralCentroid
+
 
 
 def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: ignore
@@ -59,26 +62,7 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
         fft_bands_processor16,
     )
 
-    grid_swap_module = GridSwapModule(
-        GridSwapModuleParams(
-            width=width,
-            height=height,
-            grid_size=0,
-            swap_frequency=2.0,  # Increased frequency for more visible swaps
-            swap_phase=0.0,
-            num_swaps=128,
-        ),
-        module=circle_echo_module,
-    )
-
     # normalized_amplitude_processor = NormalizedAmplitudeOperator(audio_input)
-
-    level_module = LevelModule(
-        LevelParams(
-            parent_module=grid_swap_module,
-            invert=False,
-        ),
-    )
 
     pauric_squares_module = PauricSquaresModule(
         PauricSquaresParams(
@@ -98,26 +82,65 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
         upstream_module=pauric_squares_module,
     )
 
-   
+
+
+
+
+    barrel_distortion_module = BarrelDistortionModule(
+        BarrelDistortionParams(
+            width=width,
+            height=height,
+        ),
+        parent_module=transform_module,
+    )
+
+    grid_swap_module = GridSwapModule(
+        GridSwapModuleParams(
+            width=width,
+            height=height,
+            grid_size=0,
+            swap_frequency=2.0,  # Increased frequency for more visible swaps
+            swap_phase=0.0,
+            num_swaps=128,
+        ),
+        module=barrel_distortion_module,
+    )
+
 
     feedback_module = FeedbackModule(
         FeedbackParams(
             width=width,
             height=height,
-            feedback_strength=0.99
+            feedback_strength=0.9
         ),
-        transform_module,
+        upstream_module=grid_swap_module,
     )
 
- 
+    level_module = LevelModule(
+        LevelParams(
+            parent_module=feedback_module,
+            invert=True,
+        ),
+    )
+
+
+    composite_module = CompositeModule(
+        CompositeParams(
+            width=width,
+            height=height,
+            operation=CompositeOp.DARKEN,
+        ),
+        module0=level_module,
+        module1=ryoji_lines_module,
+    )
+
+
 
     normalized_amplitude_processor = NormalizedAmplitudeOperator(audio_input)
 
     def _tick_callback(t: float) -> BaseAVModule:
         amplitude: float = normalized_amplitude_processor.process()
 
-        # grid_swap_module.params.grid_size = int(16 + 16 * math.sin(t * 2.0))
-        # grid_swap_module.params.num_swaps = int(128 + 128 * math.sin(t * 2.0))
 
         grid_swap_module.params.grid_size = int(16 * amplitude)
         grid_swap_module.params.num_swaps = int(128 * amplitude)
@@ -126,11 +149,18 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
         transform_module.params.translate = (math.sin(t * 2.0)*0.1, 0.0)
         feedback_module.params.direction = (0.0, -0.001)
         pauric_squares_module.params.tile_size = int(2 + 8000 * amplitude)
-        # level_module.params.invert = t % 4 < 
+        # level_module.params.invert = t % 4 <
 
-        print(f"Grid size: {grid_swap_module.params.grid_size}, Num swaps: {grid_swap_module.params.num_swaps}")
+        barrel_distortion_module.params.strength = -(0.5 + 5 * amplitude)
+        barrel_distortion_module.params.center = (0.5 * math.sin(t * 2.0), 0.5 * math.sin(t * 2.0))
 
-        return feedback_module
+        if t*10 % 95 < 5:
+            level_module.params.invert = True
+        else:
+            level_module.params.invert = False
+        # print(f"Grid size: {grid_swap_module.params.grid_size}, Num swaps: {grid_swap_module.params.num_swaps}")
+
+        return composite_module
 
 
     return ObliquePatch(audio_output=audio_input, tick_callback=_tick_callback)

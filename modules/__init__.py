@@ -1,3 +1,11 @@
-from .visual_noise import VisualNoiseModule, VisualNoiseParams
+from .barrel_distortion import BarrelDistortionModule, BarrelDistortionParams
+from .composite_module import CompositeModule, CompositeParams
+from .feedback import FeedbackModule, FeedbackParams
+from .grid_swap_module import GridSwapModule, GridSwapModuleParams
 from .ikeda_tiny_barcode import IkedaTinyBarcodeModule, IkedaTinyBarcodeParams
+from .level_module import LevelModule, LevelParams
+from .pauric_squares_module import PauricSquaresModule, PauricSquaresParams
+from .ryoji_lines import RyojiLines, RyojiLinesParams
+from .spectral_visualizer import SpectralVisualizerModule, SpectralVisualizerParams
 from .transform import TransformModule, TransformParams
+from .visual_noise import VisualNoiseModule, VisualNoiseParams
