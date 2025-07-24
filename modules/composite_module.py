@@ -34,6 +34,7 @@ class CompositeOp(int, Enum):
     LIGHTEN = 23
     PASSTHROUGH_LEFT = 24
     PASSTHROUGH_RIGHT = 25
+    ATOP = 26
 
 @dataclass
 class CompositeParams(BaseAVParams):
@@ -57,7 +58,7 @@ class CompositeUniforms(Uniforms, total=True):
 class CompositeModule(BaseAVModule[CompositeParams]):
     """
     Composite module that blends two input modules using a selectable blend/composite operation.
-    Supported operations: add, average, multiply, screen, overlay, difference, subtract, hardlight, colorburn, colordodge, hue, color, reflect, glow, pinlight, exclusion, negation, linearburn, lineardodge, linearlight, vividlight, hardmix, darken, lighten.
+    Supported operations: see CompositeOp enum.
     """
     metadata = {
         "name": "CompositeModule",

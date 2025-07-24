@@ -128,7 +128,7 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
         CompositeParams(
             width=width,
             height=height,
-            operation=CompositeOp.DARKEN,
+            operation=CompositeOp.ATOP,
         ),
         module0=level_module,
         module1=ryoji_lines_module,

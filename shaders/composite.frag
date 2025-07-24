@@ -106,6 +106,9 @@ void main() {
         result = color0;
     else if (u_op == 25) // PASSTHROUGH_RIGHT: Passes through right texture
         result = color1;
+    else if (u_op == 26) // ATOP: (input1.rgba * input2.a) + (input2.rgba * (1.0 - input1.a))
+        result = (color0 * color1.a) + (color1 * (1.0 - color0.a));
+        result.a = 1.0;
     else result = color0;
     fragColor = clamp(result, 0.0, 1.0);
 } 
