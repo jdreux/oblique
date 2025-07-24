@@ -10,6 +10,7 @@ from modules.feedback import FeedbackModule, FeedbackParams
 from modules.grid_swap_module import GridSwapModule, GridSwapModuleParams
 from modules.ikeda_tiny_barcode import IkedaTinyBarcodeModule, IkedaTinyBarcodeParams
 from modules.level_module import LevelModule, LevelParams
+from modules.media_module import AspectMode, MediaModule, MediaParams
 from modules.pauric_squares_module import PauricSquaresModule, PauricSquaresParams
 from modules.ryoji_lines import RyojiLines, RyojiLinesParams
 from modules.spectral_visualizer import SpectralVisualizerModule, SpectralVisualizerParams
@@ -124,16 +125,42 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
     )
 
 
+    
+    media_module = MediaModule(
+        MediaParams(
+            file_path="./projects/demo/media/banana-alpha.png",
+            width=width,
+            height=height,
+            aspect_mode=AspectMode.PRESERVE,
+        )
+    )
+
     composite_module = CompositeModule(
         CompositeParams(
             width=width,
             height=height,
             operation=CompositeOp.ATOP,
         ),
-        top_module=ryoji_lines_module,
-        bottom_module=level_module,
+        top_module=level_module,
+        bottom_module=media_module,
     )
 
+    composite_feedback = FeedbackModule(
+        FeedbackParams(
+            width=width,
+            height=height,
+            feedback_strength=0,
+            direction=(0.0, -0.001)
+        ),
+        upstream_module=composite_module,
+    )
+
+    composite_transform = TransformModule(
+        TransformParams(
+            transform_order="SRT",
+        ),
+        upstream_module=composite_feedback,
+    )
 
 
     normalized_amplitude_processor = NormalizedAmplitudeOperator(audio_input)
@@ -160,7 +187,8 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
             level_module.params.invert = False
         # print(f"Grid size: {grid_swap_module.params.grid_size}, Num swaps: {grid_swap_module.params.num_swaps}")
 
-        return composite_module
+        composite_transform.params.angle = t * 10
+        return composite_transform
 
 
     return ObliquePatch(audio_output=audio_input, tick_callback=_tick_callback)
