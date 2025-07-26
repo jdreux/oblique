@@ -3,7 +3,7 @@ from typing import Literal
 
 from processing.base_processing_operator import BaseProcessingOperator
 
-from .base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
+from .base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamInt, RenderData, Uniforms
 
 
 @dataclass
@@ -12,18 +12,15 @@ class VisualNoiseParams(BaseAVParams):
 
     noise_size: Literal["small", "medium", "large"] = "medium"
     color_mode: Literal["gray", "rgba"] = "gray"
-    intensity: float = 1.0
-    speed: float = 1.0
-    width: int = 800
-    height: int = 600
+    intensity: ParamFloat = 1.0
+    speed: ParamFloat = 1.0
 
 class VisualNoiseUniforms(Uniforms, total=True):
-    u_resolution: tuple[int, int]
-    u_time: float
     u_noise_scale: float
     u_intensity: float
     u_color_mode: float
     u_speed: float
+    u_time: float
 
 
 class VisualNoiseModule(BaseAVModule[VisualNoiseParams]):
@@ -51,13 +48,13 @@ class VisualNoiseModule(BaseAVModule[VisualNoiseParams]):
 
     def __init__(
         self,
-        params: VisualNoiseParams = VisualNoiseParams(),
+        params: VisualNoiseParams,
         parent: BaseProcessingOperator | None = None,
     ):
         super().__init__(params, parent)
         self.parent = parent
 
-    def render_data(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> RenderData:
         """
         Return shader path and uniforms for rendering.
 
@@ -76,11 +73,11 @@ class VisualNoiseModule(BaseAVModule[VisualNoiseParams]):
         return RenderData(
             frag_shader_path=self.frag_shader_path,
             uniforms=VisualNoiseUniforms(
-                u_resolution=(self.params.width, self.params.height),
+                u_resolution=(self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
                 u_time=t,
                 u_noise_scale=size_scale[self.params.noise_size],
-                u_intensity=self.params.intensity,
+                u_intensity=self._resolve_param(self.params.intensity),
                 u_color_mode=color_mode_flag,
-                u_speed=self.params.speed,
+                u_speed=self._resolve_param(self.params.speed),
             ),
         )

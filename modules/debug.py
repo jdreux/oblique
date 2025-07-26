@@ -13,7 +13,6 @@ class DebugParams(BaseAVParams):
 
 class DebugUniforms(Uniforms, total=True):
     u_number: float
-    u_resolution: tuple[int, int]
 
 
 class DebugModule(BaseAVModule[DebugParams]):
@@ -36,17 +35,16 @@ class DebugModule(BaseAVModule[DebugParams]):
         super().__init__(params, number_input)
         self.number_input = number_input
 
-    def render_data(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> RenderData:
         # Return shader path and uniforms for rendering
         if self.number_input:
             number = self.number_input.process()
-            print(f"Number: {number}")
         else:
             number = self.params.number
         return RenderData(
             frag_shader_path=self.frag_shader_path,
             uniforms=DebugUniforms(
                 u_number=number,
-                u_resolution=(self.params.width, self.params.height),
+                u_resolution=(self.params.width, self.params.height)
             ),
         )

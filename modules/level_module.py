@@ -3,7 +3,7 @@ from typing import Tuple
 
 import moderngl
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, ParamBool, ParamFloat, RenderData, Uniforms
 
 
 @dataclass(kw_only=True)
@@ -22,15 +22,15 @@ class LevelParams(BaseAVParams):
     """
     parent_module: BaseAVModule
     # Pre-processing operations
-    invert: bool = False
-    black_level: float = 0.0  # Any pixel <= this becomes black
-    brightness: float = 0.0  # Add/subtract offset to RGB (-1 to 1 range)
-    gamma: float = 1.0  # Gamma correction (0.1 to 3.0 typical)
-    contrast: float = 1.0  # Scale factor for RGB channels
+    invert: ParamBool = False
+    black_level: ParamFloat = 0.0  # Any pixel <= this becomes black
+    brightness: ParamFloat = 0.0  # Add/subtract offset to RGB (-1 to 1 range)
+    gamma: ParamFloat = 1.0  # Gamma correction (0.1 to 3.0 typical)
+    contrast: ParamFloat = 1.0  # Scale factor for RGB channels
 
     # Post-processing
-    opacity: float = 1.0  # Alpha channel adjustment (0.0 to 1.0)
-    
+    opacity: ParamFloat = 1.0  # Alpha channel adjustment (0.0 to 1.0)
+
 
 
 class LevelUniforms(Uniforms, total=True):
@@ -85,8 +85,8 @@ class LevelModule(BaseAVModule[LevelParams]):
             parent_module (BaseAVModule): Parent module to apply level adjustments to
         """
         super().__init__(params)
-        
-    def render_data(self, t: float) -> RenderData:
+
+    def prepare_uniforms(self, t: float) -> RenderData:
         """
         Return shader data with level adjustment uniforms.
 
@@ -98,14 +98,14 @@ class LevelModule(BaseAVModule[LevelParams]):
         """
         uniforms: LevelUniforms = {
             "u_time": t,
-            "u_resolution": (self.params.width, self.params.height),
+            "u_resolution": (self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
             "u_texture": self.parent_tex,
-            "u_invert": 1.0 if self.params.invert else 0.0,
-            "u_black_level": self.params.black_level,
-            "u_brightness": self.params.brightness,
-            "u_gamma": self.params.gamma,
-            "u_contrast": self.params.contrast,
-            "u_opacity": self.params.opacity,
+            "u_invert": 1.0 if self._resolve_param(self.params.invert) else 0.0,
+            "u_black_level": self._resolve_param(self.params.black_level),
+            "u_brightness": self._resolve_param(self.params.brightness),
+            "u_gamma": self._resolve_param(self.params.gamma),
+            "u_contrast": self._resolve_param(self.params.contrast),
+            "u_opacity": self._resolve_param(self.params.opacity),
         }
 
         return RenderData(

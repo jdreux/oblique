@@ -2,20 +2,19 @@ from dataclasses import dataclass
 
 from processing.fft_bands import FFTBands
 
-from .base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
+from .base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamFloatList, ParamInt, RenderData, Uniforms
 
 
 @dataclass
 class IkedaTinyBarcodeParams(BaseAVParams):
     """Parameters for the Ikeda Tiny Barcode pattern module."""
+    fft_bands: ParamFloatList
+    speed_scale: ParamFloat = 1.0
+    pattern_intensity: ParamFloat = 1.0
+    barcode_width: ParamFloat = 32.0
+    noise_scale: ParamFloat = 512.0
+    threshold: ParamFloat = 0.1
 
-    speed_scale: float = 1.0
-    pattern_intensity: float = 1.0
-    barcode_width: float = 32.0
-    noise_scale: float = 512.0
-    threshold: float = 0.1
-    width: int = 800
-    height: int = 600
 
 
 class IkedaTinyBarcodeUniforms(Uniforms, total=True):
@@ -49,15 +48,15 @@ class IkedaTinyBarcodeModule(BaseAVModule[IkedaTinyBarcodeParams]):
             "barcode_width": float,
             "noise_scale": float,
             "threshold": float,
+            "fft_bands": list[float],
         },
     }
     frag_shader_path = "shaders/ikeda-tiny-barcode.frag"
 
-    def __init__(self, params: IkedaTinyBarcodeParams, fft_bands_processor: FFTBands):
+    def __init__(self, params: IkedaTinyBarcodeParams):
         super().__init__(params)
-        self.fft_bands_processor = fft_bands_processor
 
-    def render_data(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> RenderData:
         """
         Return shader path and uniforms for rendering.
 
@@ -68,13 +67,13 @@ class IkedaTinyBarcodeModule(BaseAVModule[IkedaTinyBarcodeParams]):
             dict[str, Any]: Shader data and uniforms
         """
         uniforms: IkedaTinyBarcodeUniforms = {
-            "u_resolution": (self.params.width, self.params.height),
-            "u_time": t * self.params.speed_scale,
-            "u_pattern_intensity": self.params.pattern_intensity,
-            "u_barcode_width": self.params.barcode_width,
-            "u_noise_scale": self.params.noise_scale,
-            "u_threshold": self.params.threshold,
-            "u_fft_bands": list(self.fft_bands_processor.process()),
+            "u_resolution": (self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
+            "u_time": t * self._resolve_param(self.params.speed_scale),
+            "u_pattern_intensity": self._resolve_param(self.params.pattern_intensity),
+            "u_barcode_width": self._resolve_param(self.params.barcode_width),
+            "u_noise_scale": self._resolve_param(self.params.noise_scale),
+            "u_threshold": self._resolve_param(self.params.threshold),
+            "u_fft_bands": self._resolve_param(self.params.fft_bands),
         }
 
         return RenderData(

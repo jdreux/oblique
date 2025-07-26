@@ -44,7 +44,7 @@ class BrokenCirclesModule(BaseAVModule[BrokenCirclesParams]):
         super().__init__(params)
         self.params = params
 
-    def render_data(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> RenderData:
         """
         Prepare parameters for the shader.
         Returns:
@@ -54,7 +54,7 @@ class BrokenCirclesModule(BaseAVModule[BrokenCirclesParams]):
         return RenderData(
             frag_shader_path=self.frag_shader_path,
             uniforms=BrokenCirclesUniforms(
-                u_resolution=(self.params.width, self.params.height),
+                u_resolution=(self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
                 u_amplitudes=amplitudes,
                 u_time=t,
             ),

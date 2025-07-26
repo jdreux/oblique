@@ -9,6 +9,7 @@ from PIL import Image
 
 from modules.base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
 
+
 class AspectMode(int, Enum):
     STRETCH = 0
     PRESERVE = 1
@@ -18,8 +19,6 @@ class AspectMode(int, Enum):
 @dataclass(kw_only=True)
 class MediaParams(BaseAVParams):
     file_path: str
-    width: int = 800
-    height: int = 600
     aspect_mode: AspectMode = AspectMode.PRESERVE
 
 class MediaUniforms(Uniforms, total=True):
@@ -42,10 +41,8 @@ class MediaModule(BaseAVModule[MediaParams]):
 
     def __init__(self, params: MediaParams):
         super().__init__(params)
-        self.width = params.width
-        self.height = params.height
         self.aspect_mode = params.aspect_mode
-        self.image = Image.open(params.file_path).convert("RGBA").transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+        self.image = Image.open(self.params.file_path).convert("RGBA").transpose(Image.Transpose.FLIP_TOP_BOTTOM)
         self.img_width, self.img_height = self.image.size
         self.texture = None
 
@@ -60,10 +57,10 @@ class MediaModule(BaseAVModule[MediaParams]):
             self.texture.repeat_x = False
             self.texture.repeat_y = False
 
-    def _compute_transform(self):
+    def _compute_transform(self, width: int, height: int):
         # Returns (scale_x, scale_y, offset_x, offset_y) for the shader
         iw, ih = self.img_width, self.img_height
-        ow, oh = self.width, self.height
+        ow, oh = width, height
         img_aspect = iw / ih
         out_aspect = ow / oh
 
@@ -97,12 +94,14 @@ class MediaModule(BaseAVModule[MediaParams]):
         else:
             return (1.0, 1.0, 0.0, 0.0)
 
-    def render_data(self, t: float) -> RenderData:
-        transform = self._compute_transform()
+    def prepare_uniforms(self, t: float) -> RenderData:
+        width = self._resolve_param(self.params.width)
+        height = self._resolve_param(self.params.height)
+        transform = self._compute_transform(width, height)
         assert self.texture is not None, "Media module texture is not loaded. Did you call render_texture()?"
 
         uniforms: MediaUniforms = {
-            "u_resolution": (self.width, self.height),
+            "u_resolution": (self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
             "u_img_resolution": (self.img_width, self.img_height),
             "u_aspect_mode": int(self.aspect_mode),
             "u_transform": transform,

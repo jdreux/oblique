@@ -1,18 +1,16 @@
 from typing import Tuple
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
-from processing.fft_bands import FFTBands
-from processing.normalized_amplitude import NormalizedAmplitudeOperator
+from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamFloatList, RenderData, Uniforms
 
 
 class MeshShroudParams(BaseAVParams):
-    width: int = 800
-    height: int = 600
+    amplitude: ParamFloat
+    fft_bands: ParamFloatList
 
 class MeshShroudUniforms(Uniforms, total=True):
     u_time: float
     u_resolution: Tuple[int, int]
-    u_fft_bands: Tuple[float, ...]
+    u_fft_bands: list[float]
     u_amp: float
 
 
@@ -32,20 +30,15 @@ class MeshShroudModule(BaseAVModule[MeshShroudParams]):
     def __init__(
         self,
         params: MeshShroudParams,
-        band_levels_processor: FFTBands,
-        amplitude_processor: NormalizedAmplitudeOperator
     ):
         super().__init__(params)
-        self.band_levels_processor = band_levels_processor
-        self.amplitude_processor = amplitude_processor
 
-
-    def render_data(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> RenderData:
         uniforms: MeshShroudUniforms = {
             "u_time": t,
-            "u_resolution": (self.params.width, self.params.height),
-            "u_fft_bands": tuple(self.band_levels_processor.process()),
-            "u_amp": self.amplitude_processor.process()
+            "u_resolution": (self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
+            "u_fft_bands": self._resolve_param(self.params.fft_bands),
+            "u_amp": self._resolve_param(self.params.amplitude)
         }
         return RenderData(
             frag_shader_path=self.frag_shader_path,

@@ -2,18 +2,16 @@ from dataclasses import dataclass
 
 import moderngl
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, RenderData, Uniforms
 
 
 @dataclass
 class BarrelDistortionParams(BaseAVParams):
-    strength: float = 0.1  # Distortion strength (positive = barrel, negative = pincushion)
-    center: tuple[float, float] = (0.5, 0.5)  # Center point for distortion (0-1 UV space)
+    strength: ParamFloat = 0.1  # Distortion strength (positive = barrel, negative = pincushion)
+    center: tuple[ParamFloat, ParamFloat] = (0.5, 0.5)  # Center point for distortion (0-1 UV space)
 
 
 class BarrelDistortionUniforms(Uniforms, total=True):
-    u_time: float
-    u_resolution: tuple[int, int]
     u_strength: float
     u_center: tuple[float, float]
     u_texture: moderngl.Texture
@@ -47,7 +45,7 @@ class BarrelDistortionModule(BaseAVModule[BarrelDistortionParams]):
         super().__init__(params, parent_module)
         self.parent_module = parent_module
 
-    def render_data(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> RenderData:
         """
         Return shader data with distortion parameters.
 
@@ -58,10 +56,9 @@ class BarrelDistortionModule(BaseAVModule[BarrelDistortionParams]):
             dict[str, Any]: Shader path and uniforms
         """
         uniforms: BarrelDistortionUniforms = {
-            "u_time": t,
-            "u_resolution": (self.params.width, self.params.height),
-            "u_strength": self.params.strength,
-            "u_center": self.params.center,
+            "u_resolution": (self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
+            "u_strength": self._resolve_param(self.params.strength),
+            "u_center": (self._resolve_param(self.params.center[0]), self._resolve_param(self.params.center[1])),
             "u_texture": self.parent_tex,
         }
 

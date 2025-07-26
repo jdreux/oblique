@@ -1,7 +1,7 @@
 from dataclasses import dataclass
-from typing import Any, List, Optional, Tuple
+from typing import List, Optional
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, ParamInt, ParamFloat, RenderData, Uniforms
 from processing.fft_bands import FFTBands
 from processing.spectral_centroid import SpectralCentroid
 
@@ -13,19 +13,17 @@ SHADER_BANDS_SIZE = 512
 class RyojiLinesParams(BaseAVParams):
     """Parameters for the RyojiLines module."""
 
-    num_bands: int = SHADER_BANDS_SIZE  # Default to full shader capacity
-    fade_rate: float = 0.95
+    num_bands: ParamInt = SHADER_BANDS_SIZE  # Default to full shader capacity
+    fade_rate: ParamFloat = 0.95
     band_levels_processor: Optional[FFTBands] = None
     spectral_centroid_processor: Optional[SpectralCentroid] = None
 
 
 class RyojiLinesUniforms(Uniforms, total=True):
-    u_time: float
-    u_resolution: Tuple[int, int]
     u_bands: List[float]
     u_num_bands: int
     u_spectral_brightness: float
-    # u_fade_rate: float
+    u_time: float
 
 
 class RyojiLines(BaseAVModule[RyojiLinesParams]):
@@ -54,7 +52,7 @@ class RyojiLines(BaseAVModule[RyojiLinesParams]):
         self.band_levels_processor = band_levels_processor
         self.spectral_centroid_processor = spectral_centroid_processor
 
-    def render_data(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> RenderData:
         """
         Return the data needed for the renderer to render this module.
         """
@@ -73,10 +71,10 @@ class RyojiLines(BaseAVModule[RyojiLinesParams]):
 
         uniforms: RyojiLinesUniforms = {
             "u_time": t,
-            "u_resolution": (self.params.width, self.params.height),
+            "u_resolution": (self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
             "u_bands": bands,  # Always 512 bands now
             "u_num_bands": min(
-                self.params.num_bands, SHADER_BANDS_SIZE
+                self._resolve_param(self.params.num_bands), SHADER_BANDS_SIZE
             ),  # Use actual number of bands (up to 512)
             "u_spectral_brightness": spectral_brightness,
         }

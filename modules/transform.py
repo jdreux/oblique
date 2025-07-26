@@ -17,8 +17,6 @@ class TransformParams(BaseAVParams):
 
 
 class TransformUniforms(Uniforms, total=True):
-    u_time: float
-    u_resolution: Tuple[int, int]
     u_transform_matrix: Tuple[Tuple[float, float, float], Tuple[float, float, float], Tuple[float, float, float]]  # 3x3 matrix as mat3
     u_texture: moderngl.Texture
 
@@ -127,7 +125,7 @@ class TransformModule(BaseAVModule[TransformParams]):
 
         return matrix
 
-    def render_data(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> RenderData:
         """
         Return shader data with transformation matrix.
 
@@ -144,7 +142,6 @@ class TransformModule(BaseAVModule[TransformParams]):
         matrix_flattened = tuple(transform_matrix.flatten('F'))
 
         uniforms: TransformUniforms = {
-            "u_time": t,
             "u_resolution": (self.params.width, self.params.height),
             "u_transform_matrix": matrix_flattened,
             "u_texture": self.upstream_tex,

@@ -2,13 +2,14 @@ from dataclasses import dataclass
 
 import moderngl
 
-from .base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
+from .base_av_module import BaseAVModule, BaseAVParams, ParamInt, RenderData, Uniforms, ParamTexture
 
 
 @dataclass
 class PauricSquaresParams(BaseAVParams):
     """Parameters for the Pauric Squares module."""
-    tile_size: int = 8
+    motif_texture: ParamTexture
+    tile_size: ParamInt = 8
 
 class PauricSquaresUniforms(Uniforms, total=True):
     u_resolution: tuple[int, int]
@@ -30,13 +31,11 @@ class PauricSquaresModule(BaseAVModule[PauricSquaresParams]):
 
     def __init__(
         self,
-        params: PauricSquaresParams,
-        motif_module: BaseAVModule
+        params: PauricSquaresParams
     ):
         super().__init__(params)
-        self.motif_module = motif_module
 
-    def render_data(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> RenderData:
         """
         Return shader path and uniforms for rendering.
 
@@ -50,13 +49,13 @@ class PauricSquaresModule(BaseAVModule[PauricSquaresParams]):
         return RenderData(
             frag_shader_path=self.frag_shader_path,
             uniforms=PauricSquaresUniforms(
-                u_resolution=(self.params.width, self.params.height),
+                u_resolution=(self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
                 u_time=t,
-                u_tile_size=self.params.tile_size,
+                u_tile_size=self._resolve_param(self.params.tile_size),
                 u_texture=self.motif_texture,
             ),
         )
 
     def render_texture(self, ctx: moderngl.Context, width: int, height: int, t: float, filter=moderngl.NEAREST) -> moderngl.Texture:
-        self.motif_texture = self.motif_module.render_texture(ctx, width, height, t, filter)
+        self.motif_texture = self._resolve_texture_param(self.params.motif_texture, ctx, width, height, t, filter)
         return super().render_texture(ctx, width, height, t, filter)

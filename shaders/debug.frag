@@ -14,6 +14,7 @@ precision mediump float;
 
 uniform float u_number;
 uniform vec2 u_resolution;
+uniform float u_time;
 // MVP: text string is not handled in shader, just color based on number
 
 // 'fragColor' is the output variable for the fragment shader.

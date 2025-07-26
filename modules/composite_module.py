@@ -50,7 +50,6 @@ class CompositeParams(BaseAVParams):
     height: int = 600
 
 class CompositeUniforms(Uniforms, total=True):
-    u_resolution: Tuple[int, int]
     top_tex: moderngl.Texture
     bottom_tex: moderngl.Texture
     u_op: int
@@ -74,7 +73,7 @@ class CompositeModule(BaseAVModule[CompositeParams]):
         self.width = self.params.width
         self.height = self.params.height
 
-    def render_data(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> RenderData:
         uniforms: CompositeUniforms = {
             "u_resolution": (self.width, self.height),
             "top_tex": self.top_tex,
@@ -97,21 +96,3 @@ class CompositeModule(BaseAVModule[CompositeParams]):
         self.top_tex = self.top_module.render_texture(ctx, width, height, t)
         self.bottom_tex = self.bottom_module.render_texture(ctx, width, height, t)
         return super().render_texture(ctx, width, height, t)
-
-if __name__ == "__main__":
-    # Example test runner for CompositeModule
-
-    import moderngl
-    import numpy as np
-
-    from modules.pauric_squares_module import PauricSquaresModule, PauricSquaresParams
-    from modules.visual_noise import VisualNoiseModule, VisualNoiseParams
-
-    width, height = 800, 600
-    ctx = moderngl.create_standalone_context()
-    noise = VisualNoiseModule(VisualNoiseParams(width=width, height=height))
-    squares = PauricSquaresModule(PauricSquaresParams(width=width, height=height))
-    composite = CompositeModule(CompositeParams(width=width, height=height, operation=CompositeOp.ADD), noise, squares)
-    tex = composite.render_texture(ctx, width, height, t=0.0)
-    img = np.frombuffer(tex.read(), dtype=np.uint8).reshape((height, width, 4))
-    print("CompositeModule test image shape:", img.shape)

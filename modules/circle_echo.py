@@ -13,8 +13,6 @@ class CircleEchoParams(BaseAVParams):
 
 
 class CircleEchoUniforms(Uniforms, total=True):
-    u_time: float
-    u_resolution: Tuple[int, int]
     u_n_circles: int
     u_mod_depth: float
     u_audio_level: float
@@ -45,9 +43,8 @@ class CircleEcho(BaseAVModule[CircleEchoParams]):
         super().__init__(params)
         self.band_levels_processor = band_levels_processor
 
-    def render_data(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> RenderData:
         uniforms: CircleEchoUniforms = {
-            "u_time": t,
             "u_resolution": (self.params.width, self.params.height),
             "u_n_circles": self.params.n_circles,
             "u_mod_depth": self.params.mod_depth,

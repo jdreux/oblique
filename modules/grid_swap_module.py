@@ -3,16 +3,16 @@ from typing import Tuple
 
 import moderngl
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamInt, ParamTexture, RenderData, Uniforms
 
 
 @dataclass
 class GridSwapModuleParams(BaseAVParams):
-    grid_size: int = 8  # NxN grid size
-    swap_frequency: float = 1.0  # How often swaps occur (in Hz)
-    swap_phase: float = 0.0  # Phase offset for swap timing
-    num_swaps: int = 8
-
+    swapped_texture: ParamTexture 
+    grid_size: ParamInt = 8  # NxN grid size
+    swap_frequency: ParamFloat = 1.0  # How often swaps occur (in Hz)
+    swap_phase: ParamFloat = 0.0  # Phase offset for swap timing
+    num_swaps: ParamInt = 8
 
 class GridSwapModuleUniforms(Uniforms, total=True):
     u_time: float
@@ -37,7 +37,7 @@ class GridSwapModule(BaseAVModule[GridSwapModuleParams]):
     }
     frag_shader_path: str = "shaders/grid-swap-module.frag"
 
-    def __init__(self, params: GridSwapModuleParams, module: BaseAVModule):
+    def __init__(self, params: GridSwapModuleParams):
         """
         Initialize GridSwapModule module.
         Args:
@@ -45,19 +45,18 @@ class GridSwapModule(BaseAVModule[GridSwapModuleParams]):
             module (BaseAVModule): Upstream module to get texture from.
         """
         super().__init__(params)
-        self.upstream_module = module
 
-    def render_data(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> RenderData:
         """
         Return the data needed for the renderer to render this module.
         """
         uniforms: GridSwapModuleUniforms = {
             "u_time": t,
-            "u_resolution": (self.params.width, self.params.height),
-            "u_grid_size": self.params.grid_size,
-            "u_swap_frequency": self.params.swap_frequency,
-            "u_swap_phase": self.params.swap_phase,
-            "u_num_swaps": self.params.num_swaps,
+            "u_resolution": (self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
+            "u_grid_size": self._resolve_param(self.params.grid_size),
+            "u_swap_frequency": self._resolve_param(self.params.swap_frequency),
+            "u_swap_phase": self._resolve_param(self.params.swap_phase),
+            "u_num_swaps": self._resolve_param(self.params.num_swaps),
             "tex0": self.upstream_tex,
         }
         return RenderData(
@@ -73,13 +72,6 @@ class GridSwapModule(BaseAVModule[GridSwapModuleParams]):
         t: float,
         filter=moderngl.NEAREST,
     ) -> moderngl.Texture:
-        self.upstream_tex = self.upstream_module.render_texture(ctx, width, height, t)
+        self.upstream_tex = self._resolve_texture_param(self.params.swapped_texture, ctx, width, height, t, filter)
         # Render the module to a texture
         return super().render_texture(ctx, width, height, t)
-
-
-if __name__ == "__main__":
-    # Test with dynamic swap generation
-    params = GridSwapModuleParams(
-        width=800, height=600, grid_size=8, swap_frequency=2.0, swap_phase=0.0
-    )

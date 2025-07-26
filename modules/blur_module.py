@@ -2,17 +2,16 @@ from dataclasses import dataclass
 
 import moderngl
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamInt, RenderData, Uniforms
 
 
 @dataclass
 class BlurParams(BaseAVParams):
     """Parameters for the Blur module."""
-    blur_amount: float = 10.0  # Blur strength (pixels)
-    blur_direction: tuple[float, float] = (1.0, 1.0)  # Blur direction vector
-    kernel_size: int = 5  # Kernel size: larger is more blur but slower. Recommend 5-20
-    width: int = 800
-    height: int = 600
+    blur_amount: ParamFloat = 10.0  # Blur strength (pixels)
+    kernel_size: ParamInt = 5  # Kernel size: larger is more blur but slower. Recommend 5-20
+    width: ParamInt = 800
+    height: ParamInt = 600
 
 
 class BlurUniforms(Uniforms, total=True):
@@ -45,15 +44,15 @@ class BlurModule(BaseAVModule[BlurParams]):
         # Upstream module for input texture
         self.upstream_module = upstream_module
 
-    def render_data(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> RenderData:
         """
         Return the data needed for the renderer to render this module.
         """
 
         uniforms: BlurUniforms = {
             "u_time": t,
-            "u_resolution": (self.width, self.height),
-            "u_kernel_size": self.params.kernel_size,
+            "u_resolution": (self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
+            "u_kernel_size": self._resolve_param(self.params.kernel_size),
             "u_input_texture": self.upstream_tex,  # Will be set in render_texture
         }
 

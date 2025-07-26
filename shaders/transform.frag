@@ -6,7 +6,6 @@ Description: Applies affine transformations (scale, rotate, translate) to UV coo
 Inputs:
   uniform mat3 u_transform_matrix; // 3x3 affine transformation matrix
   uniform vec2 u_resolution; // Viewport resolution
-  uniform float u_time; // Current time
   uniform sampler2D u_texture; // Input texture 
 */
 
@@ -16,7 +15,6 @@ precision mediump float;
 
 uniform mat3 u_transform_matrix;
 uniform vec2 u_resolution;
-uniform float u_time;
 uniform sampler2D u_texture;
 
 out vec4 fragColor;

@@ -3,16 +3,17 @@ from typing import Optional
 
 import moderngl
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, RenderData, Uniforms
 
 
 @dataclass
 class FeedbackParams(BaseAVParams):
     """Parameters for the Feedback module."""
 
-    feedback_strength: float = 0.97     # How much previous frame to blend. Decay rate per second is
-                                        # feedback_strength^frame_rate so it decays very quickly.
-    direction: tuple[float, float] = (0,0) # direction of the feedback effect -- 0,0 is in place
+    feedback_strength: ParamFloat = 0.97  # How much previous frame to blend. Decay rate per second is
+    # feedback_strength^frame_rate so it decays very quickly.
+    direction: tuple[ParamFloat, ParamFloat] = (0, 0)  # direction of the feedback effect -- 0,0 is in place
+
 
 class FeedbackUniforms(Uniforms, total=True):
     u_time: float
@@ -70,18 +71,20 @@ class FeedbackModule(BaseAVModule[FeedbackParams]):
             self.previous_frame.release()
             self.previous_frame = None
 
-
-    def render_data(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> RenderData:
         """
         Return the data needed for the renderer to render this module.
         """
         uniforms: FeedbackUniforms = {
             "u_time": t,
-            "u_resolution": (self.width, self.height),
-            "u_feedback_strength": self.params.feedback_strength,
+            "u_resolution": (self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
+            "u_feedback_strength": self._resolve_param(self.params.feedback_strength),
             "u_feedback_texture": self.previous_frame if self.previous_frame else None,
             "u_input_texture": self.upstream_tex if self.upstream_tex else None,
-            "u_direction": self.params.direction,
+            "u_direction": (
+                self._resolve_param(self.params.direction[0]),
+                self._resolve_param(self.params.direction[1]),
+            ),
         }
 
         return RenderData(
@@ -89,8 +92,9 @@ class FeedbackModule(BaseAVModule[FeedbackParams]):
             uniforms=uniforms,
         )
 
-    def copy_texture_to_previous_frame(self, ctx: moderngl.Context,
-        width: int, height: int, texture: moderngl.Texture) -> None:
+    def copy_texture_to_previous_frame(
+        self, ctx: moderngl.Context, width: int, height: int, texture: moderngl.Texture
+    ) -> None:
         """
         Copy the texture from the upstream module to the previous frame.
         """
@@ -111,9 +115,8 @@ class FeedbackModule(BaseAVModule[FeedbackParams]):
 
             # Render the current frame to the previous frame texture
             from core.renderer import render_fullscreen_quad
-            render_fullscreen_quad(
-                ctx, "shaders/passthrough.frag", {"u_texture": texture}
-            )
+
+            render_fullscreen_quad(ctx, "shaders/passthrough.frag", {"u_texture": texture})
         finally:
             ctx.screen.use()
 
@@ -143,4 +146,3 @@ class FeedbackModule(BaseAVModule[FeedbackParams]):
         self.copy_texture_to_previous_frame(ctx, width, height, current_frame)
 
         return current_frame
-

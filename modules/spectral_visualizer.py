@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 from modules.base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
 from processing.fft_bands import FFTBands
@@ -15,10 +15,9 @@ class SpectralVisualizerParams(BaseAVParams):
 
 
 class SpectralVisualizerUniforms(Uniforms, total=True):
-    u_time: float
-    u_resolution: Tuple[int, int]
     u_bands: List[float]
     u_num_bands: int
+    u_time: float
 
 
 class SpectralVisualizerModule(BaseAVModule[SpectralVisualizerParams]):
@@ -51,7 +50,7 @@ class SpectralVisualizerModule(BaseAVModule[SpectralVisualizerParams]):
         else:
             self.bands = bands.copy()
 
-    def render_data(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> RenderData:
         if self.band_levels_processor is not None:
             processor_bands = self.band_levels_processor.process()
             self.set_bands(list(processor_bands))

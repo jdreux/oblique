@@ -46,7 +46,7 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
     # fft_bands_processor64 = FFTBands(audio_input, perceptual=True, num_bands=64)
 
     ikeda_tiny_barcode_module = IkedaTinyBarcodeModule(
-        IkedaTinyBarcodeParams(width=width, height=height), fft_bands_processor512
+        IkedaTinyBarcodeParams(fft_bands=fft_bands_processor512, width=width, height=height),
     )
     spectral_visualizer_module = SpectralVisualizerModule(
         SpectralVisualizerParams(width=width, height=height), fft_bands_processor512
@@ -69,11 +69,14 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
         PauricSquaresParams(
             width=width,
             height=height,
-        )
+            motif_texture=ryoji_lines_module,
+        ),
     )
 
     transform_module = TransformModule(
         TransformParams(
+            width=width,
+            height=height,
             # scale=(1.0, 1.0),
             # angle=0.0,
             # pivot=(0.5, 0.5),
@@ -103,8 +106,8 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
             swap_frequency=2.0,  # Increased frequency for more visible swaps
             swap_phase=0.0,
             num_swaps=128,
+            swapped_texture=barrel_distortion_module,
         ),
-        module=barrel_distortion_module,
     )
 
 
@@ -119,13 +122,13 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
 
     level_module = LevelModule(
         LevelParams(
+            width=width,
+            height=height,
             parent_module=feedback_module,
             invert=True,
         ),
     )
 
-
-    
     media_module = MediaModule(
         MediaParams(
             file_path="./projects/demo/media/banana-alpha.png",
@@ -157,6 +160,8 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
 
     composite_transform = TransformModule(
         TransformParams(
+            width=width,
+            height=height,
             transform_order="SRT",
         ),
         upstream_module=composite_feedback,
