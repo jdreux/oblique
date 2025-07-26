@@ -26,6 +26,7 @@ class BrokenCirclesParams(BaseAVParams):
 class BrokenCirclesUniforms(Uniforms, total=True):
     u_resolution: Tuple[int, int]
     u_amplitudes: List[float]
+    u_time: float
 
 class BrokenCirclesModule(BaseAVModule[BrokenCirclesParams]):
     """
@@ -55,5 +56,6 @@ class BrokenCirclesModule(BaseAVModule[BrokenCirclesParams]):
             uniforms=BrokenCirclesUniforms(
                 u_resolution=(self.params.width, self.params.height),
                 u_amplitudes=amplitudes,
+                u_time=t,
             ),
         )

@@ -1,16 +1,18 @@
 from core.oblique_patch import ObliquePatch
 from inputs.audio_device_input import AudioDeviceInput
 from modules.base_av_module import BaseAVModule
-from modules.media_module import MediaModule, MediaParams, AspectMode
 
 # --- Module imports ---
 from modules.broken_circles import BrokenCirclesModule, BrokenCirclesParams
+from modules.composite_module import CompositeModule, CompositeOp, CompositeParams
+from modules.level_module import LevelModule, LevelParams
+from modules.media_module import AspectMode, MediaModule, MediaParams
 from modules.pauric_squares_module import PauricSquaresModule, PauricSquaresParams
-from modules.composite_module import CompositeModule, CompositeParams
-from modules.composite_module import CompositeOp
-from processing.envelope import Envelope
-from processing.normalized_amplitude import NormalizedAmplitudeOperator
+from modules.feedback import FeedbackModule, FeedbackParams
+from modules.blur_module import BlurModule, BlurParams
 
+from processing.envelope import Envelope
+from processing.normalized_amplitude import CurveType, NormalizedAmplitudeOperator
 
 def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) -> ObliquePatch:
     """
@@ -44,7 +46,7 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
     a5 = NormalizedAmplitudeOperator(t5)
     a8 = NormalizedAmplitudeOperator(t8)
 
-    a9 = Envelope(NormalizedAmplitudeOperator(t9).process, decay=0.01)
+    a9 = Envelope(NormalizedAmplitudeOperator(t9, curve=CurveType.SIGMOID).process, decay=0.1)
     a10 = Envelope(NormalizedAmplitudeOperator(t10).process, decay=0.1)
     a11 = Envelope(NormalizedAmplitudeOperator(t11).process, decay=0.1)
 
@@ -74,26 +76,56 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
         ),
     )
 
+    level_module = LevelModule(
+        LevelParams(
+            width=width,
+            height=height,
+            parent_module=pauric_squares_module,
+        ),
+    )
+
     composite_module = CompositeModule(
         CompositeParams(
             width=width,
             height=height,
             operation=CompositeOp.ATOP,
         ),
-        top_module=pauric_squares_module,
+        top_module=level_module,
         bottom_module=media_module,
+    )
+
+    feedback_module = FeedbackModule(
+        FeedbackParams(
+            width=width,
+            height=height,
+            feedback_strength=0.5,
+            direction=(-0.01, 0.010),
+        ),
+        upstream_module=pauric_squares_module
+    )
+
+    blur_module = BlurModule(
+        BlurParams(
+            width=width,
+            height=height,
+            blur_amount=10000,
+        ),
+        upstream_module=pauric_squares_module,
     )
 
     def tick_callback(t: float) -> BaseAVModule:
         # respond to bass intensity
-        pauric_squares_module.params.tile_size = int(1 + 100 * max(a10.process(), a11.process()))
+        pauric_squares_module.params.tile_size = int(1 + 10 * max(a10.process(), a11.process()))
 
-        print(f"a8: {a8.process()}")
+        # print(f"a8: {a8.process()}")
 
         if a8.process() > 0.001:
+            level_module.params.invert = True
+            # feedback_module.params.direction = (-feedback_module.params.direction[0], feedback_module.params.direction[1])
             return composite_module
         else:
-            return pauric_squares_module
+            level_module.params.invert = False
+            return blur_module
 
     return ObliquePatch(
         audio_output=mix_LR,

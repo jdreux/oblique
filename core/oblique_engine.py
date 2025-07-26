@@ -54,7 +54,7 @@ class ObliqueEngine:
         set_debug_mode(debug)
 
         # Performance monitoring
-        self.performance_monitor = PerformanceMonitor() if debug else None
+        self.performance_monitor = PerformanceMonitor()
 
         # OpenGL context
         self.window: Optional[glfw._GLFWwindow] = None
