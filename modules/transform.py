@@ -4,11 +4,12 @@ from typing import Tuple
 import moderngl
 import numpy as np
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, ParamTexture, RenderData, Uniforms
 
 
 @dataclass
 class TransformParams(BaseAVParams):
+    input_texture: ParamTexture  # Input texture to transform
     scale: Tuple[float, float] = (1.0, 1.0)  # 2D scale factors (x, y) - values >1 enlarge, <1 shrink
     angle: float = 0.0  # Rotation angle in degrees
     pivot: Tuple[float, float] = (0.5, 0.5)  # Pivot point for rotation (0-1 UV space)
@@ -31,6 +32,7 @@ class TransformModule(BaseAVModule[TransformParams]):
         "name": "TransformModule",
         "description": "Applies affine transformations (scale, rotate, translate) to UV coordinates using a 3x3 matrix.",
         "parameters": {
+            "input_texture": "ParamTexture",
             "scale": "Tuple[float, float]",
             "angle": "float",
             "pivot": "Tuple[float, float]",
@@ -40,16 +42,14 @@ class TransformModule(BaseAVModule[TransformParams]):
     }
     frag_shader_path: str = "shaders/transform.frag"
 
-    def __init__(self, params: TransformParams, upstream_module: BaseAVModule):
+    def __init__(self, params: TransformParams):
         """
         Initialize Transform module.
 
         Args:
             params (TransformParams): Parameters for the transformation
-            upstream_module (BaseAVModule): Upstream module to transform
         """
-        super().__init__(params, upstream_module)
-        self.upstream_module = upstream_module
+        super().__init__(params)
 
     def _build_transform_matrix(self) -> np.ndarray:
         """
@@ -142,9 +142,9 @@ class TransformModule(BaseAVModule[TransformParams]):
         matrix_flattened = tuple(transform_matrix.flatten('F'))
 
         uniforms: TransformUniforms = {
-            "u_resolution": (self.params.width, self.params.height),
+            "u_resolution": self._resolve_resolution(),
             "u_transform_matrix": matrix_flattened,
-            "u_texture": self.upstream_tex,
+            "u_texture": self.input_tex,
         }
 
         return RenderData(
@@ -161,23 +161,36 @@ class TransformModule(BaseAVModule[TransformParams]):
         filter=moderngl.NEAREST,
     ) -> moderngl.Texture:
         """
-        Render the transform module by first rendering the upstream module to a texture,
+        Render the transform module by first rendering the input texture,
         then applying the transform shader using that texture as input.
         """
 
-        self.upstream_tex = self.upstream_module.render_texture(ctx, width, height, t, filter)
+        self.input_tex = self._resolve_texture_param(self.params.input_texture, ctx, width, height, t, filter)
         # Render the module to a texture
         return super().render_texture(ctx, width, height, t)
 
 
 if __name__ == "__main__":
     # Test the transform module
+    from modules.debug import DebugModule, DebugParams
+
+    # Create a debug module as parent
+    debug_params = DebugParams(width=800, height=600)
+    debug_module = DebugModule(debug_params)
+
     params = TransformParams(
         width=800,
         height=600,
+        input_texture=debug_module,
         scale=(1.5, 0.8),
         angle=17.0,  # 17 degrees (was 0.3 radians)
         pivot=(0.5, 0.5),
         translate=(0.1, -0.1),
         transform_order="SRT",
     )
+
+    transform_module = TransformModule(params)
+
+    print("Transform Module created successfully!")
+    print(f"Parameters: {params}")
+    print(f"Metadata: {transform_module.metadata}")

@@ -4,7 +4,7 @@ from typing import Tuple
 
 import moderngl
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, ParamTexture, RenderData, Uniforms
 
 
 class CompositeOp(int, Enum):
@@ -45,9 +45,9 @@ class CompositeParams(BaseAVParams):
         height (int): Output height
         operation (CompositeOp): Blend/composite operation to use
     """
+    top_texture: ParamTexture
+    bottom_texture: ParamTexture
     operation: CompositeOp = CompositeOp.ADD
-    width: int = 800
-    height: int = 600
 
 class CompositeUniforms(Uniforms, total=True):
     top_tex: moderngl.Texture
@@ -66,16 +66,12 @@ class CompositeModule(BaseAVModule[CompositeParams]):
     }
     frag_shader_path: str = "shaders/composite.frag"
 
-    def __init__(self, params: CompositeParams, top_module: BaseAVModule, bottom_module: BaseAVModule):
+    def __init__(self, params: CompositeParams):
         super().__init__(params)
-        self.top_module = top_module
-        self.bottom_module = bottom_module
-        self.width = self.params.width
-        self.height = self.params.height
 
     def prepare_uniforms(self, t: float) -> RenderData:
         uniforms: CompositeUniforms = {
-            "u_resolution": (self.width, self.height),
+            "u_resolution": (self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
             "top_tex": self.top_tex,
             "bottom_tex": self.bottom_tex,
             "u_op": int(self.params.operation),
@@ -93,6 +89,6 @@ class CompositeModule(BaseAVModule[CompositeParams]):
         t: float,
         filter=moderngl.NEAREST,
     ) -> moderngl.Texture:
-        self.top_tex = self.top_module.render_texture(ctx, width, height, t)
-        self.bottom_tex = self.bottom_module.render_texture(ctx, width, height, t)
+        self.top_tex = self._resolve_texture_param(self.params.top_texture, ctx, width, height, t, filter)
+        self.bottom_tex = self._resolve_texture_param(self.params.bottom_texture, ctx, width, height, t, filter)
         return super().render_texture(ctx, width, height, t)

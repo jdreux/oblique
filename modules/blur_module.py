@@ -2,16 +2,15 @@ from dataclasses import dataclass
 
 import moderngl
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamInt, RenderData, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamInt, ParamTexture, RenderData, Uniforms
 
 
 @dataclass
 class BlurParams(BaseAVParams):
     """Parameters for the Blur module."""
+    input_texture: ParamTexture  # Input texture to blur
     blur_amount: ParamFloat = 10.0  # Blur strength (pixels)
     kernel_size: ParamInt = 5  # Kernel size: larger is more blur but slower. Recommend 5-20
-    width: ParamInt = 800
-    height: ParamInt = 600
 
 
 class BlurUniforms(Uniforms, total=True):
@@ -36,13 +35,10 @@ class BlurModule(BaseAVModule[BlurParams]):
     }
     frag_shader_path: str = "shaders/blur-module.frag"
 
-    def __init__(self, params: BlurParams, upstream_module: "BaseAVModule"):
+    def __init__(self, params: BlurParams):
         super().__init__(params)
         self.width = self.params.width
         self.height = self.params.height
-
-        # Upstream module for input texture
-        self.upstream_module = upstream_module
 
     def prepare_uniforms(self, t: float) -> RenderData:
         """
@@ -51,9 +47,9 @@ class BlurModule(BaseAVModule[BlurParams]):
 
         uniforms: BlurUniforms = {
             "u_time": t,
-            "u_resolution": (self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
+            "u_resolution": self._resolve_resolution(),
             "u_kernel_size": self._resolve_param(self.params.kernel_size),
-            "u_input_texture": self.upstream_tex,  # Will be set in render_texture
+            "u_input_texture": self.input_tex,  # Will be set in render_texture
         }
 
         return RenderData(
@@ -70,9 +66,9 @@ class BlurModule(BaseAVModule[BlurParams]):
         filter=moderngl.NEAREST,
     ) -> moderngl.Texture:
         """
-        Override render_texture to handle input texture from upstream module.
+        Override render_texture to handle input texture from input module.
         """
 
-        self.upstream_tex = self.upstream_module.render_texture(ctx, width, height, t)
+        self.input_tex = self._resolve_texture_param(self.params.input_texture, ctx, width, height, t, filter)
         # Render the module to a texture
         return super().render_texture(ctx, width, height, t)

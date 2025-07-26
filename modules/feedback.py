@@ -3,13 +3,14 @@ from typing import Optional
 
 import moderngl
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, RenderData, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamTexture, RenderData, Uniforms
 
 
 @dataclass
 class FeedbackParams(BaseAVParams):
     """Parameters for the Feedback module."""
-
+    
+    input_texture: ParamTexture  # Input texture for feedback
     feedback_strength: ParamFloat = 0.97  # How much previous frame to blend. Decay rate per second is
     # feedback_strength^frame_rate so it decays very quickly.
     direction: tuple[ParamFloat, ParamFloat] = (0, 0)  # direction of the feedback effect -- 0,0 is in place
@@ -40,20 +41,17 @@ class FeedbackModule(BaseAVModule[FeedbackParams]):
     }
     frag_shader_path: str = "shaders/feedback.frag"
 
-    def __init__(self, params: FeedbackParams, upstream_module: "BaseAVModule"):
+    def __init__(self, params: FeedbackParams):
         super().__init__(params)
         self.width = self.params.width
         self.height = self.params.height
 
         # Feedback texture storage
         self.previous_frame: Optional[moderngl.Texture] = None
-        self.upstream_tex: Optional[moderngl.Texture] = None
+        self.input_tex: Optional[moderngl.Texture] = None
 
         # Cached framebuffer for texture copying
         self._cached_fbo: Optional[moderngl.Framebuffer] = None
-
-        # Upstream module for input
-        self.upstream_module = upstream_module
 
     def reset_feedback(self) -> None:
         """Reset the feedback buffer by clearing the previous frame."""
@@ -77,10 +75,10 @@ class FeedbackModule(BaseAVModule[FeedbackParams]):
         """
         uniforms: FeedbackUniforms = {
             "u_time": t,
-            "u_resolution": (self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
+            "u_resolution": self._resolve_resolution(),
             "u_feedback_strength": self._resolve_param(self.params.feedback_strength),
             "u_feedback_texture": self.previous_frame if self.previous_frame else None,
-            "u_input_texture": self.upstream_tex if self.upstream_tex else None,
+            "u_input_texture": self.input_tex if self.input_tex else None,
             "u_direction": (
                 self._resolve_param(self.params.direction[0]),
                 self._resolve_param(self.params.direction[1]),
@@ -96,7 +94,7 @@ class FeedbackModule(BaseAVModule[FeedbackParams]):
         self, ctx: moderngl.Context, width: int, height: int, texture: moderngl.Texture
     ) -> None:
         """
-        Copy the texture from the upstream module to the previous frame.
+        Copy the texture from the input module to the previous frame.
         """
         # Initialize feedback texture if needed
         if self.previous_frame is None:
@@ -133,11 +131,11 @@ class FeedbackModule(BaseAVModule[FeedbackParams]):
         Stores the current frame as the previous frame for the next render.
         """
 
-        # Get input texture from upstream module
-        self.upstream_tex = self.upstream_module.render_texture(ctx, width, height, t)
+        # Get input texture from input module
+        self.input_tex = self._resolve_texture_param(self.params.input_texture, ctx, width, height, t, filter)
 
         if self.previous_frame is None:
-            self.copy_texture_to_previous_frame(ctx, width, height, self.upstream_tex)
+            self.copy_texture_to_previous_frame(ctx, width, height, self.input_tex)
 
         # Render the module to a texture
         current_frame = super().render_texture(ctx, width, height, t)

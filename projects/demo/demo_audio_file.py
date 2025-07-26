@@ -82,8 +82,8 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
             # pivot=(0.5, 0.5),
             # translate=(0.0, 0.0),
             transform_order="SRT",
+            input_texture=pauric_squares_module,
         ),
-        upstream_module=pauric_squares_module,
     )
 
 
@@ -94,8 +94,8 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
         BarrelDistortionParams(
             width=width,
             height=height,
+            input_texture=transform_module,
         ),
-        parent_module=transform_module,
     )
 
     grid_swap_module = GridSwapModule(
@@ -115,9 +115,9 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
         FeedbackParams(
             width=width,
             height=height,
-            feedback_strength=0.9
+            feedback_strength=0.9,
+            input_texture=grid_swap_module,
         ),
-        upstream_module=grid_swap_module,
     )
 
     level_module = LevelModule(
@@ -143,9 +143,9 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
             width=width,
             height=height,
             operation=CompositeOp.ATOP,
+            top_texture=level_module,
+            bottom_texture=media_module,
         ),
-        top_module=level_module,
-        bottom_module=media_module,
     )
 
     composite_feedback = FeedbackModule(
@@ -153,9 +153,9 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
             width=width,
             height=height,
             feedback_strength=0,
-            direction=(0.0, -0.001)
+            direction=(0.0, -0.001),
+            input_texture=composite_module,
         ),
-        upstream_module=composite_module,
     )
 
     composite_transform = TransformModule(
@@ -163,8 +163,8 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
             width=width,
             height=height,
             transform_order="SRT",
+            input_texture=composite_feedback,
         ),
-        upstream_module=composite_feedback,
     )
 
 

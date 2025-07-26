@@ -195,3 +195,7 @@ class BaseAVModule(ObliqueNode, ABC, Generic[P]):
             return [self._resolve_texture_param(p, ctx, width, height, t, filter) for p in param]
         else:
             return param
+
+    def _resolve_resolution(self) -> tuple[int, int]:
+        """ Helper method to resolve the resolution of the module. """
+        return (self._resolve_param(self.params.width), self._resolve_param(self.params.height))
