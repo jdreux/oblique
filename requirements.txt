@@ -1,5 +1,7 @@
 moderngl
-pyglfw
+glfw
 numpy
 sounddevice
-soundfile 
+soundfile
+typing_extensions
+Pillow 
