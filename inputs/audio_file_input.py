@@ -8,6 +8,7 @@ from core.logger import debug, info
 
 from .base_input import BaseInput
 
+SUPPORTED_FORMATS = ('.wav', '.flac', '.aiff', '.aif', '.ogg')
 
 class AudioFileInput(BaseInput):
     HISTORY_SIZE = 4  # Class-level constant for buffer history size
@@ -24,15 +25,26 @@ class AudioFileInput(BaseInput):
         :param config: Optional configuration dictionary.
         """
         super().__init__(chunk_size=chunk_size)
+        # Validate supported audio file formats
         self.file_path = file_path
+        if not self.file_path.lower().endswith(SUPPORTED_FORMATS):
+            raise ValueError(
+                f"Unsupported audio file format for '{self.file_path}'. "
+                f"Supported formats are: {', '.join(SUPPORTED_FORMATS)}"
+            )
         self.file = None
         self.samplerate = None
         self.channels = None
         self._buffer = None
         self._pos = 0
         self._last_chunk = None  # Initialize for peek()
-        self._chunk_history = collections.deque(maxlen=self.HISTORY_SIZE)
-        self._buffer, self.samplerate = sf.read(self.file_path, always_2d=True)
+        self._chunk_history = collections.deque(maxlen=self.HISTORY_SIZE)    
+        try:
+            self._buffer, self.samplerate = sf.read(self.file_path, always_2d=True)
+        except Exception as e:
+            error_msg = f"Failed to read audio file '{self.file_path}': {e}"
+            info(error_msg)
+            raise RuntimeError(error_msg) from e
         self.channels = self._buffer.shape[1]
 
     def start(self) -> None:
