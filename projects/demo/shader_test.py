@@ -33,7 +33,7 @@ def shader_test(width: int, height: int) -> ObliquePatch:
     )
 
     def tick_callback(t: float) -> BaseAVModule:
-        return protoplasm_module
+        return ikeda_test_pattern_module
 
     return ObliquePatch(
         tick_callback=tick_callback,

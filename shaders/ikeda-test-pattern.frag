@@ -19,9 +19,17 @@ uniform vec2 u_resolution;
 uniform float u_time;
 uniform sampler2D u_noise_texture;
 
+#define NUM_BARS 32
+#define VERTICAL_HEIGHT 256.0
+
 out vec4 fragColor;
 
 void main() {
+//     vec2 f = gl_FragCoord.xy;
+//     vec2 u=(f/u_resolution.xy) / vec2(1.0, 8.0);
+//     fragColor=vec4((fract(texture(u_noise_texture,u).r+u_time*.5)<.5||fract(u.y*256.)<.15)?1.0:0.0);
+// }
+
     // Original ShaderToy variables renamed:
     //   f          → fragCoord.xy (pixel position)
     //   iResolution → u_resolution
@@ -30,15 +38,17 @@ void main() {
 
     vec2 f = gl_FragCoord.xy;
 
-    // Normalised coordinates (divide by resolution) and squash vertically by 16.
-    vec2 u = (f / u_resolution) / vec2(1.0, 16.0);
+    // Normalised coordinates (divide by resolution) and squash vertically. 
+    vec2 u = (f / u_resolution) / vec2(1.0, VERTICAL_HEIGHT/NUM_BARS);
 
     // Texture-driven glitch test pattern.
-    float texSample = texture(u_noise_texture, u).r;
-    float v = fract(texSample + u_time * 0.5);
+    // Per-bar texture sampling on y axis.  
+    float texSample = texture(u_noise_texture, vec2(u.x, floor(u.y*VERTICAL_HEIGHT) / float(NUM_BARS))).r;
+    // float v = fract(texSample + u_time * 0.5);
+    float v = fract(texSample);
 
-    // Horizontal stripes every 256 texels in the compressed vertical axis.
-    float stripe = fract(u.y * 256.0);
+    // Horizontal stripes every VERTICAL_HEIGHT texels in the compressed vertical axis.
+    float stripe = fract(u.y * VERTICAL_HEIGHT);
 
     // Binary pattern: white if either glitch value < 0.5 OR we’re on a stripe line.
     float pattern = (v < 0.5 || stripe < 0.15) ? 1.0 : 0.0;

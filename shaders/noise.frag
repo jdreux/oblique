@@ -24,8 +24,8 @@ uniform float u_time;
 out vec4 fragColor;
 
 // Scale UV to control noise frequency; tweak for desired granularity
-const float NOISE_SCALE = 4096;        // higher = finer noise
-const float TIME_SPEED  = 0.85;        // speed of temporal evolution
+const float NOISE_SCALE = pow(2, 6);        // higher = finer noise
+const float TIME_SPEED  = 0.5;        // speed of temporal evolution
 
 // ---- Main ------------------------------------------------------------------
 void main() {

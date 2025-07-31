@@ -20,8 +20,11 @@ class IkedaTestPatternParams(BaseAVParams):
 
 class IkedaTestPatternUniforms(Uniforms, total=True):
     u_time: float
-    # u_noise_texture: moderngl.Texture
+    u_noise_texture: OffscreenTexturePass
 
+debug_texture: OffscreenTexturePass = OffscreenTexturePass(
+    frag_shader_path="shaders/debug.frag",
+)
 
 class IkedaTestPatternModule(BaseAVModule[IkedaTestPatternParams]):
     """
@@ -43,14 +46,14 @@ class IkedaTestPatternModule(BaseAVModule[IkedaTestPatternParams]):
             "speed": "float",
         },
     }
-    # frag_shader_path = "shaders/ikeda-test-pattern.frag"
-    frag_shader_path = "shaders/protoplasm.frag"
+    frag_shader_path = "shaders/ikeda-test-pattern.frag"
 
-    offscreen_passes = {
-        "texture": OffscreenTexturePass(
-            frag_shader_path="shaders/noise.frag",
-        )
-    }
+    debug_texture: OffscreenTexturePass = debug_texture
+
+    noise_texture: OffscreenTexturePass = OffscreenTexturePass(
+        frag_shader_path="shaders/noise.frag",
+        offscreen_inputs={"u_debug_texture": debug_texture}
+    )
 
     def __init__(self, params: IkedaTestPatternParams):
         super().__init__(params)
@@ -67,7 +70,8 @@ class IkedaTestPatternModule(BaseAVModule[IkedaTestPatternParams]):
         """
         uniforms: IkedaTestPatternUniforms = {
             "u_resolution": self._resolve_resolution(),
-            "u_time": t
+            "u_time": t,
+            "u_noise_texture": self.noise_texture
         }
 
         return RenderData(
