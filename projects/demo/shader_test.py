@@ -1,6 +1,7 @@
 from core.logger import error, info
 from core.oblique_engine import ObliqueEngine
 from core.oblique_patch import ObliquePatch
+from modules.barrel_distortion import BarrelDistortionModule, BarrelDistortionParams
 from modules.base_av_module import BaseAVModule
 from modules.blur_module import BlurModule, BlurParams
 from modules.debug import DebugModule, DebugParams
@@ -32,8 +33,25 @@ def shader_test(width: int, height: int) -> ObliquePatch:
         )
     )
 
+    barrel_distortion_module = BarrelDistortionModule(
+        BarrelDistortionParams(
+            width=width,
+            height=height,
+            input_texture=ikeda_test_pattern_module,
+        )
+    )
+
+    blur_module = BlurModule(
+        BlurParams(
+            width=width,
+            height=height,
+            input_texture=barrel_distortion_module,
+            blur_amount=1000000.0,
+            kernel_size=5,
+        )
+    )
     def tick_callback(t: float) -> BaseAVModule:
-        return ikeda_test_pattern_module
+        return blur_module
 
     return ObliquePatch(
         tick_callback=tick_callback,

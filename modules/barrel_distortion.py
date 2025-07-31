@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import moderngl
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamTexture, RenderData, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamTexture, Uniforms
 
 
 @dataclass
@@ -15,10 +15,10 @@ class BarrelDistortionParams(BaseAVParams):
 class BarrelDistortionUniforms(Uniforms, total=True):
     u_strength: float
     u_center: tuple[float, float]
-    u_texture: moderngl.Texture
+    u_texture: moderngl.Texture | BaseAVModule
 
 
-class BarrelDistortionModule(BaseAVModule[BarrelDistortionParams]):
+class BarrelDistortionModule(BaseAVModule[BarrelDistortionParams, BarrelDistortionUniforms]):
     """
     Barrel/Pincushion distortion module that applies radial distortion to UV coordinates.
     Positive strength values create barrel distortion (bulging outward).
@@ -45,44 +45,24 @@ class BarrelDistortionModule(BaseAVModule[BarrelDistortionParams]):
         """
         super().__init__(params)
 
-    def prepare_uniforms(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> BarrelDistortionUniforms:
         """
-        Return shader data with distortion parameters.
+        Return uniforms with distortion parameters.
 
         Args:
             t (float): Current time
 
         Returns:
-            dict[str, Any]: Shader path and uniforms
+            Uniforms: Uniform values to pass to the shader
         """
         uniforms: BarrelDistortionUniforms = {
             "u_resolution": (self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
             "u_strength": self._resolve_param(self.params.strength),
             "u_center": (self._resolve_param(self.params.center[0]), self._resolve_param(self.params.center[1])),
-            "u_texture": self.input_tex,
+            "u_texture": self.params.input_texture,
         }
 
-        return RenderData(
-            frag_shader_path=self.frag_shader_path,
-            uniforms=uniforms,
-        )
-
-    def render_texture(
-        self,
-        ctx,
-        width: int,
-        height: int,
-        t: float,
-        filter=moderngl.NEAREST,
-    ) -> moderngl.Texture:
-        """
-        Render the barrel distortion module by first rendering the input texture,
-        then applying the distortion shader using that texture as input.
-        """
-        self.input_tex = self._resolve_texture_param(self.params.input_texture, ctx, width, height, t, filter)
-        # Render the module to a texture
-        return super().render_texture(ctx, width, height, t)
-
+        return uniforms
 
 if __name__ == "__main__":
     # Test the barrel distortion module

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from processing.fft_bands import FFTBands
 
-from .base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamFloatList, ParamInt, RenderData, Uniforms
+from .base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamFloatList, ParamInt, Uniforms
 
 
 @dataclass
@@ -27,7 +27,7 @@ class IkedaTinyBarcodeUniforms(Uniforms, total=True):
     u_fft_bands: list[float]
 
 
-class IkedaTinyBarcodeModule(BaseAVModule[IkedaTinyBarcodeParams]):
+class IkedaTinyBarcodeModule(BaseAVModule[IkedaTinyBarcodeParams, IkedaTinyBarcodeUniforms]):
     """
     Ikeda Tiny Barcode module that generates a glitchy barcode pattern based on ShaderToy implementation.
 
@@ -56,15 +56,15 @@ class IkedaTinyBarcodeModule(BaseAVModule[IkedaTinyBarcodeParams]):
     def __init__(self, params: IkedaTinyBarcodeParams):
         super().__init__(params)
 
-    def prepare_uniforms(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> IkedaTinyBarcodeUniforms:
         """
-        Return shader path and uniforms for rendering.
+        Return uniforms for rendering.
 
         Args:
             t (float): Current time in seconds
 
         Returns:
-            dict[str, Any]: Shader data and uniforms
+            Uniforms: Uniform values to pass to the shader
         """
         uniforms: IkedaTinyBarcodeUniforms = {
             "u_resolution": (self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
@@ -76,7 +76,4 @@ class IkedaTinyBarcodeModule(BaseAVModule[IkedaTinyBarcodeParams]):
             "u_fft_bands": self._resolve_param(self.params.fft_bands),
         }
 
-        return RenderData(
-            frag_shader_path=self.frag_shader_path,
-            uniforms=uniforms,
-        )
+        return uniforms

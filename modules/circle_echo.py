@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Tuple
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, Uniforms
 from processing.fft_bands import FFTBands
 
 
@@ -19,7 +19,7 @@ class CircleEchoUniforms(Uniforms, total=True):
     u_band_amps: Tuple[float, ...]
 
 
-class CircleEcho(BaseAVModule[CircleEchoParams]):
+class CircleEcho(BaseAVModule[CircleEchoParams, CircleEchoUniforms]):
     """
     CircleEcho - Concentric modulated circles.
     """
@@ -43,7 +43,7 @@ class CircleEcho(BaseAVModule[CircleEchoParams]):
         super().__init__(params)
         self.band_levels_processor = band_levels_processor
 
-    def prepare_uniforms(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> CircleEchoUniforms:
         uniforms: CircleEchoUniforms = {
             "u_resolution": (self.params.width, self.params.height),
             "u_n_circles": self.params.n_circles,
@@ -51,7 +51,4 @@ class CircleEcho(BaseAVModule[CircleEchoParams]):
             "u_audio_level": self.params.audio_level,
             "u_band_amps": tuple(self.band_levels_processor.process())
         }
-        return RenderData(
-            frag_shader_path=self.frag_shader_path,
-            uniforms=uniforms,
-        )
+        return uniforms

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Optional
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, ParamInt, ParamFloat, RenderData, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, ParamInt, ParamFloat, Uniforms
 from processing.fft_bands import FFTBands
 from processing.spectral_centroid import SpectralCentroid
 
@@ -26,7 +26,7 @@ class RyojiLinesUniforms(Uniforms, total=True):
     u_time: float
 
 
-class RyojiLines(BaseAVModule[RyojiLinesParams]):
+class RyojiLines(BaseAVModule[RyojiLinesParams, RyojiLinesUniforms]):
     """
     RyojiLines - Renders animated parallel lines representing FFT frequency bands.
     Each line corresponds to a frequency band and animates based on the band's amplitude.
@@ -52,9 +52,9 @@ class RyojiLines(BaseAVModule[RyojiLinesParams]):
         self.band_levels_processor = band_levels_processor
         self.spectral_centroid_processor = spectral_centroid_processor
 
-    def prepare_uniforms(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> RyojiLinesUniforms:
         """
-        Return the data needed for the renderer to render this module.
+        Return the uniforms needed for rendering.
         """
 
         bands = list(self.band_levels_processor.process())
@@ -78,7 +78,4 @@ class RyojiLines(BaseAVModule[RyojiLinesParams]):
             ),  # Use actual number of bands (up to 512)
             "u_spectral_brightness": spectral_brightness,
         }
-        return RenderData(
-            frag_shader_path=self.frag_shader_path,
-            uniforms=uniforms,
-        )
+        return uniforms

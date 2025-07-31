@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from processing.base_processing_operator import BaseProcessingOperator
 
-from .base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
+from .base_av_module import BaseAVModule, BaseAVParams, Uniforms
 
 
 @dataclass
@@ -15,7 +15,7 @@ class DebugUniforms(Uniforms, total=True):
     u_number: float
 
 
-class DebugModule(BaseAVModule[DebugParams]):
+class DebugModule(BaseAVModule[DebugParams, DebugUniforms]):
     """
     Debug module that displays an input number and string using a shader.
     """
@@ -35,16 +35,13 @@ class DebugModule(BaseAVModule[DebugParams]):
         super().__init__(params, number_input)
         self.number_input = number_input
 
-    def prepare_uniforms(self, t: float) -> RenderData:
-        # Return shader path and uniforms for rendering
+    def prepare_uniforms(self, t: float) -> DebugUniforms:
+        # Return uniforms for rendering
         if self.number_input:
             number = self.number_input.process()
         else:
             number = self.params.number
-        return RenderData(
-            frag_shader_path=self.frag_shader_path,
-            uniforms=DebugUniforms(
-                u_number=number,
-                u_resolution=(self.params.width, self.params.height)
-            ),
+        return DebugUniforms(
+            u_number=number,
+            u_resolution=(self.params.width, self.params.height)
         )

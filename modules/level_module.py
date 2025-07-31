@@ -3,7 +3,7 @@ from typing import Tuple
 
 import moderngl
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, ParamBool, ParamFloat, RenderData, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, ParamBool, ParamFloat, Uniforms
 
 
 @dataclass(kw_only=True)
@@ -37,7 +37,7 @@ class LevelUniforms(Uniforms, total=True):
     """Uniforms for the Level module shader."""
     u_time: float
     u_resolution: Tuple[int, int]
-    u_texture: moderngl.Texture
+    u_texture: BaseAVModule
     u_invert: float  # 1.0 if invert enabled, 0.0 otherwise
     u_black_level: float
     u_brightness: float
@@ -46,7 +46,7 @@ class LevelUniforms(Uniforms, total=True):
     u_opacity: float
 
 
-class LevelModule(BaseAVModule[LevelParams]):
+class LevelModule(BaseAVModule[LevelParams, LevelUniforms]):
     """
     Level module that applies level adjustments to input textures.
     
@@ -86,20 +86,20 @@ class LevelModule(BaseAVModule[LevelParams]):
         """
         super().__init__(params)
 
-    def prepare_uniforms(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> LevelUniforms:
         """
-        Return shader data with level adjustment uniforms.
+        Return uniforms for level adjustments.
 
         Args:
             t (float): Current time
 
         Returns:
-            dict[str, Any]: Shader path and uniforms
+            Uniforms: Uniform values to pass to the shader
         """
         uniforms: LevelUniforms = {
             "u_time": t,
             "u_resolution": (self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
-            "u_texture": self.parent_tex,
+            "u_texture": self.params.parent_module,
             "u_invert": 1.0 if self._resolve_param(self.params.invert) else 0.0,
             "u_black_level": self._resolve_param(self.params.black_level),
             "u_brightness": self._resolve_param(self.params.brightness),
@@ -108,25 +108,4 @@ class LevelModule(BaseAVModule[LevelParams]):
             "u_opacity": self._resolve_param(self.params.opacity),
         }
 
-        return RenderData(
-            frag_shader_path=self.frag_shader_path,
-            uniforms=uniforms,
-        )
-
-    def render_texture(
-        self,
-        ctx: moderngl.Context,
-        width: int,
-        height: int,
-        t: float,
-        filter=moderngl.NEAREST,
-    ) -> moderngl.Texture:
-        """
-        Render the level module by first rendering the parent module to a texture,
-        then applying the level adjustments using that texture as input.
-        """
-        # Render parent module to texture
-        self.parent_tex = self.params.parent_module.render_texture(ctx, width, height, t, filter)
-
-        # Render the level adjustments
-        return super().render_texture(ctx, width, height, t, filter)
+        return uniforms

@@ -5,9 +5,6 @@ import moderngl
 from .base_av_module import (
     BaseAVModule,
     BaseAVParams,
-    ParamFloat,
-    ParamTexture,
-    RenderData,
     Uniforms,
     OffscreenTexturePass,
 )
@@ -23,7 +20,7 @@ class ProtoplasmUniforms(Uniforms, total=True):
     u_texture: moderngl.Texture
 
 
-class ProtoplasmModule(BaseAVModule[ProtoplasmParams]):
+class ProtoplasmModule(BaseAVModule[ProtoplasmParams, ProtoplasmUniforms]):
     """
     Protoplasm module that generates organic, volumetric patterns using ray marching and FBM noise.
 
@@ -45,32 +42,25 @@ class ProtoplasmModule(BaseAVModule[ProtoplasmParams]):
     }
     frag_shader_path = "shaders/protoplasm.frag"
 
-    offscreen_passes = {
-        "noise_texture": OffscreenTexturePass(
-            frag_shader_path="shaders/noise.frag",
-        )
-    }
+    noise_pass: OffscreenTexturePass = OffscreenTexturePass(
+        frag_shader_path="shaders/noise.frag",
+    )
 
     def __init__(self, params: ProtoplasmParams):
         super().__init__(params)
 
-    def prepare_uniforms(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> ProtoplasmUniforms:
         """
-        Return shader path and uniforms for rendering.
+        Return uniforms for rendering.
 
         Args:
             t (float): Current time in seconds
 
         Returns:
-            RenderData: Shader data and uniforms
+            Uniforms: Uniform values to pass to the shader
         """
-        uniforms: ProtoplasmUniforms = {
-            "u_resolution": self._resolve_resolution(),
-            "u_time": t,
-            # "u_noise_texture": self.offscreen_passes["noise_texture"].texture
-        }
-
-        return RenderData(
-            frag_shader_path=self.frag_shader_path,
-            uniforms=uniforms,
+        return ProtoplasmUniforms(
+            u_resolution=self._resolve_resolution(),
+            u_time=t,
+            u_noise_texture=self.noise_pass
         )

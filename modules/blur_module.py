@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import moderngl
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamInt, ParamTexture, RenderData, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamInt, ParamTexture, Uniforms
 
 
 @dataclass
@@ -17,10 +17,10 @@ class BlurUniforms(Uniforms, total=True):
     u_time: float
     u_resolution: tuple[int, int]
     u_kernel_size: int
-    u_input_texture: moderngl.Texture | None
+    u_input_texture: BaseAVModule
 
 
-class BlurModule(BaseAVModule[BlurParams]):
+class BlurModule(BaseAVModule[BlurParams, BlurUniforms]):
     """
     Blur module that applies Gaussian blur to input textures using Lygia's gaussianBlur function.
     
@@ -40,35 +40,16 @@ class BlurModule(BaseAVModule[BlurParams]):
         self.width = self.params.width
         self.height = self.params.height
 
-    def prepare_uniforms(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> BlurUniforms:
         """
-        Return the data needed for the renderer to render this module.
+        Return the uniforms needed for rendering.
         """
 
         uniforms: BlurUniforms = {
             "u_time": t,
             "u_resolution": self._resolve_resolution(),
             "u_kernel_size": self._resolve_param(self.params.kernel_size),
-            "u_input_texture": self.input_tex,  # Will be set in render_texture
+            "u_input_texture": self.params.input_texture,
         }
 
-        return RenderData(
-            frag_shader_path=self.frag_shader_path,
-            uniforms=uniforms,
-        )
-
-    def render_texture(
-        self,
-        ctx: moderngl.Context,
-        width: int,
-        height: int,
-        t: float,
-        filter=moderngl.NEAREST,
-    ) -> moderngl.Texture:
-        """
-        Override render_texture to handle input texture from input module.
-        """
-
-        self.input_tex = self._resolve_texture_param(self.params.input_texture, ctx, width, height, t, filter)
-        # Render the module to a texture
-        return super().render_texture(ctx, width, height, t)
+        return uniforms

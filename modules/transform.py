@@ -4,7 +4,7 @@ from typing import Tuple
 import moderngl
 import numpy as np
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, ParamTexture, RenderData, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, ParamTexture, Uniforms
 
 
 @dataclass
@@ -19,10 +19,10 @@ class TransformParams(BaseAVParams):
 
 class TransformUniforms(Uniforms, total=True):
     u_transform_matrix: Tuple[Tuple[float, float, float], Tuple[float, float, float], Tuple[float, float, float]]  # 3x3 matrix as mat3
-    u_texture: moderngl.Texture
+    u_texture: BaseAVModule
 
 
-class TransformModule(BaseAVModule[TransformParams]):
+class TransformModule(BaseAVModule[TransformParams, TransformUniforms]):
     """
     Transform module that applies affine transformations to UV coordinates.
     Supports scale, rotate, and translate operations using a 3x3 matrix.
@@ -125,15 +125,15 @@ class TransformModule(BaseAVModule[TransformParams]):
 
         return matrix
 
-    def prepare_uniforms(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> TransformUniforms:
         """
-        Return shader data with transformation matrix.
+        Return uniforms with transformation matrix.
 
         Args:
             t (float): Current time
 
         Returns:
-            dict[str, Any]: Shader path and uniforms
+            Uniforms: Uniform values to pass to the shader
         """
         # Build transformation matrix
         transform_matrix = self._build_transform_matrix()
@@ -144,30 +144,10 @@ class TransformModule(BaseAVModule[TransformParams]):
         uniforms: TransformUniforms = {
             "u_resolution": self._resolve_resolution(),
             "u_transform_matrix": matrix_flattened,
-            "u_texture": self.input_tex,
+            "u_texture": self.params.input_texture,
         }
 
-        return RenderData(
-            frag_shader_path=self.frag_shader_path,
-            uniforms=uniforms,
-        )
-
-    def render_texture(
-        self,
-        ctx,
-        width: int,
-        height: int,
-        t: float,
-        filter=moderngl.NEAREST,
-    ) -> moderngl.Texture:
-        """
-        Render the transform module by first rendering the input texture,
-        then applying the transform shader using that texture as input.
-        """
-
-        self.input_tex = self._resolve_texture_param(self.params.input_texture, ctx, width, height, t, filter)
-        # Render the module to a texture
-        return super().render_texture(ctx, width, height, t)
+        return uniforms
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@ from typing import Literal
 
 from processing.base_processing_operator import BaseProcessingOperator
 
-from .base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamInt, RenderData, Uniforms
+from .base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamInt, Uniforms
 
 
 @dataclass
@@ -23,7 +23,7 @@ class VisualNoiseUniforms(Uniforms, total=True):
     u_time: float
 
 
-class VisualNoiseModule(BaseAVModule[VisualNoiseParams]):
+class VisualNoiseModule(BaseAVModule[VisualNoiseParams, VisualNoiseUniforms]):
     """
     Visual noise module that generates different types of noise patterns.
 
@@ -54,15 +54,15 @@ class VisualNoiseModule(BaseAVModule[VisualNoiseParams]):
         super().__init__(params, parent)
         self.parent = parent
 
-    def prepare_uniforms(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> VisualNoiseUniforms:
         """
-        Return shader path and uniforms for rendering.
+        Return uniforms for rendering.
 
         Args:
             t (float): Current time in seconds
 
         Returns:
-            dict[str, Any]: Shader data and uniforms
+            Uniforms: Uniform values to pass to the shader
         """
         # Map noise size to scale factor
         size_scale = {"small": 1, "medium": 500, "large": 10000}
@@ -70,14 +70,11 @@ class VisualNoiseModule(BaseAVModule[VisualNoiseParams]):
         # Map color mode to shader flag
         color_mode_flag = 1.0 if self.params.color_mode == "rgba" else 0.0
 
-        return RenderData(
-            frag_shader_path=self.frag_shader_path,
-            uniforms=VisualNoiseUniforms(
-                u_resolution=(self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
-                u_time=t,
-                u_noise_scale=size_scale[self.params.noise_size],
-                u_intensity=self._resolve_param(self.params.intensity),
-                u_color_mode=color_mode_flag,
-                u_speed=self._resolve_param(self.params.speed),
-            ),
+        return VisualNoiseUniforms(
+            u_resolution=(self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
+            u_time=t,
+            u_noise_scale=size_scale[self.params.noise_size],
+            u_intensity=self._resolve_param(self.params.intensity),
+            u_color_mode=color_mode_flag,
+            u_speed=self._resolve_param(self.params.speed),
         )

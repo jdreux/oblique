@@ -4,7 +4,7 @@ from typing import Tuple
 
 import moderngl
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, ParamTexture, RenderData, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, ParamTexture, Uniforms
 
 
 class CompositeOp(int, Enum):
@@ -50,11 +50,11 @@ class CompositeParams(BaseAVParams):
     operation: CompositeOp = CompositeOp.ADD
 
 class CompositeUniforms(Uniforms, total=True):
-    top_tex: moderngl.Texture
-    bottom_tex: moderngl.Texture
+    top_tex: BaseAVModule
+    bottom_tex: BaseAVModule
     u_op: int
 
-class CompositeModule(BaseAVModule[CompositeParams]):
+class CompositeModule(BaseAVModule[CompositeParams, CompositeUniforms]):
     """
     Composite module that blends two input modules using a selectable blend/composite operation.
     Supported operations: see CompositeOp enum.
@@ -69,26 +69,11 @@ class CompositeModule(BaseAVModule[CompositeParams]):
     def __init__(self, params: CompositeParams):
         super().__init__(params)
 
-    def prepare_uniforms(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> CompositeUniforms:
         uniforms: CompositeUniforms = {
             "u_resolution": (self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
-            "top_tex": self.top_tex,
-            "bottom_tex": self.bottom_tex,
+            "top_tex": self.params.top_texture,
+            "bottom_tex": self.params.bottom_texture,
             "u_op": int(self.params.operation),
         }
-        return RenderData(
-            frag_shader_path=self.frag_shader_path,
-            uniforms=uniforms,
-        )
-
-    def render_texture(
-        self,
-        ctx: moderngl.Context,
-        width: int,
-        height: int,
-        t: float,
-        filter=moderngl.NEAREST,
-    ) -> moderngl.Texture:
-        self.top_tex = self._resolve_texture_param(self.params.top_texture, ctx, width, height, t, filter)
-        self.bottom_tex = self._resolve_texture_param(self.params.bottom_texture, ctx, width, height, t, filter)
-        return super().render_texture(ctx, width, height, t)
+        return uniforms

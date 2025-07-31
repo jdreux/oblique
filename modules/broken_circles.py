@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import List, Tuple
 
 from core.logger import debug
-from modules.base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, Uniforms
 from processing.base_processing_operator import BaseProcessingOperator
 
 # Metadata for the module
@@ -28,7 +28,7 @@ class BrokenCirclesUniforms(Uniforms, total=True):
     u_amplitudes: List[float]
     u_time: float
 
-class BrokenCirclesModule(BaseAVModule[BrokenCirclesParams]):
+class BrokenCirclesModule(BaseAVModule[BrokenCirclesParams, BrokenCirclesUniforms]):
     """
     AV module that draws 5 concentric circles, each modulated by a different audio amplitude.
     """
@@ -44,18 +44,15 @@ class BrokenCirclesModule(BaseAVModule[BrokenCirclesParams]):
         super().__init__(params)
         self.params = params
 
-    def prepare_uniforms(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> BrokenCirclesUniforms:
         """
         Prepare parameters for the shader.
         Returns:
-            Dictionary of uniforms for the shader.
+            Uniforms: Uniform values to pass to the shader.
         """
         amplitudes = [modulator.process() for modulator in self.params.modulators]
-        return RenderData(
-            frag_shader_path=self.frag_shader_path,
-            uniforms=BrokenCirclesUniforms(
-                u_resolution=(self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
-                u_amplitudes=amplitudes,
-                u_time=t,
-            ),
+        return BrokenCirclesUniforms(
+            u_resolution=(self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
+            u_amplitudes=amplitudes,
+            u_time=t,
         )

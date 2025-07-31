@@ -3,7 +3,7 @@ from typing import Tuple
 
 import moderngl
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamInt, ParamTexture, RenderData, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamInt, ParamTexture, Uniforms
 
 
 @dataclass
@@ -21,10 +21,10 @@ class GridSwapModuleUniforms(Uniforms, total=True):
     u_swap_frequency: float
     u_swap_phase: float
     u_num_swaps: int
-    tex0: moderngl.Texture
+    tex0: BaseAVModule
 
 
-class GridSwapModule(BaseAVModule[GridSwapModuleParams]):
+class GridSwapModule(BaseAVModule[GridSwapModuleParams, GridSwapModuleUniforms]):
     """
     Grid Swap Module - Takes a texture input and performs square swapping operations on an NxN grid.
     Inspired by Ryoji Ikeda's geometric manipulations.
@@ -46,9 +46,9 @@ class GridSwapModule(BaseAVModule[GridSwapModuleParams]):
         """
         super().__init__(params)
 
-    def prepare_uniforms(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> GridSwapModuleUniforms:
         """
-        Return the data needed for the renderer to render this module.
+        Return the uniforms needed for rendering.
         """
         uniforms: GridSwapModuleUniforms = {
             "u_time": t,
@@ -57,21 +57,6 @@ class GridSwapModule(BaseAVModule[GridSwapModuleParams]):
             "u_swap_frequency": self._resolve_param(self.params.swap_frequency),
             "u_swap_phase": self._resolve_param(self.params.swap_phase),
             "u_num_swaps": self._resolve_param(self.params.num_swaps),
-            "tex0": self.upstream_tex,
+            "tex0": self.params.swapped_texture,
         }
-        return RenderData(
-            frag_shader_path=self.frag_shader_path,
-            uniforms=uniforms,
-        )
-
-    def render_texture(
-        self,
-        ctx: moderngl.Context,
-        width: int,
-        height: int,
-        t: float,
-        filter=moderngl.NEAREST,
-    ) -> moderngl.Texture:
-        self.upstream_tex = self._resolve_texture_param(self.params.swapped_texture, ctx, width, height, t, filter)
-        # Render the module to a texture
-        return super().render_texture(ctx, width, height, t)
+        return uniforms

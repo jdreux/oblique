@@ -3,7 +3,7 @@ from typing import Optional
 
 import moderngl
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamTexture, RenderData, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamTexture, Uniforms
 
 
 @dataclass
@@ -25,7 +25,7 @@ class FeedbackUniforms(Uniforms, total=True):
     u_direction: tuple[float, float]
 
 
-class FeedbackModule(BaseAVModule[FeedbackParams]):
+class FeedbackModule(BaseAVModule[FeedbackParams, FeedbackUniforms]):
     """
     Feedback module that provides access to the previous frame's output.
     Enables feedback loops for effects like trails, motion blur, and recursive patterns.
@@ -69,9 +69,9 @@ class FeedbackModule(BaseAVModule[FeedbackParams]):
             self.previous_frame.release()
             self.previous_frame = None
 
-    def prepare_uniforms(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> FeedbackUniforms:
         """
-        Return the data needed for the renderer to render this module.
+        Return the uniforms needed for rendering.
         """
         uniforms: FeedbackUniforms = {
             "u_time": t,
@@ -85,10 +85,7 @@ class FeedbackModule(BaseAVModule[FeedbackParams]):
             ),
         }
 
-        return RenderData(
-            frag_shader_path=self.frag_shader_path,
-            uniforms=uniforms,
-        )
+        return uniforms
 
     def copy_texture_to_previous_frame(
         self, ctx: moderngl.Context, width: int, height: int, texture: moderngl.Texture

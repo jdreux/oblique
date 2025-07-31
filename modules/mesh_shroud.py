@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamFloatList, RenderData, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamFloatList, Uniforms
 
 
 class MeshShroudParams(BaseAVParams):
@@ -15,7 +15,7 @@ class MeshShroudUniforms(Uniforms, total=True):
 
 
 
-class MeshShroudModule(BaseAVModule[MeshShroudParams]):
+class MeshShroudModule(BaseAVModule[MeshShroudParams, MeshShroudUniforms]):
     """
     MeshShroudModule - Renders a floating mesh spectrum visualizer using FFT band data.
     """
@@ -33,14 +33,11 @@ class MeshShroudModule(BaseAVModule[MeshShroudParams]):
     ):
         super().__init__(params)
 
-    def prepare_uniforms(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> MeshShroudUniforms:
         uniforms: MeshShroudUniforms = {
             "u_time": t,
             "u_resolution": (self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
             "u_fft_bands": self._resolve_param(self.params.fft_bands),
             "u_amp": self._resolve_param(self.params.amplitude)
         }
-        return RenderData(
-            frag_shader_path=self.frag_shader_path,
-            uniforms=uniforms,
-        )
+        return uniforms

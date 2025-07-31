@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Optional
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, Uniforms
 from processing.fft_bands import FFTBands
 
 SHADER_BANDS_SIZE = 512
@@ -20,7 +20,7 @@ class SpectralVisualizerUniforms(Uniforms, total=True):
     u_time: float
 
 
-class SpectralVisualizerModule(BaseAVModule[SpectralVisualizerParams]):
+class SpectralVisualizerModule(BaseAVModule[SpectralVisualizerParams, SpectralVisualizerUniforms]):
     """
     SpectralVisualizer - Renders a frequency spectrum visualizer using FFT band data.
     Each bar represents a frequency band, colored by frequency.
@@ -50,7 +50,7 @@ class SpectralVisualizerModule(BaseAVModule[SpectralVisualizerParams]):
         else:
             self.bands = bands.copy()
 
-    def prepare_uniforms(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> SpectralVisualizerUniforms:
         if self.band_levels_processor is not None:
             processor_bands = self.band_levels_processor.process()
             self.set_bands(list(processor_bands))
@@ -60,7 +60,4 @@ class SpectralVisualizerModule(BaseAVModule[SpectralVisualizerParams]):
             "u_bands": self.bands,
             "u_num_bands": self.params.num_bands,
         }
-        return RenderData(
-            frag_shader_path=self.frag_shader_path,
-            uniforms=uniforms,
-        )
+        return uniforms

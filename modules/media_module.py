@@ -7,7 +7,7 @@ from typing import Tuple
 import moderngl
 from PIL import Image
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, RenderData, Uniforms
+from modules.base_av_module import BaseAVModule, BaseAVParams, Uniforms
 
 
 class AspectMode(int, Enum):
@@ -28,7 +28,7 @@ class MediaUniforms(Uniforms, total=True):
     u_transform: Tuple[float, float, float, float]  # scale_x, scale_y, offset_x, offset_y
     tex: moderngl.Texture
 
-class MediaModule(BaseAVModule[MediaParams]):
+class MediaModule(BaseAVModule[MediaParams, MediaUniforms]):
     """
     Loads an image file and outputs it as a texture, with aspect ratio handling.
     """
@@ -94,7 +94,7 @@ class MediaModule(BaseAVModule[MediaParams]):
         else:
             return (1.0, 1.0, 0.0, 0.0)
 
-    def prepare_uniforms(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> MediaUniforms:
         width = self._resolve_param(self.params.width)
         height = self._resolve_param(self.params.height)
         transform = self._compute_transform(width, height)
@@ -107,10 +107,7 @@ class MediaModule(BaseAVModule[MediaParams]):
             "u_transform": transform,
             "tex": self.texture
         }
-        return RenderData(
-            frag_shader_path=self.frag_shader_path,
-            uniforms=uniforms,
-        )
+        return uniforms
 
     def render_texture(
         self,

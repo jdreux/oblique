@@ -45,7 +45,7 @@ class OffscreenTexturePass:
         Mapping *uniform_name → source* where *source* can be:
             • A `OffscreenTexturePass` instance – its rendered texture will be injected.
             • A `BaseAVModule` instance – its rendered texture will be injected.
-            • Any expression acceptable by `_resolve_texture_param` (e.g. a moderngl.Texture).
+            • A `moderngl.Texture` instance.
         At runtime each pair produces a uniform named ``u_<uniform_name>`` bound to the
         resulting texture.
     width / height:
@@ -68,14 +68,10 @@ class Uniforms(TypedDict, total=True):
 
 
 P = TypeVar("P", bound="BaseAVParams")
+U = TypeVar("U", bound="Uniforms")
 
 
-class RenderData(TypedDict):
-    frag_shader_path: str
-    uniforms: Uniforms
-
-
-class BaseAVModule(ObliqueNode, ABC, Generic[P]):
+class BaseAVModule(ObliqueNode, ABC, Generic[P, U]):
     """
     Base class for all AV modules. Defines the required interface for AV modules.
 
@@ -121,7 +117,7 @@ class BaseAVModule(ObliqueNode, ABC, Generic[P]):
             self.add_parent(parent)
 
     @abstractmethod
-    def prepare_uniforms(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> U:
         """
         Prepare the uniform data and shader information needed for rendering.
         
@@ -165,14 +161,20 @@ class BaseAVModule(ObliqueNode, ABC, Generic[P]):
         3. The resulting textures are substituted back into the final uniforms
            before the main shader is rendered.
         """
-        # Ask the subclass for shader path + initial uniforms
-        render_data = self.prepare_uniforms(t)
-        initial_uniforms = dict(render_data["uniforms"])
+        # Ask the subclass for initial uniforms
+        initial_uniforms = dict(self.prepare_uniforms(t))
 
-        # Separate "regular" uniforms from off-screen passes
-        base_uniforms: dict[str, Any] = {
-            k: v for k, v in initial_uniforms.items() if not isinstance(v, OffscreenTexturePass)
-        }
+        # Resolve BaseAVModule (or list thereof) to textures and separate base uniforms in a single loop
+        base_uniforms: dict[str, Any] = {}
+        for key, value in list(initial_uniforms.items()):
+            # Resolve BaseAVModule or list[BaseAVModule] to texture(s)
+            if isinstance(value, BaseAVModule) or (isinstance(value, list) and all(isinstance(v, BaseAVModule) for v in value)):
+                value = self._resolve_texture_param(value, ctx, width, height, t, filter)
+                initial_uniforms[key] = value  # update in-place for later use
+
+            # Only include non-OffscreenTexturePass in base_uniforms
+            if not isinstance(value, OffscreenTexturePass):
+                base_uniforms[key] = value
 
         processed: dict[int, moderngl.Texture] = {}
 
@@ -231,115 +233,12 @@ class BaseAVModule(ObliqueNode, ABC, Generic[P]):
             self,
             width,
             height,
-            render_data["frag_shader_path"],
+            self.frag_shader_path,
             final_uniforms,
             filter,
             cache_tag="final",
         )
-
-        internal_textures: dict[str, moderngl.Texture] = {}
-
-        # Helper to process a pass and its dependencies (DFS)
-        processed: set[str] = set()
-
-        # Helper to find the key for a pass instance
-        def find_pass_key(target: OffscreenTexturePass) -> str | None:
-            """Find the key for a pass instance by linear search."""
-            for key, instance in self.offscreen_passes.items():
-                if instance is target:  # Use identity comparison
-                    return key
-            return None
-
-        def _render_pass(pass_name: str) -> None:
-            if pass_name in processed:
-                return
-            if pass_name not in self.offscreen_passes:
-                raise ValueError(f"Unknown offscreen pass '{pass_name}' referenced in module {self.__class__.__name__}.")
-
-            tex_pass = self.offscreen_passes[pass_name]
-
-            # First ensure dependencies are rendered
-            for dep_key, source in (tex_pass.inputs or {}).items():
-                if isinstance(source, OffscreenTexturePass):
-                    dep_name = find_pass_key(source)
-                    if dep_name is None:
-                        raise ValueError(
-                            f"Input '{dep_key}' of pass '{pass_name}' references an OffscreenTexturePass not registered in offscreen_passes."
-                        )
-                    _render_pass(dep_name)
-
-            # Now build uniforms for this pass
-            pass_width = tex_pass.width if tex_pass.width is not None else width
-            pass_height = tex_pass.height if tex_pass.height is not None else height
-
-            uniforms = dict(base_uniforms)
-            uniforms["u_resolution"] = (pass_width, pass_height)
-
-            # Bind explicit inputs
-            if tex_pass.inputs:
-                for key, source in tex_pass.inputs.items():
-                    uniform_name = f"u_{key}"
-
-                    if isinstance(source, OffscreenTexturePass):
-                        dep_name = find_pass_key(source)
-                        if dep_name is None or dep_name not in internal_textures:
-                            raise RuntimeError(
-                                f"Dependency pass for input '{key}' of '{pass_name}' not yet rendered."
-                            )
-                        uniforms[uniform_name] = internal_textures[dep_name]
-                    elif isinstance(source, BaseAVModule):
-                        tex = source.render_texture(
-                            ctx, pass_width, pass_height, t, filter
-                        )
-                        uniforms[uniform_name] = tex
-                    elif isinstance(source, moderngl.Texture):
-                        uniforms[uniform_name] = source
-                    else:
-                        # Fallback: resolve generically
-                        tex = self._resolve_texture_param(
-                            source, ctx, pass_width, pass_height, t, filter
-                        )
-                        uniforms[uniform_name] = tex
-
-            # Render the pass and cache texture
-            tex = render_to_texture(
-                self,
-                pass_width,
-                pass_height,
-                tex_pass.frag_shader_path,
-                uniforms,
-                filter,
-                cache_tag=f"{pass_name}",
-            )
-            internal_textures[pass_name] = tex
-            processed.add(pass_name)
-
-        # Render all passes
-        for name in self.offscreen_passes.keys():
-            _render_pass(name)
-
-        # ------------------------------------------------------------------
-        # Final Image pass – let the module decide which pass textures to use.
-        # We simply make them available as uniforms if not already provided.
-        # ------------------------------------------------------------------
-
-        final_uniforms = dict(render_data["uniforms"])
-
         
-        for name, tex in internal_textures.items():
-            uniform_name = f"u_{name}"
-            final_uniforms.setdefault(uniform_name, tex)
- 
-        return render_to_texture(
-            self,
-            width,
-            height,
-            render_data["frag_shader_path"],
-            final_uniforms,
-            filter,
-            cache_tag="final",
-        )
-
     @overload
     def _resolve_param(self, param: ParamInt) -> int: ...
 

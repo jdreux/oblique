@@ -7,7 +7,6 @@ from .base_av_module import (
     BaseAVParams,
     ParamFloat,
     ParamTexture,
-    RenderData,
     Uniforms,
     OffscreenTexturePass,
 )
@@ -26,7 +25,7 @@ debug_texture: OffscreenTexturePass = OffscreenTexturePass(
     frag_shader_path="shaders/debug.frag",
 )
 
-class IkedaTestPatternModule(BaseAVModule[IkedaTestPatternParams]):
+class IkedaTestPatternModule(BaseAVModule[IkedaTestPatternParams, IkedaTestPatternUniforms]):
     """
     Ikeda Test Pattern module that generates geometric patterns inspired by Ryoji Ikeda's work.
 
@@ -58,15 +57,15 @@ class IkedaTestPatternModule(BaseAVModule[IkedaTestPatternParams]):
     def __init__(self, params: IkedaTestPatternParams):
         super().__init__(params)
 
-    def prepare_uniforms(self, t: float) -> RenderData:
+    def prepare_uniforms(self, t: float) -> IkedaTestPatternUniforms:
         """
-        Return shader path and uniforms for rendering.
+        Return uniforms for rendering.
 
         Args:
             t (float): Current time in seconds
 
         Returns:
-            RenderData: Shader data and uniforms
+            Uniforms: Uniform values to pass to the shader
         """
         uniforms: IkedaTestPatternUniforms = {
             "u_resolution": self._resolve_resolution(),
@@ -74,7 +73,4 @@ class IkedaTestPatternModule(BaseAVModule[IkedaTestPatternParams]):
             "u_noise_texture": self.noise_texture
         }
 
-        return RenderData(
-            frag_shader_path=self.frag_shader_path,
-            uniforms=uniforms,
-        )
+        return uniforms
