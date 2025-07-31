@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from core.logger import debug
 from typing import Any, Callable, Generic, TypedDict, TypeVar, Union, overload
 
 import moderngl
@@ -29,6 +30,36 @@ ParamTextureList = Union[list[moderngl.Texture], Callable[[], list[moderngl.Text
 class BaseAVParams:
     width: ParamInt
     height: ParamInt
+
+
+# --- Off-screen texture pass dataclass ---
+@dataclass
+class OffscreenTexturePass:
+    """An internal off-screen render step.
+
+    Attributes
+    ----------
+    frag_shader_path:
+        Path to the fragment shader for this pass.
+    inputs:
+        Mapping *uniform_name → source* where *source* can be:
+            • A `OffscreenTexturePass` instance – its rendered texture will be injected.
+            • A `BaseAVModule` instance – its rendered texture will be injected.
+            • Any expression acceptable by `_resolve_texture_param` (e.g. a moderngl.Texture).
+        At runtime each pair produces a uniform named ``u_<uniform_name>`` bound to the
+        resulting texture.
+    width / height:
+        Optional fixed resolution for this pass.  If omitted the  module's requested
+        resolution is used.
+    ping_pong:
+        Placeholder for future double-buffering support.
+    """
+
+    frag_shader_path: str
+    inputs: dict[str, Union["OffscreenTexturePass", "BaseAVModule", moderngl.Texture]] = field(default_factory=dict)
+    width: int | None = None
+    height: int | None = None
+    ping_pong: bool = False
 
 
 class Uniforms(TypedDict, total=True):
@@ -70,6 +101,9 @@ class BaseAVModule(ObliqueNode, ABC, Generic[P]):
         "parameters": {},
     }
     frag_shader_path: str  # Must be set by subclass
+
+    # Internal off-screen DAG {name → pass}. Sub-classes may override.
+    offscreen_passes: dict[str, "OffscreenTexturePass"] = {}
 
     def __init__(self, params: P, parent: ObliqueNode | None = None):
         """
@@ -120,28 +154,119 @@ class BaseAVModule(ObliqueNode, ABC, Generic[P]):
         filter=moderngl.NEAREST,
     ) -> moderngl.Texture:
         """
-        Get the texture for this module. Default implementation uses prepare_uniforms() method.
-        Override this method to provide custom texture rendering behavior.
-
-        Args:
-            ctx (moderngl.Context): OpenGL context
-            width (int): Texture width
-            height (int): Texture height
-            t (float): Current time in seconds
-
-        Returns:
-            moderngl.Texture: The rendered texture for this module
+        Get the final texture for this module. This method will be called for each frame rendered.
+        If the module defines one or more ``offscreen_textures`` passes, they are rendered in sequence first and
+        their resulting textures can be reused by subsequent passes as well as by the final Image pass.
         """
+        # Base uniforms shared by every pass (user-defined in prepare_uniforms)
         render_data = self.prepare_uniforms(t)
-        # Uniforms is a TypedDict, but render_to_texture expects dict[str, Any].
-        # This cast is safe because TypedDict is a dict at runtime.
+        base_uniforms = dict(render_data["uniforms"])
+
+        # ------------------------------------------------------------------
+        # Render each OffscreenTexturePass in topological order
+        # ------------------------------------------------------------------
+
+        internal_textures: dict[str, moderngl.Texture] = {}
+
+        # Helper to process a pass and its dependencies (DFS)
+        processed: set[str] = set()
+
+        # Helper to find the key for a pass instance
+        def find_pass_key(target: OffscreenTexturePass) -> str | None:
+            """Find the key for a pass instance by linear search."""
+            for key, instance in self.offscreen_passes.items():
+                if instance is target:  # Use identity comparison
+                    return key
+            return None
+
+        def _render_pass(pass_name: str) -> None:
+            if pass_name in processed:
+                return
+            if pass_name not in self.offscreen_passes:
+                raise ValueError(f"Unknown offscreen pass '{pass_name}' referenced in module {self.__class__.__name__}.")
+
+            tex_pass = self.offscreen_passes[pass_name]
+
+            # First ensure dependencies are rendered
+            for dep_key, source in (tex_pass.inputs or {}).items():
+                if isinstance(source, OffscreenTexturePass):
+                    dep_name = find_pass_key(source)
+                    if dep_name is None:
+                        raise ValueError(
+                            f"Input '{dep_key}' of pass '{pass_name}' references an OffscreenTexturePass not registered in offscreen_passes."
+                        )
+                    _render_pass(dep_name)
+
+            # Now build uniforms for this pass
+            pass_width = tex_pass.width if tex_pass.width is not None else width
+            pass_height = tex_pass.height if tex_pass.height is not None else height
+
+            uniforms = dict(base_uniforms)
+            uniforms["u_resolution"] = (pass_width, pass_height)
+
+            # Bind explicit inputs
+            if tex_pass.inputs:
+                for key, source in tex_pass.inputs.items():
+                    uniform_name = f"u_{key}"
+
+                    if isinstance(source, OffscreenTexturePass):
+                        dep_name = find_pass_key(source)
+                        if dep_name is None or dep_name not in internal_textures:
+                            raise RuntimeError(
+                                f"Dependency pass for input '{key}' of '{pass_name}' not yet rendered."
+                            )
+                        uniforms[uniform_name] = internal_textures[dep_name]
+                    elif isinstance(source, BaseAVModule):
+                        tex = source.render_texture(
+                            ctx, pass_width, pass_height, t, filter
+                        )
+                        uniforms[uniform_name] = tex
+                    elif isinstance(source, moderngl.Texture):
+                        uniforms[uniform_name] = source
+                    else:
+                        # Fallback: resolve generically
+                        tex = self._resolve_texture_param(
+                            source, ctx, pass_width, pass_height, t, filter
+                        )
+                        uniforms[uniform_name] = tex
+
+            # Render the pass and cache texture
+            tex = render_to_texture(
+                self,
+                pass_width,
+                pass_height,
+                tex_pass.frag_shader_path,
+                uniforms,
+                filter,
+                cache_tag=f"{pass_name}",
+            )
+            internal_textures[pass_name] = tex
+            processed.add(pass_name)
+
+        # Render all passes
+        for name in self.offscreen_passes.keys():
+            _render_pass(name)
+
+        # ------------------------------------------------------------------
+        # Final Image pass – let the module decide which pass textures to use.
+        # We simply make them available as uniforms if not already provided.
+        # ------------------------------------------------------------------
+
+        final_uniforms = dict(render_data["uniforms"])
+
+        
+        for name, tex in internal_textures.items():
+            uniform_name = f"u_{name}"
+            final_uniforms.setdefault(uniform_name, tex)
+ 
         return render_to_texture(
             self,
             width,
             height,
             render_data["frag_shader_path"],
-            render_data["uniforms"],
+            final_uniforms,
             filter,
+            cache_tag="final",
         )
 
     @overload

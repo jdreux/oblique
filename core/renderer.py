@@ -148,11 +148,14 @@ def render_to_texture(
     height: int,
     frag_shader_path: str,
     uniforms: "Uniforms",
-    filter=moderngl.NEAREST,
+    filter: int = moderngl.NEAREST,
+    cache_tag: str = ""
 ) -> moderngl.Texture:
     """
     Render a fullscreen quad to an offscreen texture using the given fragment shader and uniforms.
-    Returns the resulting texture.
+    The optional `cache_tag` allows distinct cache entries for different internal passes
+    belonging to the same module class. This prevents cache collisions when a module
+    renders several off-screen buffers of identical resolution.
     """
     global _texture_cache
     global _ctx
@@ -160,7 +163,7 @@ def render_to_texture(
     if _ctx is None:
         raise RuntimeError("OpenGL Context not set")
 
-    cache_key = f"{module.__class__.__name__}_{width}_{height}_{filter}"
+    cache_key = f"{module.__class__.__name__}_{cache_tag}_{width}_{height}_{filter}"
 
     if cache_key in _texture_cache:
         tex = _texture_cache[cache_key]

@@ -5,6 +5,8 @@ from modules.base_av_module import BaseAVModule
 from modules.blur_module import BlurModule, BlurParams
 from modules.debug import DebugModule, DebugParams
 from modules.feedback import FeedbackModule, FeedbackParams
+from modules.ikeda_test_pattern import IkedaTestPatternModule, IkedaTestPatternParams
+from modules.protoplasm import ProtoplasmModule, ProtoplasmParams
 
 
 def shader_test(width: int, height: int) -> ObliquePatch:
@@ -15,28 +17,23 @@ def shader_test(width: int, height: int) -> ObliquePatch:
                 height=height,
             )
         )
-    # Create a blur module
 
-    blur_module = BlurModule(
-        BlurParams(
+    ikeda_test_pattern_module = IkedaTestPatternModule(
+        IkedaTestPatternParams(
             width=width,
             height=height,
-        ),
-        debug_module
+        )
     )
 
-    feedback_module = FeedbackModule(
-        FeedbackParams(
+    protoplasm_module = ProtoplasmModule(
+        ProtoplasmParams(
             width=width,
             height=height,
-            feedback_strength=1,
-        ),
-        blur_module
+        )
     )
 
     def tick_callback(t: float) -> BaseAVModule:
-        debug_module.params.number = t
-        return feedback_module
+        return protoplasm_module
 
     return ObliquePatch(
         tick_callback=tick_callback,
