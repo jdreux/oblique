@@ -37,7 +37,7 @@ class MediaModule(BaseAVModule[MediaParams, MediaUniforms]):
         "description": "Outputs a texture from an image file with aspect ratio handling.",
         "parameters": MediaParams.__annotations__,
     }
-    frag_shader_path: str = "shaders/media-module.frag"
+    frag_shader_path: str = "modules/core/media-module.frag"
 
     def __init__(self, params: MediaParams):
         super().__init__(params)

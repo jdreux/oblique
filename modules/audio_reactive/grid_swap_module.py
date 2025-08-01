@@ -3,7 +3,7 @@ from typing import Tuple
 
 import moderngl
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamInt, ParamTexture, Uniforms
+from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamInt, ParamTexture, Uniforms
 
 
 @dataclass
@@ -35,7 +35,7 @@ class GridSwapModule(BaseAVModule[GridSwapModuleParams, GridSwapModuleUniforms])
         "description": "Takes a texture input and performs square swapping operations on an NxN grid.",
         "parameters": GridSwapModuleParams.__annotations__,
     }
-    frag_shader_path: str = "shaders/grid-swap-module.frag"
+    frag_shader_path: str = "modules/audio_reactive/grid-swap-module.frag"
 
     def __init__(self, params: GridSwapModuleParams):
         """

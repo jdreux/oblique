@@ -45,7 +45,7 @@ class IkedaTestPatternModule(BaseAVModule[IkedaTestPatternParams, IkedaTestPatte
             "speed": "float",
         },
     }
-    frag_shader_path = "shaders/ikeda-test-pattern.frag"
+    frag_shader_path = "modules/audio_reactive/ikeda-test-pattern.frag"
 
     debug_texture: OffscreenTexturePass = debug_texture
 

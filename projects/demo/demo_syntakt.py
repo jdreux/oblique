@@ -1,15 +1,15 @@
 from core.oblique_patch import ObliquePatch
 from inputs.audio_device_input import AudioDeviceInput
-from modules.base_av_module import BaseAVModule
+from modules.core.base_av_module import BaseAVModule
 
 # --- Module imports ---
-from modules.broken_circles import BrokenCirclesModule, BrokenCirclesParams
-from modules.composite_module import CompositeModule, CompositeOp, CompositeParams
-from modules.level_module import LevelModule, LevelParams
-from modules.media_module import AspectMode, MediaModule, MediaParams
-from modules.pauric_squares_module import PauricSquaresModule, PauricSquaresParams
-from modules.feedback import FeedbackModule, FeedbackParams
-from modules.blur_module import BlurModule, BlurParams
+from modules.audio_reactive.broken_circles import BrokenCirclesModule, BrokenCirclesParams
+from modules.composition.composite_module import CompositeModule, CompositeOp, CompositeParams
+from modules.effects.level_module import LevelModule, LevelParams
+from modules.core.media_module import AspectMode, MediaModule, MediaParams
+from modules.audio_reactive.pauric_squares_module import PauricSquaresModule, PauricSquaresParams
+from modules.effects.feedback import FeedbackModule, FeedbackParams
+from modules.effects.blur_module import BlurModule, BlurParams
 
 from processing.envelope import Envelope
 from processing.normalized_amplitude import CurveType, NormalizedAmplitudeOperator

@@ -40,7 +40,7 @@ class ProtoplasmModule(BaseAVModule[ProtoplasmParams, ProtoplasmUniforms]):
             "speed": "float",
         },
     }
-    frag_shader_path = "shaders/protoplasm.frag"
+    frag_shader_path = "modules/audio_reactive/protoplasm.frag"
 
     noise_pass: OffscreenTexturePass = OffscreenTexturePass(
         frag_shader_path="shaders/noise.frag",

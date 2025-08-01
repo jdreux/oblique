@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import moderngl
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamTexture, Uniforms
+from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamTexture, Uniforms
 
 
 @dataclass
@@ -34,7 +34,7 @@ class BarrelDistortionModule(BaseAVModule[BarrelDistortionParams, BarrelDistorti
             "center": "tuple[float, float]",
         },
     }
-    frag_shader_path: str = "shaders/barrel-distortion.frag"
+    frag_shader_path: str = "modules/effects/barrel-distortion.frag"
 
     def __init__(self, params: BarrelDistortionParams):
         """

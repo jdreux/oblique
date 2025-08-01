@@ -3,7 +3,7 @@ from typing import Optional
 
 import moderngl
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamTexture, Uniforms
+from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamTexture, Uniforms
 
 
 @dataclass
@@ -39,7 +39,7 @@ class FeedbackModule(BaseAVModule[FeedbackParams, FeedbackUniforms]):
         "description": "Provides previous frame texture for feedback effects like trails and motion blur.",
         "parameters": FeedbackParams.__annotations__,
     }
-    frag_shader_path: str = "shaders/feedback.frag"
+    frag_shader_path: str = "modules/effects/feedback.frag"
 
     def __init__(self, params: FeedbackParams):
         super().__init__(params)

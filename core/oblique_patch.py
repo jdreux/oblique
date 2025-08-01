@@ -1,7 +1,7 @@
 from typing import Callable, List, Optional
 
 from inputs.base_input import BaseInput
-from modules.base_av_module import BaseAVModule
+from modules.core.base_av_module import BaseAVModule
 
 
 class ObliquePatch:

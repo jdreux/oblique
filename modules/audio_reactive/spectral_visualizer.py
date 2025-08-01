@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Optional
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, Uniforms
+from modules.core.base_av_module import BaseAVModule, BaseAVParams, Uniforms
 from processing.fft_bands import FFTBands
 
 SHADER_BANDS_SIZE = 512
@@ -31,7 +31,7 @@ class SpectralVisualizerModule(BaseAVModule[SpectralVisualizerParams, SpectralVi
         "description": "Renders a frequency spectrum visualizer with color mapping.",
         "parameters": SpectralVisualizerParams.__annotations__,
     }
-    frag_shader_path: str = "shaders/spectral-visualizer.frag"
+    frag_shader_path: str = "modules/audio_reactive/spectral-visualizer.frag"
 
     def __init__(
         self,

@@ -1,13 +1,13 @@
 from core.logger import error, info
 from core.oblique_engine import ObliqueEngine
 from core.oblique_patch import ObliquePatch
-from modules.barrel_distortion import BarrelDistortionModule, BarrelDistortionParams
-from modules.base_av_module import BaseAVModule
-from modules.blur_module import BlurModule, BlurParams
-from modules.debug import DebugModule, DebugParams
-from modules.feedback import FeedbackModule, FeedbackParams
-from modules.ikeda_test_pattern import IkedaTestPatternModule, IkedaTestPatternParams
-from modules.protoplasm import ProtoplasmModule, ProtoplasmParams
+from modules.effects.barrel_distortion import BarrelDistortionModule, BarrelDistortionParams
+from modules.core.base_av_module import BaseAVModule
+from modules.effects.blur_module import BlurModule, BlurParams
+from modules.utility.debug import DebugModule, DebugParams
+from modules.effects.feedback import FeedbackModule, FeedbackParams
+from modules.audio_reactive.ikeda_test_pattern import IkedaTestPatternModule, IkedaTestPatternParams
+from modules.audio_reactive.protoplasm import ProtoplasmModule, ProtoplasmParams
 
 
 def shader_test(width: int, height: int) -> ObliquePatch:

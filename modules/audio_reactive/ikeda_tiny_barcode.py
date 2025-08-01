@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from processing.fft_bands import FFTBands
 
-from .base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamFloatList, ParamInt, Uniforms
+from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamFloatList, ParamInt, Uniforms
 
 
 @dataclass
@@ -51,7 +51,7 @@ class IkedaTinyBarcodeModule(BaseAVModule[IkedaTinyBarcodeParams, IkedaTinyBarco
             "fft_bands": list[float],
         },
     }
-    frag_shader_path = "shaders/ikeda-tiny-barcode.frag"
+    frag_shader_path = "modules/audio_reactive/ikeda-tiny-barcode.frag"
 
     def __init__(self, params: IkedaTinyBarcodeParams):
         super().__init__(params)

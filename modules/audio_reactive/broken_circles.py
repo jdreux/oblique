@@ -37,7 +37,7 @@ class BrokenCirclesModule(BaseAVModule[BrokenCirclesParams, BrokenCirclesUniform
         "description": "Generates 5 concentric circles, each modulated by a different audio amplitude.",
         "parameters": BrokenCirclesParams.__annotations__,
     }
-    frag_shader_path: str = "shaders/broken-circles.frag"
+    frag_shader_path: str = "modules/audio_reactive/broken-circles.frag"
 
     def __init__(self, params: BrokenCirclesParams):
         assert len(params.modulators) == 5, "Expected 5 circles modulation operators"

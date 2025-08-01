@@ -40,7 +40,7 @@ class TransformModule(BaseAVModule[TransformParams, TransformUniforms]):
             "transform_order": "str",
         },
     }
-    frag_shader_path: str = "shaders/transform.frag"
+    frag_shader_path: str = "modules/utility/transform.frag"
 
     def __init__(self, params: TransformParams):
         """

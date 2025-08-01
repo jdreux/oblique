@@ -2,19 +2,19 @@ import math
 
 from core.oblique_patch import ObliquePatch
 from inputs.audio_file_input import AudioFileInput
-from modules.barrel_distortion import BarrelDistortionModule, BarrelDistortionParams
-from modules.composite_module import CompositeModule, CompositeParams, CompositeOp
-from modules.base_av_module import BaseAVModule
-from modules.circle_echo import CircleEcho, CircleEchoParams
-from modules.feedback import FeedbackModule, FeedbackParams
-from modules.grid_swap_module import GridSwapModule, GridSwapModuleParams
-from modules.ikeda_tiny_barcode import IkedaTinyBarcodeModule, IkedaTinyBarcodeParams
-from modules.level_module import LevelModule, LevelParams
-from modules.media_module import AspectMode, MediaModule, MediaParams
-from modules.pauric_squares_module import PauricSquaresModule, PauricSquaresParams
-from modules.ryoji_lines import RyojiLines, RyojiLinesParams
-from modules.spectral_visualizer import SpectralVisualizerModule, SpectralVisualizerParams
-from modules.transform import TransformModule, TransformParams
+from modules.effects.barrel_distortion import BarrelDistortionModule, BarrelDistortionParams
+from modules.composition.composite_module import CompositeModule, CompositeParams, CompositeOp
+from modules.core.base_av_module import BaseAVModule
+from modules.audio_reactive.circle_echo import CircleEcho, CircleEchoParams
+from modules.effects.feedback import FeedbackModule, FeedbackParams
+from modules.audio_reactive.grid_swap_module import GridSwapModule, GridSwapModuleParams
+from modules.audio_reactive.ikeda_tiny_barcode import IkedaTinyBarcodeModule, IkedaTinyBarcodeParams
+from modules.effects.level_module import LevelModule, LevelParams
+from modules.core.media_module import AspectMode, MediaModule, MediaParams
+from modules.audio_reactive.pauric_squares_module import PauricSquaresModule, PauricSquaresParams
+from modules.audio_reactive.ryoji_lines import RyojiLines, RyojiLinesParams
+from modules.audio_reactive.spectral_visualizer import SpectralVisualizerModule, SpectralVisualizerParams
+from modules.utility.transform import TransformModule, TransformParams
 from processing.fft_bands import FFTBands
 from processing.normalized_amplitude import NormalizedAmplitudeOperator
 from processing.spectral_centroid import SpectralCentroid

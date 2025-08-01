@@ -3,7 +3,7 @@ from typing import Tuple
 
 import moderngl
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, ParamBool, ParamFloat, Uniforms
+from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamBool, ParamFloat, Uniforms
 
 
 @dataclass(kw_only=True)
@@ -74,7 +74,7 @@ class LevelModule(BaseAVModule[LevelParams, LevelUniforms]):
             "opacity": "float",
         },
     }
-    frag_shader_path: str = "shaders/level-module.frag"
+    frag_shader_path: str = "modules/effects/level-module.frag"
 
     def __init__(self, params: LevelParams):
         """

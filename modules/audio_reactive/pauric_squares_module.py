@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import moderngl
 
-from .base_av_module import BaseAVModule, BaseAVParams, ParamInt, Uniforms, ParamTexture
+from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamInt, Uniforms, ParamTexture
 
 
 @dataclass
@@ -27,7 +27,7 @@ class PauricSquaresModule(BaseAVModule[PauricSquaresParams, PauricSquaresUniform
         "description": "Generates animated square patterns with configurable size and color modes.",
         "parameters": PauricSquaresParams.__annotations__,
     }
-    frag_shader_path = "shaders/pauric-squares.frag"
+    frag_shader_path = "modules/audio_reactive/pauric-squares.frag"
 
     def __init__(
         self,

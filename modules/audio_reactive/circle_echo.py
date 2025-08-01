@@ -29,7 +29,7 @@ class CircleEcho(BaseAVModule[CircleEchoParams, CircleEchoUniforms]):
         "description": "Concentric modulated circles.",
         "parameters": CircleEchoParams.__annotations__,
     }
-    frag_shader_path: str = "shaders/circle-echo.frag"
+    frag_shader_path: str = "modules/audio_reactive/circle-echo.frag"
 
     def __init__(
         self, params: CircleEchoParams, band_levels_processor: FFTBands
