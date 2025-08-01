@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import moderngl
 
-from .base_av_module import (
+from modules.core.base_av_module import (
     BaseAVModule,
     BaseAVParams,
     ParamFloat,
@@ -22,7 +22,7 @@ class IkedaTestPatternUniforms(Uniforms, total=True):
     u_noise_texture: OffscreenTexturePass
 
 debug_texture: OffscreenTexturePass = OffscreenTexturePass(
-    frag_shader_path="shaders/debug.frag",
+    frag_shader_path="modules/utility/debug.frag",
 )
 
 class IkedaTestPatternModule(BaseAVModule[IkedaTestPatternParams, IkedaTestPatternUniforms]):
@@ -50,7 +50,7 @@ class IkedaTestPatternModule(BaseAVModule[IkedaTestPatternParams, IkedaTestPatte
     debug_texture: OffscreenTexturePass = debug_texture
 
     noise_texture: OffscreenTexturePass = OffscreenTexturePass(
-        frag_shader_path="shaders/noise.frag",
+        frag_shader_path="modules/core/noise.frag",
         offscreen_inputs={"u_debug_texture": debug_texture}
     )
 

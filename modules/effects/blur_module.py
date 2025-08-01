@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import moderngl
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamInt, ParamTexture, Uniforms
+from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamInt, ParamTexture, Uniforms
 
 
 @dataclass

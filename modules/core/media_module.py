@@ -7,7 +7,7 @@ from typing import Tuple
 import moderngl
 from PIL import Image
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, Uniforms
+from modules.core.base_av_module import BaseAVModule, BaseAVParams, Uniforms
 
 
 class AspectMode(int, Enum):

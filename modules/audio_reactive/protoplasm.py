@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import moderngl
 
-from .base_av_module import (
+from modules.core.base_av_module import (
     BaseAVModule,
     BaseAVParams,
     Uniforms,

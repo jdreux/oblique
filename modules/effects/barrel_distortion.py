@@ -66,7 +66,7 @@ class BarrelDistortionModule(BaseAVModule[BarrelDistortionParams, BarrelDistorti
 
 if __name__ == "__main__":
     # Test the barrel distortion module
-    from modules.debug import DebugModule, DebugParams
+    from modules.utility.debug import DebugModule, DebugParams
 
     # Create a debug module as parent
     debug_params = DebugParams(width=800, height=600)

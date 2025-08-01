@@ -4,7 +4,7 @@ from typing import Tuple
 import moderngl
 import numpy as np
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, ParamTexture, Uniforms
+from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamTexture, Uniforms
 
 
 @dataclass
@@ -152,7 +152,7 @@ class TransformModule(BaseAVModule[TransformParams, TransformUniforms]):
 
 if __name__ == "__main__":
     # Test the transform module
-    from modules.debug import DebugModule, DebugParams
+    from modules.utility.debug import DebugModule, DebugParams
 
     # Create a debug module as parent
     debug_params = DebugParams(width=800, height=600)

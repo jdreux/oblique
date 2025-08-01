@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from processing.base_processing_operator import BaseProcessingOperator
 
-from .base_av_module import BaseAVModule, BaseAVParams, Uniforms
+from modules.core.base_av_module import BaseAVModule, BaseAVParams, Uniforms
 
 
 @dataclass

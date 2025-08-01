@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import List, Tuple
 
 from core.logger import debug
-from modules.base_av_module import BaseAVModule, BaseAVParams, Uniforms
+from modules.core.base_av_module import BaseAVModule, BaseAVParams, Uniforms
 from processing.base_processing_operator import BaseProcessingOperator
 
 # Metadata for the module
