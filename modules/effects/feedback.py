@@ -39,7 +39,7 @@ class FeedbackModule(BaseAVModule[FeedbackParams, FeedbackUniforms]):
         "description": "Provides previous frame texture for feedback effects like trails and motion blur.",
         "parameters": FeedbackParams.__annotations__,
     }
-    frag_shader_path: str = "modules/effects/feedback.frag"
+    frag_shader_path: str = "modules/effects/shaders/feedback.frag"
 
     def __init__(self, params: FeedbackParams):
         super().__init__(params)

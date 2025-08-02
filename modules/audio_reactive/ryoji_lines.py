@@ -38,7 +38,7 @@ class RyojiLines(BaseAVModule[RyojiLinesParams, RyojiLinesUniforms]):
         "description": "Renders animated parallel lines representing FFT frequency bands with vertical animation.",
         "parameters": RyojiLinesParams.__annotations__,
     }
-    frag_shader_path: str = "modules/audio_reactive/ryoji-lines.frag"
+    frag_shader_path: str = "modules/audio_reactive/shaders/ryoji-lines.frag"
 
     def __init__(
         self,

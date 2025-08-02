@@ -25,7 +25,7 @@ class DebugModule(BaseAVModule[DebugParams, DebugUniforms]):
         "description": "Displays an input number and string for debugging purposes.",
         "parameters": {"number": float, "text": str},
     }
-    frag_shader_path = "modules/utility/debug.frag"
+    frag_shader_path = "modules/utility/shaders/debug.frag"
 
     def __init__(
         self,

@@ -31,7 +31,7 @@ class SpectralVisualizerModule(BaseAVModule[SpectralVisualizerParams, SpectralVi
         "description": "Renders a frequency spectrum visualizer with color mapping.",
         "parameters": SpectralVisualizerParams.__annotations__,
     }
-    frag_shader_path: str = "modules/audio_reactive/spectral-visualizer.frag"
+    frag_shader_path: str = "modules/audio_reactive/shaders/spectral-visualizer.frag"
 
     def __init__(
         self,

@@ -35,7 +35,7 @@ class GridSwapModule(BaseAVModule[GridSwapModuleParams, GridSwapModuleUniforms])
         "description": "Takes a texture input and performs square swapping operations on an NxN grid.",
         "parameters": GridSwapModuleParams.__annotations__,
     }
-    frag_shader_path: str = "modules/audio_reactive/grid-swap-module.frag"
+    frag_shader_path: str = "modules/audio_reactive/shaders/grid-swap-module.frag"
 
     def __init__(self, params: GridSwapModuleParams):
         """

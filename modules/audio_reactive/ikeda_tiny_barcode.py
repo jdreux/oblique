@@ -51,7 +51,7 @@ class IkedaTinyBarcodeModule(BaseAVModule[IkedaTinyBarcodeParams, IkedaTinyBarco
             "fft_bands": list[float],
         },
     }
-    frag_shader_path = "modules/audio_reactive/ikeda-tiny-barcode.frag"
+    frag_shader_path = "modules/audio_reactive/shaders/ikeda-tiny-barcode.frag"
 
     def __init__(self, params: IkedaTinyBarcodeParams):
         super().__init__(params)

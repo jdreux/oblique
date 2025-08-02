@@ -64,7 +64,7 @@ class CompositeModule(BaseAVModule[CompositeParams, CompositeUniforms]):
         "description": "Blends two input modules using a selectable blend/composite operation.",
         "parameters": CompositeParams.__annotations__,
     }
-    frag_shader_path: str = "modules/composition/composite.frag"
+    frag_shader_path: str = "modules/composition/shaders/composite.frag"
 
     def __init__(self, params: CompositeParams):
         super().__init__(params)

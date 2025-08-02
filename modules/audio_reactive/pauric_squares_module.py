@@ -27,7 +27,7 @@ class PauricSquaresModule(BaseAVModule[PauricSquaresParams, PauricSquaresUniform
         "description": "Generates animated square patterns with configurable size and color modes.",
         "parameters": PauricSquaresParams.__annotations__,
     }
-    frag_shader_path = "modules/audio_reactive/pauric-squares.frag"
+    frag_shader_path = "modules/audio_reactive/shaders/pauric-squares.frag"
 
     def __init__(
         self,

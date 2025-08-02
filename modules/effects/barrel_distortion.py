@@ -34,7 +34,7 @@ class BarrelDistortionModule(BaseAVModule[BarrelDistortionParams, BarrelDistorti
             "center": "tuple[float, float]",
         },
     }
-    frag_shader_path: str = "modules/effects/barrel-distortion.frag"
+    frag_shader_path: str = "modules/effects/shaders/barrel-distortion.frag"
 
     def __init__(self, params: BarrelDistortionParams):
         """

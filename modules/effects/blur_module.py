@@ -33,7 +33,7 @@ class BlurModule(BaseAVModule[BlurParams, BlurUniforms]):
         "description": "Applies Gaussian blur to input textures with configurable parameters.",
         "parameters": BlurParams.__annotations__,
     }
-    frag_shader_path: str = "modules/effects/blur-module.frag"
+    frag_shader_path: str = "modules/effects/shaders/blur-module.frag"
 
     def __init__(self, params: BlurParams):
         super().__init__(params)

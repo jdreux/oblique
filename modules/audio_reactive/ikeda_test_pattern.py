@@ -22,7 +22,7 @@ class IkedaTestPatternUniforms(Uniforms, total=True):
     u_noise_texture: OffscreenTexturePass
 
 debug_texture: OffscreenTexturePass = OffscreenTexturePass(
-    frag_shader_path="modules/utility/debug.frag",
+    frag_shader_path="modules/utility/shaders/debug.frag",
 )
 
 class IkedaTestPatternModule(BaseAVModule[IkedaTestPatternParams, IkedaTestPatternUniforms]):
@@ -45,12 +45,12 @@ class IkedaTestPatternModule(BaseAVModule[IkedaTestPatternParams, IkedaTestPatte
             "speed": "float",
         },
     }
-    frag_shader_path = "modules/audio_reactive/ikeda-test-pattern.frag"
+    frag_shader_path = "modules/audio_reactive/shaders/ikeda-test-pattern.frag"
 
     debug_texture: OffscreenTexturePass = debug_texture
 
     noise_texture: OffscreenTexturePass = OffscreenTexturePass(
-        frag_shader_path="modules/core/noise.frag",
+        frag_shader_path="modules/core/shaders/noise.frag",
         offscreen_inputs={"u_debug_texture": debug_texture}
     )
 

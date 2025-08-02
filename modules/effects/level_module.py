@@ -74,7 +74,7 @@ class LevelModule(BaseAVModule[LevelParams, LevelUniforms]):
             "opacity": "float",
         },
     }
-    frag_shader_path: str = "modules/effects/level-module.frag"
+    frag_shader_path: str = "modules/effects/shaders/level-module.frag"
 
     def __init__(self, params: LevelParams):
         """

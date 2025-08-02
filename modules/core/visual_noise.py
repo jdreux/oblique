@@ -44,7 +44,7 @@ class VisualNoiseModule(BaseAVModule[VisualNoiseParams, VisualNoiseUniforms]):
             "speed": float,
         },
     }
-    frag_shader_path = "modules/core/visual-noise.frag"
+    frag_shader_path = "modules/core/shaders/visual-noise.frag"
 
     def __init__(
         self,
