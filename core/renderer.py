@@ -8,7 +8,7 @@ from core.logger import error, warning
 from core.shader_preprocessor import preprocess_shader
 
 if TYPE_CHECKING:
-    from modules.base_av_module import BaseAVModule, Uniforms
+    from modules.core.base_av_module import BaseAVModule, Uniforms
 
 _shader_cache = {}
 _texture_cache = {}

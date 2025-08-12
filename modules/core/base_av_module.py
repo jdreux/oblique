@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from core.logger import debug
-from typing import Any, Callable, Generic, TypedDict, TypeVar, Union, overload
+from typing import Any, Callable, Generic, TypedDict, TypeVar, Union, cast, overload
 
 import moderngl
 
@@ -32,34 +31,45 @@ class BaseAVParams:
     height: ParamInt
 
 
-# --- Off-screen texture pass dataclass ---
+# --- Unified texture pass dataclass ---
 @dataclass
-class OffscreenTexturePass:
-    """An internal off-screen render step.
+class TexturePass:
+    """A renderable texture pass used for both on-screen and off-screen rendering.
 
     Attributes
     ----------
+    name:
+        Optional stable name for caching and debugging. If omitted, an internal id() is used.
     frag_shader_path:
         Path to the fragment shader for this pass.
-    inputs:
-        Mapping *uniform_name → source* where *source* can be:
-            • A `OffscreenTexturePass` instance – its rendered texture will be injected.
+    uniforms:
+        Mapping uniform_name → source where source can be:
+            • A `TexturePass` instance – its rendered texture will be injected.
             • A `BaseAVModule` instance – its rendered texture will be injected.
             • A `moderngl.Texture` instance.
-        At runtime each pair produces a uniform named ``u_<uniform_name>`` bound to the
-        resulting texture.
+            • Any primitive value (int, float, bool, str, tuple, list, etc.)
+        At runtime each pair produces a uniform named ``u_<uniform_name>`` unless the key
+        already starts with ``u_``.
     width / height:
-        Optional fixed resolution for this pass.  If omitted the  module's requested
-        resolution is used.
+        Optional fixed resolution for this pass. If omitted, the caller's resolution is used.
     ping_pong:
-        Placeholder for future double-buffering support.
+        Enable double-buffered rendering. When true, the pass alternates cached targets per frame.
+    previous_uniform_name:
+        If ping-pong is enabled and a previous texture exists, it will be injected under this
+        uniform name (default: ``u_previous``).
     """
 
     frag_shader_path: str
-    offscreen_inputs: dict[str, Union["OffscreenTexturePass", "BaseAVModule", moderngl.Texture]] = field(default_factory=dict)
+    uniforms: dict[str, Union["TexturePass", "BaseAVModule", moderngl.Texture, int, float, bool, str, tuple, list]] = field(default_factory=dict)
     width: int | None = None
     height: int | None = None
     ping_pong: bool = False
+    name: str | None = None
+    previous_uniform_name: str = "u_previous"
+
+
+# Backwards-compatibility alias for older modules
+OffscreenTexturePass = TexturePass
 
 
 class Uniforms(TypedDict, total=True):
@@ -97,6 +107,8 @@ class BaseAVModule(ObliqueNode, ABC, Generic[P, U]):
         "parameters": {},
     }
     frag_shader_path: str  # Must be set by subclass
+    ping_pong: bool = False
+    previous_uniform_name: str = "u_previous_frame"
 
     def __init__(self, params: P, parent: ObliqueNode | None = None):
         """
@@ -115,6 +127,19 @@ class BaseAVModule(ObliqueNode, ABC, Generic[P, U]):
         self.params = params
         if parent:
             self.add_parent(parent)
+
+        # Sane defaults for development: a single main pass with the module's shader
+        self.texture_pass: TexturePass = TexturePass(
+            frag_shader_path=self.frag_shader_path,
+            uniforms={},
+            ping_pong=self.ping_pong,
+            previous_uniform_name=self.previous_uniform_name,
+            name=f"{self.__class__.__name__}:{id(self)}",
+        )
+
+        # Internal frame counter and per-pass history for ping-pong
+        self._frame_index: int = 0
+        self._texture_history: dict[str, moderngl.Texture] = {}
 
     @abstractmethod
     def prepare_uniforms(self, t: float) -> U:
@@ -149,17 +174,20 @@ class BaseAVModule(ObliqueNode, ABC, Generic[P, U]):
         """
         Render this module and return a texture.
 
-        The rendering pipeline traverses any OffscreenTexturePass instances
-        returned by ``prepare_uniforms`` to build a dependency graph on-the-fly.
-        Each pass inherits the *non-pass* uniforms defined for the parent module
-        and can in turn declare additional texture inputs via the
-        ``offscreen_inputs`` mapping.
+        The rendering pipeline traverses any TexturePass instances
+        returned by ``prepare_uniforms`` (or attached to the module as nested
+        dependencies) to build a dependency graph on-the-fly.
+        Each pass inherits the non-pass uniforms defined for the parent module
+        and can in turn declare additional texture inputs via its own
+        ``uniforms`` mapping.
 
         The traversal guarantees that:
-        1. Each OffscreenTexturePass is rendered exactly once.
+        1. Each TexturePass is rendered exactly once per frame.
         2. Dependencies are rendered first (depth-first).
         3. The resulting textures are substituted back into the final uniforms
            before the main shader is rendered.
+        4. When ping_pong is enabled, two cached targets are alternated and the
+           previous texture is injected under ``previous_uniform_name`` if available.
         """
         # Ask the subclass for initial uniforms
         initial_uniforms = dict(self.prepare_uniforms(t))
@@ -172,73 +200,145 @@ class BaseAVModule(ObliqueNode, ABC, Generic[P, U]):
                 value = self._resolve_texture_param(value, ctx, width, height, t, filter)
                 initial_uniforms[key] = value  # update in-place for later use
 
-            # Only include non-OffscreenTexturePass in base_uniforms
-            if not isinstance(value, OffscreenTexturePass):
+            # Only include non-TexturePass in base_uniforms
+            if not isinstance(value, TexturePass):
                 base_uniforms[key] = value
 
-        processed: dict[int, moderngl.Texture] = {}
+        # Per-call caches/state
+        processed: dict[str, moderngl.Texture] = {}
+        owner_tag = f"{self.__class__.__name__}:{self.id}"
 
-        def _render_pass(pass_obj: OffscreenTexturePass) -> moderngl.Texture:
-            # Memoisation
-            key = id(pass_obj)
-            if key in processed:
-                return processed[key]
-
-            pass_width = pass_obj.width if pass_obj.width is not None else width
-            pass_height = pass_obj.height if pass_obj.height is not None else height
-
-            # Build uniforms for this pass starting from parent's non-pass uniforms
-            uniforms = dict(base_uniforms)
-            uniforms["u_resolution"] = (pass_width, pass_height)
-
-            # Resolve explicit texture inputs / dependencies
-            for key, source in (pass_obj.offscreen_inputs or {}).items():
-                uniform_name = key if key.startswith("u_") else f"u_{key}"
-
-                if isinstance(source, OffscreenTexturePass):
-                    tex = _render_pass(source)
-                elif isinstance(source, BaseAVModule):
-                    tex = source.render_texture(ctx, pass_width, pass_height, t, filter)
-                else:
-                    assert(isinstance(source, moderngl.Texture), f"Invalid texture source: {source} of type {type(source)}")
-                    tex = source
-
-                uniforms[uniform_name] = tex
-
-            # Finally render the pass itself
-            tex = render_to_texture(
-                self,
-                pass_width,
-                pass_height,
-                pass_obj.frag_shader_path,
-                uniforms,
-                filter,
-                cache_tag=str(id(pass_obj)),
-            )
-            processed[key] = tex
-            return tex
-
-        # Render every OffscreenTexturePass referenced in the initial uniforms
-        final_uniforms = dict(base_uniforms)  # start with regular uniforms
+        # Render every TexturePass referenced in the initial uniforms to get final uniforms
+        final_uniforms = dict(base_uniforms)
         for uniform_name, value in initial_uniforms.items():
-            if isinstance(value, OffscreenTexturePass):
-                final_uniforms[uniform_name] = _render_pass(value)
+            if isinstance(value, TexturePass):
+                final_uniforms[uniform_name] = self._render_texture_pass(
+                    pass_obj=value,
+                    ctx=ctx,
+                    parent_width=width,
+                    parent_height=height,
+                    t=t,
+                    texture_filter=filter,
+                    inherited_uniforms=final_uniforms,
+                    processed=processed,
+                    owner_tag=owner_tag,
+                )
             else:
                 final_uniforms[uniform_name] = value
 
-        # Ensure the main pass gets its own resolution
+        # Ensure the main/root pass gets its own resolution
         final_uniforms.setdefault("u_resolution", (width, height))
 
-        return render_to_texture(
-            self,
-            width,
-            height,
-            self.frag_shader_path,
-            final_uniforms,
-            filter,
-            cache_tag="final",
+        # Render the root/main pass (self.texture_pass) with inherited uniforms
+        root_tex = self._render_texture_pass(
+            pass_obj=self.texture_pass,
+            ctx=ctx,
+            parent_width=width,
+            parent_height=height,
+            t=t,
+            texture_filter=filter,
+            inherited_uniforms=final_uniforms,
+            processed=processed,
+            owner_tag=owner_tag,
         )
-        
+
+        # Advance frame index after completing the full render of this module
+        self._frame_index += 1
+
+        return root_tex
+
+    def _render_texture_pass(
+        self,
+        pass_obj: TexturePass,
+        ctx: moderngl.Context,
+        parent_width: int,
+        parent_height: int,
+        t: float,
+        texture_filter: int,
+        inherited_uniforms: dict[str, Any],
+        processed: dict[str, moderngl.Texture],
+        owner_tag: str,
+    ) -> moderngl.Texture:
+        """Render a single TexturePass, resolving dependencies depth-first.
+
+        This method is side-effect free except for updating the provided `processed`
+        cache and the module's internal ping-pong history.
+        """
+        # Memoisation within a frame
+        memo_key = f"{id(pass_obj)}:{parent_width}x{parent_height}"
+        if memo_key in processed:
+            return processed[memo_key]
+
+        pass_width = pass_obj.width if pass_obj.width is not None else parent_width
+        pass_height = pass_obj.height if pass_obj.height is not None else parent_height
+
+        # Build uniforms for this pass starting from inherited uniforms
+        uniforms: dict[str, Any] = dict(inherited_uniforms)
+        uniforms["u_resolution"] = (pass_width, pass_height)
+
+        # Resolve explicit texture inputs / dependencies declared on the pass
+        for key, source in (pass_obj.uniforms or {}).items():
+            uniform_name = key if key.startswith("u_") else f"u_{key}"
+
+            if isinstance(source, TexturePass):
+                tex = self._render_texture_pass(
+                    pass_obj=source,
+                    ctx=ctx,
+                    parent_width=pass_width,
+                    parent_height=pass_height,
+                    t=t,
+                    texture_filter=texture_filter,
+                    inherited_uniforms=uniforms,
+                    processed=processed,
+                    owner_tag=owner_tag,
+                )
+            elif isinstance(source, BaseAVModule):
+                tex = source.render_texture(ctx, pass_width, pass_height, t, texture_filter)
+            elif isinstance(source, moderngl.Texture):
+                tex = source
+            else:
+                # Primitive uniforms are passed as-is
+                tex = source
+
+            uniforms[uniform_name] = tex
+
+        # If ping-pong is enabled, inject previous texture if available (or create a zero texture on first frame)
+        pass_tag = pass_obj.name or str(id(pass_obj))
+        cache_tag = pass_tag
+        if pass_obj.ping_pong:
+            parity = self._frame_index % 2
+            prev_parity = 1 - parity
+            cache_tag = f"{pass_tag}:pp:{parity}"
+            prev_key = f"{owner_tag}:{pass_tag}:pp:{prev_parity}:{pass_width}x{pass_height}"
+            prev_tex = self._texture_history.get(prev_key)
+            if prev_tex is None:
+                # Sane default: provide a zero-initialized texture as previous
+                prev_tex = ctx.texture((pass_width, pass_height), 4, dtype="f1", alignment=1)
+                prev_tex.filter = (texture_filter, texture_filter)
+                prev_tex.repeat_x = False
+                prev_tex.repeat_y = False
+            prev_uniform = pass_obj.previous_uniform_name or "u_previous"
+            uniforms[prev_uniform] = prev_tex
+
+        # Render the pass itself
+        tex = render_to_texture(
+            self,
+            pass_width,
+            pass_height,
+            pass_obj.frag_shader_path,
+            cast(Uniforms, uniforms),
+            texture_filter,
+            cache_tag=cache_tag,
+        )
+
+        # Update memo and ping-pong history
+        processed[memo_key] = tex
+        if pass_obj.ping_pong:
+            current_key = f"{owner_tag}:{pass_tag}:pp:{self._frame_index % 2}:{pass_width}x{pass_height}"
+            self._texture_history[current_key] = tex
+
+        return tex
+
     @overload
     def _resolve_param(self, param: ParamInt) -> int: ...
 

@@ -50,8 +50,19 @@ def shader_test(width: int, height: int) -> ObliquePatch:
             kernel_size=5,
         )
     )
+
+    feedback_module = FeedbackModule(
+        FeedbackParams(
+            width=width,
+            height=height,
+            input_texture=protoplasm_module,
+            direction=(0.0, 0.0),
+            feedback_strength=0.9,
+        )
+    )
+
     def tick_callback(t: float) -> BaseAVModule:
-        return blur_module
+        return feedback_module
 
     return ObliquePatch(
         tick_callback=tick_callback,

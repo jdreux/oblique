@@ -51,7 +51,7 @@ class IkedaTestPatternModule(BaseAVModule[IkedaTestPatternParams, IkedaTestPatte
 
     noise_texture: OffscreenTexturePass = OffscreenTexturePass(
         frag_shader_path="modules/core/shaders/noise.frag",
-        offscreen_inputs={"u_debug_texture": debug_texture}
+        uniforms={"u_debug_texture": debug_texture}
     )
 
     def __init__(self, params: IkedaTestPatternParams):

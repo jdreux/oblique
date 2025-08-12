@@ -6,7 +6,7 @@ from modules.core.base_av_module import (
     BaseAVModule,
     BaseAVParams,
     Uniforms,
-    OffscreenTexturePass,
+    TexturePass,
 )
 
 
@@ -17,7 +17,7 @@ class ProtoplasmParams(BaseAVParams):
 
 class ProtoplasmUniforms(Uniforms, total=True):
     u_time: float
-    u_texture: moderngl.Texture
+    u_noise_texture: TexturePass
 
 
 class ProtoplasmModule(BaseAVModule[ProtoplasmParams, ProtoplasmUniforms]):
@@ -42,8 +42,8 @@ class ProtoplasmModule(BaseAVModule[ProtoplasmParams, ProtoplasmUniforms]):
     }
     frag_shader_path = "modules/audio_reactive/shaders/protoplasm.frag"
 
-    noise_pass: OffscreenTexturePass = OffscreenTexturePass(
-        frag_shader_path="shaders/noise.frag",
+    noise_pass: TexturePass = TexturePass(
+        frag_shader_path="modules/core/shaders/noise.frag",
     )
 
     def __init__(self, params: ProtoplasmParams):

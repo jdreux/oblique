@@ -66,7 +66,7 @@ const mat3 m = mat3( 0.00,  0.80,  0.60,
 // Ray-marcher core (adapted from Trisomie21 https://www.shadertoy.com/view/4tfGRB)
 // -----------------------------------------------------------------------------
 
-const vec4 BG_COLOUR = vec4(0.0, 0.2, 0.0, 0.0);           // background tint
+const vec4 BG_COLOUR = vec4(0.0, 0.0, 0.0, 0.0);           // background tint
 
 void mainImage(out vec4 f, vec2 fragCoord) {
     // ---------------------------------------------------------------------
