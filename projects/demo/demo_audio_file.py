@@ -1,7 +1,7 @@
 import math
 
 from core.oblique_patch import ObliquePatch
-from inputs.audio_file_input import AudioFileInput
+from inputs.audio.core.audio_file_input import AudioFileInput
 from modules.audio_reactive.mit_particles import MITParticlesModule, MITParticlesParams
 from modules.effects.barrel_distortion import BarrelDistortionModule, BarrelDistortionParams
 from modules.composition.composite_module import CompositeModule, CompositeParams, CompositeOp

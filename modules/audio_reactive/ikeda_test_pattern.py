@@ -1,14 +1,10 @@
 from dataclasses import dataclass
 
-import moderngl
-
 from modules.core.base_av_module import (
     BaseAVModule,
     BaseAVParams,
-    ParamFloat,
-    ParamTexture,
+    TexturePass,
     Uniforms,
-    OffscreenTexturePass,
 )
 
 
@@ -19,9 +15,9 @@ class IkedaTestPatternParams(BaseAVParams):
 
 class IkedaTestPatternUniforms(Uniforms, total=True):
     u_time: float
-    u_noise_texture: OffscreenTexturePass
+    u_noise_texture: TexturePass
 
-debug_texture: OffscreenTexturePass = OffscreenTexturePass(
+debug_texture: TexturePass = TexturePass(
     frag_shader_path="modules/utility/shaders/debug.frag",
 )
 
@@ -47,9 +43,9 @@ class IkedaTestPatternModule(BaseAVModule[IkedaTestPatternParams, IkedaTestPatte
     }
     frag_shader_path = "modules/audio_reactive/shaders/ikeda-test-pattern.frag"
 
-    debug_texture: OffscreenTexturePass = debug_texture
+    debug_texture: TexturePass = debug_texture
 
-    noise_texture: OffscreenTexturePass = OffscreenTexturePass(
+    noise_texture: TexturePass = TexturePass(
         frag_shader_path="modules/core/shaders/noise.frag",
         uniforms={"u_debug_texture": debug_texture}
     )

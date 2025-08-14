@@ -118,7 +118,7 @@ Inputs are modular sources of data for Oblique. All input classes inherit from `
 `AudioDeviceInput` reads audio from a file and provides it in chunks for processing and visualization. It is useful for prototyping and testing audio-reactive modules.
 
 ```python
-from inputs.audio_device_input import AudioDeviceInput
+from inputs.audio.core.audio_device_input import AudioDeviceInput
 input_device = AudioDeviceInput("path/to/audio.wav", chunk_size=2048)
 input_device.start()
 chunk = input_device.read()

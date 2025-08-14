@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from modules.core.base_av_module import (
     BaseAVModule,
     BaseAVParams,
-    OffscreenTexturePass,
     ParamFloat,
     ParamInt,
     TexturePass,
@@ -35,7 +34,7 @@ class MITParticlesParams(BaseAVParams):
 class MITParticlesUniforms(Uniforms, total=True):
     u_time: float
     u_audio: float
-    u_state: OffscreenTexturePass
+    u_state: TexturePass
     u_num_particles: int
     u_tex_size: tuple[int, int]
     u_point_size_px: float

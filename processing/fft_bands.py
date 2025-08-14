@@ -4,7 +4,7 @@ import numpy as np
 from typing_extensions import Dict
 
 from core.logger import debug
-from inputs.base_input import BaseInput
+from inputs.audio.core.base_input import BaseInput
 from processing.base_processing_operator import BaseProcessingOperator
 
 

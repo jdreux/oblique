@@ -9,7 +9,7 @@ import sounddevice as sd
 from core.logger import debug, error, info, warning
 from core.oblique_patch import ObliquePatch
 from core.performance_monitor import PerformanceMonitor
-from inputs.base_input import BaseInput
+from inputs.audio.core.base_input import BaseInput
 
 
 class ObliqueEngine:

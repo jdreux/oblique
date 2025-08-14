@@ -68,8 +68,7 @@ class TexturePass:
     previous_uniform_name: str = "u_previous"
 
 
-# Backwards-compatibility alias for older modules
-OffscreenTexturePass = TexturePass
+
 
 
 class Uniforms(TypedDict, total=True):
