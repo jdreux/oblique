@@ -4,4 +4,6 @@ numpy
 sounddevice
 soundfile
 typing_extensions
-Pillow 
+Pillow
+pytest
+pytest-cov
