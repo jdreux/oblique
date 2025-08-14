@@ -1,16 +1,20 @@
 #version 330 core
 precision highp float;
 
-uniform sampler2D u_statePrev;   // RGBA32F: pos.xy, vel.xy
-uniform ivec2     u_texSize;     // state texture size
-uniform int       u_numParticles;
+uniform sampler2D u_state_prev;   // RGBA32F: pos.xy, vel.xy
+uniform ivec2     u_tex_size;     // state texture size
+uniform int       u_num_particles;
 
-uniform vec2  u_resolution;      // render size (px)
-uniform vec2  u_center;          // circle centre in px
-uniform float u_radius;          // circle radius (px)
-uniform float u_dt;              // seconds
-uniform float u_time;            // seconds
-uniform float u_audio;           // 0..~2 (excitement)
+uniform vec2  u_resolution;       // render size (px)
+uniform vec2  u_center;           // circle centre in px
+uniform float u_radius;           // circle radius (px)
+uniform float u_dt;               // seconds
+uniform float u_time;             // seconds
+uniform float u_audio;            // 0..~2 (excitement)
+
+uniform float u_gravity_strength; // spring strength toward radius (px/s^2)
+uniform float u_swirl_strength;   // tangential acceleration (px/s^2)
+uniform float u_noise_strength;   // noise acceleration (px/s^2)
 
 out vec4 FragColor;
 
@@ -21,10 +25,25 @@ vec2  hash2(ivec2 p){ return vec2(hash1(p), hash1(p+17))*2.0-1.0; }
 
 void main() {
     ivec2 uv  = ivec2(gl_FragCoord.xy);                 // 1:1 texel mapping
-    int   idx = uv.x + uv.y * u_texSize.x;
-    if (idx >= u_numParticles) { FragColor = vec4(0); return; }
+    int   idx = uv.x + uv.y * u_tex_size.x;
+    if (idx >= u_num_particles) { FragColor = vec4(0); return; }
 
-    vec4 s  = texelFetch(u_statePrev, uv, 0);           // pos.xy, vel.xy
+    // First-frame initialization: seed positions on/around the circle with noisy velocities
+    bool do_init = (u_time < 0.0005);
+    if (do_init) {
+        float t = float(idx) / float(max(1, u_num_particles));
+        float ang = t * 6.2831853;
+        float rj = u_radius + hash1(uv) * 6.0 - 3.0;     // small radial jitter
+        vec2 dir = vec2(cos(ang), sin(ang));
+        vec2 p0  = u_center + dir * rj;
+        vec2 tan = vec2(-dir.y, dir.x);
+        // Start with noticeable tangential velocity
+        vec2 v0  = tan * (u_swirl_strength * 0.25);
+        FragColor = vec4(p0, v0);
+        return;
+    }
+
+    vec4 s  = texelFetch(u_state_prev, uv, 0);           // pos.xy, vel.xy
     vec2 p  = s.xy;
     vec2 v  = s.zw;
 
@@ -34,26 +53,26 @@ void main() {
     vec2  dir   = d / r;
 
     // Spring toward the target radius
-    float k     = 6.0;                                  // radial spring strength
-    float damp  = 0.86;                                 // velocity damping
+    float k     = u_gravity_strength;                    // radial spring strength
+    float damp  = 0.92;                                  // velocity damping
     float target= u_radius;
-    float radialErr = (target - r);                     // >0 pulls outward, <0 inward
+    float radialErr = (target - r);                      // >0 pulls outward, <0 inward
     vec2  F_rad = dir * (k * radialErr);
 
-    // Tangential “swirl” + audio excitation noise
+    // Tangential swirl + audio modulation (mild)
     vec2  tang  = vec2(-dir.y, dir.x);
-    float swirl = 1.4 + 2.0 * u_audio;                  // more swirl with audio
+    float swirl = u_swirl_strength * (1.0 + 0.1 * u_audio);
     vec2  F_tan = tang * swirl;
 
     // Gentle noise kick (scaled by audio)
-    vec2 n  = hash2(uv + ivec2(int(u_time*60.0))) * (2.0 + 8.0*u_audio);
+    vec2 n  = hash2(uv + ivec2(int(u_time*60.0))) * (u_noise_strength * (0.5 + 0.5 * clamp(u_audio, 0.0, 4.0)));
 
     // Integrate (semi-implicit Euler)
     vec2 a = F_rad + F_tan + n;
     v = (v + a * u_dt) * damp;
 
     // Keep speeds bounded
-    float vmax = 600.0;
+    float vmax = 800.0;
     float spd  = length(v);
     if (spd > vmax) v *= vmax / spd;
 

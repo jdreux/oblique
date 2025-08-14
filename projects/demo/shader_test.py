@@ -1,6 +1,7 @@
 from core.logger import error, info
 from core.oblique_engine import ObliqueEngine
 from core.oblique_patch import ObliquePatch
+from modules.audio_reactive.mit_particles import MITParticlesModule, MITParticlesParams
 from modules.effects.barrel_distortion import BarrelDistortionModule, BarrelDistortionParams
 from modules.core.base_av_module import BaseAVModule
 from modules.effects.blur_module import BlurModule, BlurParams
@@ -61,8 +62,15 @@ def shader_test(width: int, height: int) -> ObliquePatch:
         )
     )
 
+    mit_particles_module = MITParticlesModule(
+        MITParticlesParams(
+            width=width,
+            height=height
+        )
+    )
+
     def tick_callback(t: float) -> BaseAVModule:
-        return feedback_module
+        return mit_particles_module
 
     return ObliquePatch(
         tick_callback=tick_callback,

@@ -313,7 +313,7 @@ class BaseAVModule(ObliqueNode, ABC, Generic[P, U]):
             prev_tex = self._texture_history.get(prev_key)
             if prev_tex is None:
                 # Sane default: provide a zero-initialized texture as previous
-                prev_tex = ctx.texture((pass_width, pass_height), 4, dtype="f1", alignment=1)
+                prev_tex = ctx.texture((pass_width, pass_height), 4, dtype="f4", alignment=1)
                 prev_tex.filter = (texture_filter, texture_filter)
                 prev_tex.repeat_x = False
                 prev_tex.repeat_y = False

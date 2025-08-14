@@ -168,7 +168,7 @@ def render_to_texture(
     if cache_key in _texture_cache:
         tex = _texture_cache[cache_key]
     else:
-        tex = _ctx.texture((width, height), 4, dtype="f1", alignment=1)
+        tex = _ctx.texture((width, height), 4, dtype="f4", alignment=1)
         tex.filter = (filter, filter)
         tex.repeat_x = False
         tex.repeat_y = False

@@ -2,6 +2,7 @@ import math
 
 from core.oblique_patch import ObliquePatch
 from inputs.audio_file_input import AudioFileInput
+from modules.audio_reactive.mit_particles import MITParticlesModule, MITParticlesParams
 from modules.effects.barrel_distortion import BarrelDistortionModule, BarrelDistortionParams
 from modules.composition.composite_module import CompositeModule, CompositeParams, CompositeOp
 from modules.core.base_av_module import BaseAVModule
@@ -167,33 +168,46 @@ def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: igno
         ),
     )
 
+    mit_particles_module = MITParticlesModule(
+        MITParticlesParams(
+            width=width,
+            height=height,
+            num_particles=500,
+        ),
+    ) 
+
 
     normalized_amplitude_processor = NormalizedAmplitudeOperator(audio_input)
 
     def _tick_callback(t: float) -> BaseAVModule:
-        amplitude: float = normalized_amplitude_processor.process()
+        amplitude: float = normalized_amplitude_processor.process() * 550.0
 
 
-        grid_swap_module.params.grid_size = int(16 * amplitude)
-        grid_swap_module.params.num_swaps = int(128 * amplitude)
+        # grid_swap_module.params.grid_size = int(16 * amplitude)
+        # grid_swap_module.params.num_swaps = int(128 * amplitude)
 
-        #slide content vertically over time
-        transform_module.params.translate = (math.sin(t * 2.0)*0.1, 0.0)
-        feedback_module.params.direction = (0.0, -0.001)
-        pauric_squares_module.params.tile_size = int(2 + 8000 * amplitude)
-        # level_module.params.invert = t % 4 <
+        # #slide content vertically over time
+        # transform_module.params.translate = (math.sin(t * 2.0)*0.1, 0.0)
+        # feedback_module.params.direction = (0.0, -0.001)
+        # pauric_squares_module.params.tile_size = int(2 + 8000 * amplitude)
+        # # level_module.params.invert = t % 4 <
 
-        barrel_distortion_module.params.strength = -(0.5 + 5 * amplitude)
-        barrel_distortion_module.params.center = (0.5 * math.sin(t * 2.0), 0.5 * math.sin(t * 2.0))
+        # barrel_distortion_module.params.strength = -(0.5 + 5 * amplitude)
+        # barrel_distortion_module.params.center = (0.5 * math.sin(t * 2.0), 0.5 * math.sin(t * 2.0))
 
-        if t*10 % 95 < 5:
-            level_module.params.invert = True
-        else:
-            level_module.params.invert = False
-        # print(f"Grid size: {grid_swap_module.params.grid_size}, Num swaps: {grid_swap_module.params.num_swaps}")
+        # if t*10 % 95 < 5:
+        #     level_module.params.invert = True
+        # else:
+        #     level_module.params.invert = False
+        # # print(f"Grid size: {grid_swap_module.params.grid_size}, Num swaps: {grid_swap_module.params.num_swaps}")
 
-        composite_transform.params.angle = t * 10
-        return composite_transform
+        # composite_transform.params.angle = t * 10
+        mit_particles_module.params.noise_strength = amplitude
+        mit_particles_module.params.gravity_strength = amplitude
+        mit_particles_module.params.swirl_strength = amplitude
+        mit_particles_module.params.circle_radius = amplitude
+        # mit_particles_module.params.num_particles = int(100 * amplitude)
+        return mit_particles_module
 
 
     return ObliquePatch(audio_output=audio_input, tick_callback=_tick_callback)
