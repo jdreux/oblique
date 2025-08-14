@@ -1,3 +1,11 @@
+"""Rendering helpers for Oblique's Shadertoy‑style pipeline.
+
+The renderer draws a fullscreen quad using a fixed vertex shader while fragment
+shaders provide all visual logic.  It also offers utilities for off‑screen
+passes and ping‑pong rendering used by :class:`~modules.core.base_av_module.BaseAVModule`.
+The implementation targets OpenGL 3.3 / GLSL 330 and is primarily tested on
+Apple Silicon.
+"""
 
 from typing import TYPE_CHECKING, Any
 
@@ -68,10 +76,17 @@ def _release_shader_cache_entry(entry: tuple) -> None:
 def render_fullscreen_quad(
     ctx: moderngl.Context, frag_shader_path: str, uniforms: dict[str, Any]
 ) -> tuple[moderngl.Program, moderngl.VertexArray, moderngl.Buffer]:
-    """
-    Render a fullscreen quad using the given fragment shader and uniforms.
-    Caches the program, VAO, and VBO for efficiency.
-    Returns the program, vao, and vbo.
+    """Draw a fullscreen quad with a stock vertex shader.
+
+    The fragment shader is compiled and paired with a minimal vertex shader that
+    outputs a fullscreen triangle strip—mirroring Shadertoy where all creative
+    logic lives in the fragment shader.  Compiled programs and buffers are
+    cached for reuse.
+
+    Returns
+    -------
+    tuple
+        ``(program, vao, vbo)`` for optional manual management.
     """
     global _shader_cache, _debug_mode
 
@@ -151,11 +166,14 @@ def render_to_texture(
     filter: int = moderngl.NEAREST,
     cache_tag: str = ""
 ) -> moderngl.Texture:
-    """
-    Render a fullscreen quad to an offscreen texture using the given fragment shader and uniforms.
-    The optional `cache_tag` allows distinct cache entries for different internal passes
-    belonging to the same module class. This prevents cache collisions when a module
-    renders several off-screen buffers of identical resolution.
+    """Render a module pass to an off‑screen texture.
+
+    Used by modules to build feedback chains, ping‑pong buffers and other
+    intermediate passes. Each pass uses the same stock vertex shader as
+    :func:`render_fullscreen_quad`.
+
+    The optional ``cache_tag`` creates distinct cache entries for multiple
+    off‑screen passes of identical resolution within a module.
     """
     global _texture_cache
     global _ctx
