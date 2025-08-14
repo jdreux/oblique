@@ -36,7 +36,7 @@ def main():
         "--audio-device",
         type=int,
         default=None,
-        help="Audio device ID to use for real-time input",git
+        help="Audio device ID to use for real-time input",
     )
     parser.add_argument(
         "--audio-channels",
