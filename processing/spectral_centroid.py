@@ -2,7 +2,7 @@ from typing import Any, Dict
 
 import numpy as np
 
-from inputs.base_input import BaseInput
+from inputs.audio.core.base_input import BaseInput
 from processing.base_processing_operator import BaseProcessingOperator
 
 
@@ -77,7 +77,7 @@ class SpectralCentroid(BaseProcessingOperator[float]):
 if __name__ == "__main__":
     import sys
 
-    from inputs.audio_file_input import AudioFileInput
+    from inputs.audio.core.audio_file_input import AudioFileInput
 
     file_path = (
         sys.argv[1]

@@ -1,12 +1,21 @@
+"""Command line entry point for the Oblique AV engine.
+
+This script configures audio inputs, selects demo patches and launches the
+real‑time engine.  Patches are small Python modules that return an
+``ObliquePatch`` tying together inputs and AV modules (see ``projects/demo`` for
+examples).  The script exists primarily for development and assumes Apple
+Silicon with GLSL 330 support.
+"""
+
 import argparse
 
 # --- Core imports ---
 from core import ObliqueEngine
 from core.logger import configure_logging, debug, error, info
-from inputs.audio_device_input import AudioDeviceInput, print_audio_devices
+from inputs.audio.core.audio_device_input import AudioDeviceInput, print_audio_devices
 
 # --- Input imports ---
-from inputs.audio_file_input import AudioFileInput
+from inputs.audio.core.audio_file_input import AudioFileInput
 from projects.demo.shader_test import shader_test
 from projects.demo.demo_audio_file import audio_file_demo_patch
 from projects.demo.demo_syntakt import create_demo_syntakt
@@ -27,7 +36,7 @@ def main():
         "--audio-device",
         type=int,
         default=None,
-        help="Audio device ID to use for real-time input",
+        help="Audio device ID to use for real-time input",git
     )
     parser.add_argument(
         "--audio-channels",

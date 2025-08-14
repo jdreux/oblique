@@ -1,6 +1,6 @@
 from typing import Callable, List, Optional
 
-from inputs.base_input import BaseInput
+from inputs.audio.core.base_input import BaseInput
 from modules.core.base_av_module import BaseAVModule
 
 

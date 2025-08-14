@@ -1,24 +1,65 @@
-# Oblique - Modular AV Synthesizer
+# Oblique – Modular AV Synthesizer
 
-A minimal, shader-driven AV synthesizer focused on modularity, real-time performance, and audio-reactive visuals.
+Oblique is a Python‑orchestrated, Shadertoy‑style engine for real‑time, audio‑reactive
+visuals.  It targets artists who want to pair live music with live visuals and includes
+bindings for external devices such as Elektron gear.
 
-## Architecture
+## How it Works
 
-Oblique follows a clean architecture: **Input → Processing → Rendering → Output**
+Oblique follows a simple flow: **Input → Processing → AV Modules → Output**
 
-- **Input**: Raw audio, MIDI, OSC, time signals
-- **Processing**: Feature extraction, normalization, event detection
-- **Rendering**: Modular shader units with type-safe uniforms
-- **Output**: Real-time audiovisual composition
+- **Input** – Audio files, live audio, MIDI, OSC, or time signals
+- **Processing** – Feature extraction, normalization and event detection
+- **AV Modules** – Fragment‑shader based visual units
+- **Output** – Real‑time composition rendered to the screen
+
+### AV Modules
+
+Modules loosely follow the Shadertoy rendering model: a stock vertex shader drives a
+full‑screen quad while the fragment shader contains the creative logic.  Modules may
+optionally use ping‑pong buffers for feedback and additional off‑screen passes for
+intermediate compositing.
+
+### Patches
+
+Most of the magic lives in a **patch** – a small Python function that returns an
+`ObliquePatch` describing the inputs and AV module to run.  Here's a tiny patch that
+plays an audio file while rendering a beat‑reactive circle:
+
+```python
+from core.oblique_patch import ObliquePatch
+from inputs.audio_file_input import AudioFileInput
+from modules.audio_reactive.circle_echo import CircleEcho, CircleEchoParams
+from processing.fft_bands import FFTBands
+
+def circle_patch(width, height):
+    audio = AudioFileInput("beat.wav")
+    fft = FFTBands(audio)
+    circle = CircleEcho(CircleEchoParams(width=width, height=height), fft)
+
+    def tick(t: float):
+        return circle
+
+    return ObliquePatch(audio_output=audio, tick_callback=tick)
+```
+
+Save this as `circle_patch.py` and wire it up in your own runner or modify `main.py` to
+load the patch.
 
 ## Key Features
 
-- **Type-Safe Uniforms**: Dataclass-based uniform contracts prevent shader errors
-- **State flows in one direction**: data flows down and defines state, REACT style approach. 
-- **Audio-Reactive**: Real-time audio analysis and feature extraction
-- **Modular Design**: Easy to create new visual modules
-- **GPU-Native**: All visuals rendered via GLSL shaders
-- **Performance**: 60 FPS @ 1080p on Apple Silicon
+- **One‑way state flow**: data flows downward, React‑style
+- **Audio‑reactive** analysis and feature extraction
+- **Modular design** for creating new visual units
+- **Hardware integration** with external devices (e.g. Elektron Syntakt)
+- **GPU‑native** GLSL rendering
+- **Performance**: 60 FPS @ 1080p on Apple Silicon
+
+## Current Limitations
+
+- Optimised for Apple Silicon with Metal‑backed OpenGL
+- Requires GLSL **330 core** shaders
+- No cross‑platform support at the moment
 
 ## Quick Start
 
@@ -33,6 +74,7 @@ Oblique follows a clean architecture: **Input → Processing → Rendering → O
 python main.py --audio "path/to/audio.wav" --width 800 --height 600 --audio "path_to_audio"
 ```
 
+
 ## Testing
 
 This project uses [pytest](https://docs.pytest.org/) for unit testing.
@@ -44,29 +86,20 @@ pytest
 
 Run with `pytest --cov` to measure test coverage.
 
-## Folder struture
-/oblique/
-├── main.py                    # Launches the engine and test modules
-├── core/                      # Engine loop, base module interface
-│   ├── engine.py             # Main AV engine (composition, routing)
-│   ├── base_module.py        # Base class for rendering modules
-│   └── signal_processor.py   # Signal processing and normalization
-├── input/                     # Raw signal collection
-│   ├── audio/                # Audio input and FFT analysis
-│   ├── midi/                 # MIDI input (future)
-│   └── osc/                  # OSC input (future)
-├── processing/                # Signal processing and feature extraction
-│   ├── audio_features.py     # FFT, envelope, peak detection
-│   ├── signal_normalizer.py  # Normalize various input types
-│   └── event_detector.py     # Beat detection, triggers
-├── modules/                   # Visual rendering modules
-│   └── animated_grid.py      # Example module
-├── shaders/                   # GLSL fragment shaders for modules
-├── output/                    # Final composition and delivery
-│   ├── compositor.py         # Module blending and composition
-│   └── display.py            # Window, Syphon, recording
-├── install.sh                 # Dependency installation
-├── start.sh                   # Starts a run with default settings
+## Repository Structure
+
+```
+oblique/
+├── core/          # Engine loop, renderer and patch definitions
+├── inputs/        # Audio and other data sources
+├── modules/       # AV modules paired with GLSL shaders
+├── processing/    # Signal processing operators
+├── shaders/       # Shared GLSL snippets
+├── external/      # Third-party resources
+├── projects/      # Example patches and experiments
+├── main.py        # Entry point loading an ObliquePatch
+├── install.sh     # Dependency installation
+├── start.sh       # Demo runner
 └── README.md
 ```
 
@@ -129,7 +162,7 @@ Inputs are modular sources of data for Oblique. All input classes inherit from `
 `AudioDeviceInput` reads audio from a file and provides it in chunks for processing and visualization. It is useful for prototyping and testing audio-reactive modules.
 
 ```python
-from inputs.audio_device_input import AudioDeviceInput
+from inputs.audio.core.audio_device_input import AudioDeviceInput
 input_device = AudioDeviceInput("path/to/audio.wav", chunk_size=2048)
 input_device.start()
 chunk = input_device.read()

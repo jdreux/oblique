@@ -1,5 +1,5 @@
 from core.oblique_patch import ObliquePatch
-from inputs.audio_device_input import AudioDeviceInput
+from inputs.audio.core.audio_device_input import AudioDeviceInput
 from modules.core.base_av_module import BaseAVModule
 
 # --- Module imports ---

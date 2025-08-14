@@ -2,7 +2,7 @@ from typing import Any, Dict
 
 import numpy as np
 
-from inputs.audio_device_input import AudioDeviceInput
+from inputs.audio.core.audio_device_input import AudioDeviceInput
 from processing.base_processing_operator import BaseProcessingOperator
 
 
@@ -38,7 +38,7 @@ class ZeroCrossingRate(BaseProcessingOperator[float]):
 if __name__ == "__main__":
     import sys
 
-    from inputs.audio_device_input import AudioDeviceInput
+    from inputs.audio.core.audio_device_input import AudioDeviceInput
 
     file_path = (
         sys.argv[1]
