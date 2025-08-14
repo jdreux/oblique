@@ -4,7 +4,7 @@ Modules follow a Shadertoy‑like model: a fixed vertex shader draws a fullscree
 quad while fragment shaders implement the visuals.  The framework provides
 helpers for optional ping‑pong buffering and additional off‑screen passes,
 allowing complex compositions while keeping Python orchestration minimal.  The
-code is optimised for Apple Silicon and GLSL 330.
+code is optimised for Apple Silicon and GLSL 330.
 """
 
 from abc import ABC, abstractmethod
@@ -13,7 +13,6 @@ from typing import Any, Callable, Generic, TypedDict, TypeVar, Union, cast, over
 
 import moderngl
 
-from core.oblique_node import ObliqueNode
 from core.renderer import render_to_texture
 from processing.base_processing_operator import BaseProcessingOperator
 
@@ -101,7 +100,7 @@ P = TypeVar("P", bound="BaseAVParams")
 U = TypeVar("U", bound="Uniforms")
 
 
-class BaseAVModule(ObliqueNode, ABC, Generic[P, U]):
+class BaseAVModule(ABC, Generic[P, U]):
     """Abstract base for all shader‑driven AV modules.
 
     Subclasses provide a GLSL fragment shader and implement :meth:`prepare_uniforms`
@@ -134,14 +133,13 @@ class BaseAVModule(ObliqueNode, ABC, Generic[P, U]):
     ping_pong: bool = False
     previous_uniform_name: str = "u_previous_frame"
 
-    def __init__(self, params: P, parent: ObliqueNode | None = None):
+    def __init__(self, params: P):
         """
         Initialize the module with parameters.
 
         Args:
             params (BaseAVParams): Initial parameters for the module.
         """
-        ObliqueNode.__init__(self)
         if not hasattr(self, "frag_shader_path") or not isinstance(
             self.frag_shader_path, str
         ):
@@ -149,8 +147,6 @@ class BaseAVModule(ObliqueNode, ABC, Generic[P, U]):
                 f"{self.__class__.__name__} must define a class attribute 'frag_shader_path' (str)!"
             )
         self.params = params
-        if parent:
-            self.add_parent(parent)
 
         # Sane defaults for development: a single main pass with the module's shader
         self.texture_pass: TexturePass = TexturePass(
