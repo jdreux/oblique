@@ -74,6 +74,18 @@ load the patch.
 python main.py --audio "path/to/audio.wav" --width 800 --height 600 --audio "path_to_audio"
 ```
 
+
+## Testing
+
+This project uses [pytest](https://docs.pytest.org/) for unit testing.
+
+```bash
+pip install -r requirements.txt
+pytest
+```
+
+Run with `pytest --cov` to measure test coverage.
+
 ## Repository Structure
 
 ```
