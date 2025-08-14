@@ -48,10 +48,10 @@ load the patch.
 
 ## Key Features
 
-- **One‑way state flow**: data flows downward, React‑style
+- **One‑way state flow**: data flows downward, fully in code.
 - **Audio‑reactive** analysis and feature extraction
 - **Modular design** for creating new visual units
-- **Hardware integration** with external devices (e.g. Elektron Syntakt)
+- **Hardware integration** with external devices (e.g. Elektron gear out of the box)
 - **GPU‑native** GLSL rendering
 - **Performance**: 60 FPS @ 1080p on Apple Silicon
 
@@ -110,16 +110,6 @@ Modules are:
 - Driven by processed signals from the processing layer
 - Easy to test independently
 
-Example:
-```python
-class FlickerGrid(BaseAVModule):
-    def update(processed_signals, time_data):
-        # Update module state based on processed signals
-        ...
-    def render():
-        # Render to framebuffer
-        return framebuffer
-```
 
 ## 🤖 AI Agent Development
 
