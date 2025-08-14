@@ -33,7 +33,18 @@ Oblique follows a clean architecture: **Input → Processing → Rendering → O
 python main.py --audio "path/to/audio.wav" --width 800 --height 600 --audio "path_to_audio"
 ```
 
-## Folder struture 
+## Testing
+
+This project uses [pytest](https://docs.pytest.org/) for unit testing.
+
+```bash
+pip install -r requirements.txt
+pytest
+```
+
+Run with `pytest --cov` to measure test coverage.
+
+## Folder struture
 /oblique/
 ├── main.py                    # Launches the engine and test modules
 ├── core/                      # Engine loop, base module interface
