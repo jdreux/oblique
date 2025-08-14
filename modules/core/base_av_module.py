@@ -1,3 +1,12 @@
+"""Foundations for Oblique's shader‑driven AV modules.
+
+Modules follow a Shadertoy‑like model: a fixed vertex shader draws a fullscreen
+quad while fragment shaders implement the visuals.  The framework provides
+helpers for optional ping‑pong buffering and additional off‑screen passes,
+allowing complex compositions while keeping Python orchestration minimal.  The
+code is optimised for Apple Silicon and GLSL 330.
+"""
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Callable, Generic, TypedDict, TypeVar, Union, cast, overload
@@ -22,7 +31,11 @@ ParamStrList = Union[list[str], Callable[[], list[str]], BaseProcessingOperator[
 
 # Texture params
 ParamTexture = Union[moderngl.Texture, Callable[[], moderngl.Texture], "BaseAVModule"]
-ParamTextureList = Union[list[moderngl.Texture], Callable[[], list[moderngl.Texture]], list["BaseAVModule"]]
+ParamTextureList = Union[
+    list[moderngl.Texture],
+    Callable[[], list[moderngl.Texture]],
+    list["BaseAVModule"],
+]
 
 # --- Base params dataclass ---
 @dataclass
@@ -34,7 +47,12 @@ class BaseAVParams:
 # --- Unified texture pass dataclass ---
 @dataclass
 class TexturePass:
-    """A renderable texture pass used for both on-screen and off-screen rendering.
+    """A Shadertoy‑style pass for on‑screen or off‑screen rendering.
+
+    Each pass runs a fragment shader and outputs a texture; it never draws to
+    the screen directly.  Optional ping‑pong feedback lets a pass read its
+    previous result, and passes can be chained to form more complex
+    compositions or used as intermediate buffers.
 
     Attributes
     ----------
@@ -43,24 +61,27 @@ class TexturePass:
     frag_shader_path:
         Path to the fragment shader for this pass.
     uniforms:
-        Mapping uniform_name → source where source can be:
-            • A `TexturePass` instance – its rendered texture will be injected.
-            • A `BaseAVModule` instance – its rendered texture will be injected.
-            • A `moderngl.Texture` instance.
+        Mapping ``uniform_name → source`` where source can be:
+            • A ``TexturePass`` instance – its rendered texture will be injected.
+            • A ``BaseAVModule`` instance – its rendered texture will be injected.
+            • A ``moderngl.Texture`` instance.
             • Any primitive value (int, float, bool, str, tuple, list, etc.)
         At runtime each pair produces a uniform named ``u_<uniform_name>`` unless the key
         already starts with ``u_``.
     width / height:
         Optional fixed resolution for this pass. If omitted, the caller's resolution is used.
     ping_pong:
-        Enable double-buffered rendering. When true, the pass alternates cached targets per frame.
+        Enable double‑buffered rendering. When true, the pass alternates cached targets per frame.
     previous_uniform_name:
-        If ping-pong is enabled and a previous texture exists, it will be injected under this
+        If ping‑pong is enabled and a previous texture exists, it will be injected under this
         uniform name (default: ``u_previous``).
     """
 
     frag_shader_path: str
-    uniforms: dict[str, Union["TexturePass", "BaseAVModule", moderngl.Texture, int, float, bool, str, tuple, list]] = field(default_factory=dict)
+    uniforms: dict[
+        str,
+        Union["TexturePass", "BaseAVModule", moderngl.Texture, int, float, bool, str, tuple, list],
+    ] = field(default_factory=dict)
     width: int | None = None
     height: int | None = None
     ping_pong: bool = False
@@ -81,28 +102,32 @@ U = TypeVar("U", bound="Uniforms")
 
 
 class BaseAVModule(ObliqueNode, ABC, Generic[P, U]):
-    """
-    Base class for all AV modules. Defines the required interface for AV modules.
+    """Abstract base for all shader‑driven AV modules.
 
-    Required attributes and methods:
-    - metadata: dict[str, Any] with keys 'name', 'description', 'parameters'
-    - frag_shader_path: str (must be set by subclass)
-    - __init__(params: BaseAVParams): Initialize the module with parameters (subclass of BaseAVParams)
-    - prepare_uniforms(t: float) -> RenderData:
-        Prepare uniform data and shader information for rendering. Return a RenderData dict with:
-            'frag_shader_path': str (path to the fragment shader)
-            'uniforms': Uniforms (uniforms to pass to the shader)
-        This data will be used by the renderer to draw the module.
+    Subclasses provide a GLSL fragment shader and implement :meth:`prepare_uniforms`
+    to supply typed uniforms.  At render time the framework pairs that fragment
+    shader with the stock fullscreen vertex shader, optionally managing
+    ping‑pong or additional off‑screen passes defined via :class:`TexturePass`.
 
-    Optional methods:
-    - render_texture(ctx: moderngl.Context, width: int, height: int, t: float) -> moderngl.Texture:
-        Override this method to provide custom texture rendering behavior.
-        Default implementation uses prepare_uniforms() method and render_to_texture().
+    Required attributes and methods
+    --------------------------------
+    - ``metadata`` – ``dict`` with keys ``name``, ``description``, ``parameters``
+    - ``frag_shader_path`` – path to the fragment shader
+    - ``__init__(params: BaseAVParams)`` – initialise with module‑specific parameters
+    - ``prepare_uniforms(t: float) -> RenderData`` – return fragment shader path and uniforms
+
+    Optional methods
+    ----------------
+    - ``render_texture(ctx, width, height, t)`` – override to customise rendering
+      beyond the default :func:`core.renderer.render_to_texture`
     """
 
     metadata: dict[str, Any] = {
         "name": "BaseAVModule",
-        "description": "Abstract base class for AV modules. Subclasses must define metadata, update, and render methods.",
+        "description": (
+            "Abstract base class for AV modules. "
+            "Subclasses must define metadata, update, and render methods."
+        ),
         "parameters": {},
     }
     frag_shader_path: str  # Must be set by subclass

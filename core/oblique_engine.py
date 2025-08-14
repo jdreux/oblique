@@ -1,3 +1,15 @@
+"""Core runtime for Oblique.
+
+This module hosts :class:`ObliqueEngine`, the high level coordinator that ties
+audio inputs, processing operators and shader based AV modules together.  The
+engine drives the classic Oblique flow of **Input → Processing → AV Module →
+Output**, rendering the final composition to screen.
+
+The current implementation targets Apple Silicon and assumes an OpenGL 3.3 /
+GLSL 330 context provided by macOS' Metal backed driver.  Other platforms have
+not been tested.
+"""
+
 import threading
 import time
 from typing import Dict, Optional
@@ -13,9 +25,19 @@ from inputs.audio.core.base_input import BaseInput
 
 
 class ObliqueEngine:
-    """
-    Main engine for running Oblique patches with audio playback and video rendering.
-    Handles the complete audio-visual pipeline from patch execution to screen output.
+    """Coordinate input capture, processing and shader based rendering.
+
+    The engine consumes an :class:`~core.oblique_patch.ObliquePatch` produced by a
+    user-defined *patch* function.  It pulls data from ``BaseInput``
+    implementations, feeds it through processing operators and hands the results to
+    the active AV module for fragment‑shader rendering.  The design mirrors
+    Shadertoy: a stock vertex shader draws a fullscreen quad while module fragment
+    shaders produce the visuals.  Audio playback is managed in a separate thread.
+
+    Notes
+    -----
+    Currently optimised for Apple Silicon and GLSL 330; other platforms are
+    untested.  See ``projects/demo/demo_audio_file.py`` for an example patch.
     """
 
     def __init__(

@@ -1,3 +1,12 @@
+"""Command line entry point for the Oblique AV engine.
+
+This script configures audio inputs, selects demo patches and launches the
+real‑time engine.  Patches are small Python modules that return an
+``ObliquePatch`` tying together inputs and AV modules (see ``projects/demo`` for
+examples).  The script exists primarily for development and assumes Apple
+Silicon with GLSL 330 support.
+"""
+
 import argparse
 
 # --- Core imports ---
