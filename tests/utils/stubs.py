@@ -148,8 +148,6 @@ def setup_stubs() -> None:
         logger_stub.debug = lambda *a, **k: None
         sys.modules["core.logger"] = logger_stub
 
-    if "core.oblique_node" not in sys.modules:
-        load_module("core.oblique_node", root / "core" / "oblique_node.py")
     if "core.renderer" not in sys.modules:
         load_module("core.renderer", root / "core" / "renderer.py")
 

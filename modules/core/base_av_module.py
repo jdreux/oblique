@@ -226,7 +226,7 @@ class BaseAVModule(ABC, Generic[P, U]):
 
         # Per-call caches/state
         processed: dict[str, moderngl.Texture] = {}
-        owner_tag = f"{self.__class__.__name__}:{self.id}"
+        owner_tag = f"{self.__class__.__name__}:{id(self)}"
 
         # Render every TexturePass referenced in the initial uniforms to get final uniforms
         final_uniforms = dict(base_uniforms)

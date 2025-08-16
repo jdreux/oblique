@@ -10,7 +10,4 @@ def __getattr__(name):
     if name == "ObliquePatch":
         from .oblique_patch import ObliquePatch
         return ObliquePatch
-    if name == "ObliqueNode":
-        from .oblique_node import ObliqueNode
-        return ObliqueNode
     raise AttributeError(name)

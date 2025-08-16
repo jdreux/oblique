@@ -10,7 +10,6 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def _make_module():
     setup_stubs()
-    load_module("core.oblique_node", ROOT / "core" / "oblique_node.py")
     base_mod = sys.modules.get("modules.core.base_av_module")
     if base_mod is None:
         base_mod = load_module("modules.core.base_av_module", ROOT / "modules/core/base_av_module.py")
@@ -34,7 +33,6 @@ def _make_module():
 
 def test_resolve_param():
     setup_stubs()
-    load_module("core.oblique_node", ROOT / "core" / "oblique_node.py")
     module = _make_module()
     base_mod = sys.modules["modules.core.base_av_module"]
     BaseProcessingOperator = base_mod.BaseProcessingOperator
