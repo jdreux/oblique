@@ -1,26 +1,16 @@
 import importlib.util
-import sys
 import time
-import types
 from pathlib import Path
 
 import pytest
 
+from tests.utils.stubs import setup_stubs, load_module
+
 
 def load_performance_monitor():
-    sys.modules.setdefault("moderngl", types.ModuleType("moderngl"))
-    core_pkg = types.ModuleType("core")
-    core_pkg.__path__ = []
-    sys.modules.setdefault("core", core_pkg)
-    logger_module = types.ModuleType("core.logger")
-    logger_module.debug = lambda *args, **kwargs: None
-    sys.modules["core.logger"] = logger_module
+    setup_stubs()
     path = Path(__file__).resolve().parents[2] / "core" / "performance_monitor.py"
-    spec = importlib.util.spec_from_file_location("core.performance_monitor", path)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules["core.performance_monitor"] = module
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
+    module = load_module("core.performance_monitor", path)
     return module.PerformanceMonitor
 
 
