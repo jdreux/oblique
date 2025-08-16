@@ -1,10 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any, List, Optional
 
-from core.oblique_node import ObliqueNode
 
-
-class BaseInput(ObliqueNode, ABC):
+class BaseInput(ABC):
     """
     Abstract base class for all input sources in Oblique.
     Defines the interface for input modules.
@@ -15,7 +13,6 @@ class BaseInput(ObliqueNode, ABC):
         Initialize the input source with optional configuration.
         :param config: Optional dictionary of configuration parameters.
         """
-        ObliqueNode.__init__(self)
         self.chunk_size = chunk_size
 
     @property

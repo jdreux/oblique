@@ -42,7 +42,7 @@ shaders. Prefer adding new modules over modifying the core engine.
 5. Use type hints and dataclasses; avoid globals. Strong typing where-ever possible.
 6. Handle exceptions with `try`/`except`
 7. Use absolute imports and virtual environments. When attempting to run, load venv first. 
-8. Write tests and run them
+8. Write tests and run them. Test your changes by runing `source venv/bin/activate && pytest`
 9. Employ strong typing for module/shader interfaces
 10. Run command‑line tests with `./start.sh` unless parameters need changes
 11. Use `rg` for searches; avoid `grep -R` or `ls -R`
