@@ -1,3 +1,4 @@
+from math import sin
 from core.logger import error, info
 from core.oblique_engine import ObliqueEngine
 from core.oblique_patch import ObliquePatch
@@ -9,6 +10,7 @@ from modules.utility.debug import DebugModule, DebugParams
 from modules.effects.feedback import FeedbackModule, FeedbackParams
 from modules.audio_reactive.ikeda_test_pattern import IkedaTestPatternModule, IkedaTestPatternParams
 from modules.audio_reactive.protoplasm import ProtoplasmModule, ProtoplasmParams
+from modules.audio_reactive.blue_back_n_gray import BlueBackNGrayModule, BlueBackNGrayParams
 
 
 def shader_test(width: int, height: int) -> ObliquePatch:
@@ -69,8 +71,20 @@ def shader_test(width: int, height: int) -> ObliquePatch:
         )
     )
 
+    blue_back_n_gray_module = BlueBackNGrayModule(
+        BlueBackNGrayParams(
+            width=width,
+            height=height,
+            strip_offset=50.0,
+            n_circles=64,
+            # mod_depth=0.6,
+            # audio_level=0.8,
+        )
+    )
+
     def tick_callback(t: float) -> BaseAVModule:
-        return feedback_module
+        blue_back_n_gray_module.params.strip_offset = 50.0 * (sin(t) - 0.5) 
+        return blue_back_n_gray_module
 
     return ObliquePatch(
         tick_callback=tick_callback,
