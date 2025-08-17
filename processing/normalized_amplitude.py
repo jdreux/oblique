@@ -72,7 +72,7 @@ class NormalizedAmplitudeOperator(BaseProcessingOperator[float]):
         return float(normalized)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     import sys
 
     from inputs.audio.core.audio_file_input import AudioFileInput

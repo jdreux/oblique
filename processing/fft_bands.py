@@ -137,7 +137,7 @@ class FFTBands(BaseProcessingOperator[List[float]]):
         for b in self.band_bins:
             if b.size > 0:
                 band_mag = mag[b].mean()
-            else:
+            else:  # pragma: no cover - band bins precomputed to be non-empty
                 band_mag = 0.0
             bands.append(band_mag)
 

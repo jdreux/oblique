@@ -74,7 +74,7 @@ class SpectralCentroid(BaseProcessingOperator[float]):
         return float(humanized)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     import sys
 
     from inputs.audio.core.audio_file_input import AudioFileInput
