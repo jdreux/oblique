@@ -168,3 +168,27 @@ input_device.stop()
 ```
 
 Future input modules will support live audio, MIDI, OSC, and more.
+
+## ⏱️ Transport and Sync
+
+Oblique now includes an internal clock that tracks tempo, phase and musical
+position. Bridges let the clock sync via Ableton Link or an incoming MIDI clock
+so external gear and DAWs stay in phase.
+
+All transport sources expose ``state()`` returning a ``ClockState`` dataclass
+with tempo, bar, beat and phase information.
+
+Run the demo patch to view the transport in action. Use ``--link`` for Link
+sync or ``--midi PORT`` to follow a MIDI clock:
+
+```bash
+python projects/demo/transport_demo.py --link
+python projects/demo/transport_demo.py --midi "Elektron Digitakt"
+```
+
+On two laptops connected to the same network the tempo and phase will stay
+synchronized; changing the tempo on one propagates to the other.
+
+Ableton Link and MIDI support require the ``abletonlink`` and ``mido`` packages
+respectively, with a backend such as ``python-rtmidi`` for MIDI.
+

@@ -135,6 +135,9 @@ def setup_stubs() -> None:
     if "sounddevice" not in sys.modules:
         sys.modules["sounddevice"] = types.SimpleNamespace(OutputStream=DummyOutputStream)
 
+    if "abletonlink" not in sys.modules:
+        sys.modules["abletonlink"] = types.SimpleNamespace(Link=lambda bpm: None)
+
     # Ensure core package and basic logger stubs
     if "core" not in sys.modules:
         core_pkg = types.ModuleType("core")
