@@ -83,3 +83,13 @@ def test_zero_crossing_rate_empty() -> None:
     audio = DummyAudio(np.array([]))
     zcr = ZeroCrossingRate(audio)
     assert zcr.process() == 0.0
+
+
+def test_zero_crossing_rate_none_and_stereo() -> None:
+    audio_none = DummyAudio(None)
+    zcr = ZeroCrossingRate(audio_none)
+    assert zcr.process() == 0.0
+
+    stereo = np.array([[1.0, 1.0], [-1.0, -1.0], [1.0, 1.0], [-1.0, -1.0]])
+    zcr = ZeroCrossingRate(DummyAudio(stereo))
+    assert np.isclose(zcr.process(), 0.75)

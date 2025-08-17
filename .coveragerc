@@ -1,0 +1,6 @@
+[run]
+source = processing
+
+[report]
+exclude_lines =
+    pragma: no cover
