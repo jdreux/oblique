@@ -7,3 +7,5 @@ typing_extensions
 Pillow
 pytest
 pytest-cov
+mido
+abletonlink
