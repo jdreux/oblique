@@ -29,3 +29,30 @@ def test_spectral_centroid_basic() -> None:
     assert mod.SpectralCentroid(DummyInput(None)).process() == 0.0
     assert mod.SpectralCentroid(DummyInput(np.array([]))).process() == 0.0
 
+
+def test_spectral_centroid_branches() -> None:
+    setup_stubs()
+    mod = load_module("processing.spectral_centroid", ROOT / "processing" / "spectral_centroid.py")
+
+    sr = 44100
+    t = np.arange(sr // 100) / sr
+
+    def make(freq: float, stereo: bool = False) -> np.ndarray:
+        sig = np.sin(2 * np.pi * freq * t).astype(np.float32)
+        return np.stack([sig, sig], axis=1) if stereo else sig
+
+    op = mod.SpectralCentroid(DummyInput(make(500, stereo=True)))
+    val = op.process()
+    assert 0.0 <= val < 0.3
+
+    op = mod.SpectralCentroid(DummyInput(make(3000)))
+    val = op.process()
+    assert 0.3 <= val < 0.6
+
+    op = mod.SpectralCentroid(DummyInput(make(6000)))
+    val = op.process()
+    assert 0.6 <= val <= 1.0
+
+    op = mod.SpectralCentroid(DummyInput(make(10000)))
+    assert op.process() > 0.0
+

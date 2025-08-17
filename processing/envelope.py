@@ -29,7 +29,7 @@ class Envelope(BaseProcessingOperator[float]):
         return self.value
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     import numpy as np
 
     # Example: follow a noisy sine wave

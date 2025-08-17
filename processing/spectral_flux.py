@@ -40,7 +40,7 @@ class SpectralFlux(BaseProcessingOperator[float]):
         return float(flux)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     import sys
 
     from inputs.audio.core.audio_device_input import AudioDeviceInput

@@ -41,3 +41,17 @@ def test_normalized_amplitude_curves() -> None:
     with pytest.raises(ValueError):
         op.process()
 
+
+def test_normalized_amplitude_edge_cases() -> None:
+    setup_stubs()
+    mod = load_module("processing.normalized_amplitude", ROOT / "processing" / "normalized_amplitude.py")
+
+    op = mod.NormalizedAmplitudeOperator(DummyInput(np.array([])))
+    assert op.process() == 0.0
+
+    op = mod.NormalizedAmplitudeOperator(DummyInput(np.zeros(4)))
+    assert op.process() == 0.0
+
+    op = mod.NormalizedAmplitudeOperator(DummyInput(np.array([0.1, 0.1])))
+    assert op.process() > 0.0
+
