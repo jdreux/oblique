@@ -70,7 +70,7 @@ def shader_test(width: int, height: int) -> ObliquePatch:
     )
 
     def tick_callback(t: float) -> BaseAVModule:
-        return mit_particles_module
+        return feedback_module
 
     return ObliquePatch(
         tick_callback=tick_callback,

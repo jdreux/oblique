@@ -123,8 +123,8 @@ def main():
     if isinstance(audio_input, AudioDeviceInput) and audio_input.device_name.lower() == "syntakt":
         patch = create_demo_syntakt(args.width*2, args.height*2, audio_input)
     else:
-        patch = audio_file_demo_patch(args.width*2, args.height*2)
-        # patch = shader_test(args.width*2, args.height*2)
+        # patch = audio_file_demo_patch(args.width*2, args.height*2)
+        patch = shader_test(args.width*2, args.height*2)
 
     # Create and run the engine
     engine = ObliqueEngine(

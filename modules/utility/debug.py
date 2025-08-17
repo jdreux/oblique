@@ -1,15 +1,13 @@
 from dataclasses import dataclass
 
-from processing.base_processing_operator import BaseProcessingOperator
-
-from modules.core.base_av_module import BaseAVModule, BaseAVParams, Uniforms
+from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamInt, ParamFloat, Uniforms
 
 
 @dataclass
 class DebugParams(BaseAVParams):
-    number: float = 0.0
-    width: int = 800
-    height: int = 600
+    number: ParamFloat = 0.0
+    width: ParamInt = 800
+    height: ParamInt = 600
 
 class DebugUniforms(Uniforms, total=True):
     u_number: float
@@ -27,21 +25,8 @@ class DebugModule(BaseAVModule[DebugParams, DebugUniforms]):
     }
     frag_shader_path = "modules/utility/shaders/debug.frag"
 
-    def __init__(
-        self,
-        params: DebugParams = DebugParams(),
-        number_input: BaseProcessingOperator | None = None,
-    ):
-        super().__init__(params, number_input)
-        self.number_input = number_input
-
     def prepare_uniforms(self, t: float) -> DebugUniforms:
-        # Return uniforms for rendering
-        if self.number_input:
-            number = self.number_input.process()
-        else:
-            number = self.params.number
         return DebugUniforms(
-            u_number=number,
-            u_resolution=(self.params.width, self.params.height)
+            u_number=self._resolve_param(self.params.number),
+            u_resolution=self._resolve_resolution()
         )
