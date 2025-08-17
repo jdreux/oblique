@@ -95,7 +95,7 @@ oblique/
 ├── modules/       # AV modules paired with GLSL shaders
 ├── processing/    # Signal processing operators
 ├── shaders/       # Shared GLSL snippets
-├── external/      # Third-party resources
+├── external/      # Third-party resources (e.g. vendored LYGIA shader library)
 ├── projects/      # Example patches and experiments
 ├── main.py        # Entry point loading an ObliquePatch
 ├── install.sh     # Dependency installation
@@ -121,6 +121,14 @@ Modules are:
 - Linked to a GLSL shader for rendering, where shaders are needed for perf.
 - Driven by processed signals from the processing layer
 - Easy to test independently
+
+### Shader Loader & Includes
+
+Shaders are preprocessed before compilation using a lightweight loader that resolves
+`#include` directives. Includes can point to other files in `shaders/` using
+`#include "path/to/file.glsl"` or pull from the vendored [LYGIA](https://github.com/patriciogonzalezvivo/lygia)
+library via `#include <lygia/path/to/file.glsl>`. This enables modular, reusable GLSL code
+across modules.
 
 
 ## 🤖 AI Agent Development
