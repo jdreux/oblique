@@ -1,9 +1,9 @@
 # Project Agent Guide for Oblique
 
 Oblique is a minimal, shader‑driven AV synthesizer focused on modularity,
-real‑time performance and audio‑reactive visuals. It currently targets macOS on
-Apple Silicon; GLSL 330 is required. The MVP supports audio input only—no scene
-engine, MIDI or REPL yet. Design is inspired by ShaderToy and
+real‑time performance and audio‑react
+ive visuals. It currently targets macOS on
+Apple Silicon; GLSL 330 is required. Design is inspired by ShaderToy and
 TouchDesigner while remaining code‑only, extensible and reliability+performance focused.
 Follows a stateless, unidirectional data flow fully in code. 
 
