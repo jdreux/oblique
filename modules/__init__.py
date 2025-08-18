@@ -4,6 +4,7 @@ from .effects.feedback import FeedbackModule, FeedbackParams
 from .audio_reactive.grid_swap_module import GridSwapModule, GridSwapModuleParams
 from .audio_reactive.ikeda_tiny_barcode import IkedaTinyBarcodeModule, IkedaTinyBarcodeParams
 from .effects.level_module import LevelModule, LevelParams
+from .effects.circular_pattern import CircularPatternModule, CircularPatternParams
 from .audio_reactive.pauric_squares_module import PauricSquaresModule, PauricSquaresParams
 from .audio_reactive.ryoji_lines import RyojiLines, RyojiLinesParams
 from .audio_reactive.spectral_visualizer import SpectralVisualizerModule, SpectralVisualizerParams
