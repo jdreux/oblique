@@ -145,7 +145,7 @@ Future goals include:
 
 ## Inputs
 
-Inputs are modular sources of data for Oblique. All input classes inherit from `BaseInput` (in `/inputs/base_input.py`), which defines a simple interface: `start()`, `stop()`, and `read()`.
+Inputs are modular sources of data for Oblique. All input classes inherit from `BaseInput` (in `/inputs/base_input.py`), which defines a simple interface: `start()`, `stop()`, `read()` and `peek()`.
 
 ### Example: AudioDeviceInput
 
@@ -159,4 +159,10 @@ chunk = input_device.read()
 input_device.stop()
 ```
 
-Future input modules will support live audio, MIDI, OSC, and more.
+### MIDI Input
+
+`MidiInput` captures real-time MIDI messages using `mido`. It buffers note and control events
+and listens for transport commands such as clock and start/stop to track playback state and
+estimate tempo.
+
+Future input modules will support OSC and more.

@@ -4,13 +4,13 @@ import numpy as np
 
 from core.logger import debug
 
-from .base_input import BaseInput
+from .base_audio_input import BaseAudioInput
 
 if TYPE_CHECKING:
     from .audio_device_input import AudioDeviceInput
 
 
-class AudioDeviceChannelInput(BaseInput):
+class AudioDeviceChannelInput(BaseAudioInput):
     """
     Input class that wraps a parent AudioDeviceInput and filters for specific channels.
     This allows creating multiple channel-specific inputs from a single audio device.

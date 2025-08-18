@@ -8,13 +8,13 @@ import sounddevice as sd
 
 from core.logger import debug, error, info, warning
 
-from .base_input import BaseInput
+from .base_audio_input import BaseAudioInput
 
 if TYPE_CHECKING:
     from .audio_device_channel_input import AudioDeviceChannelInput
 
 
-class AudioDeviceInput(BaseInput):
+class AudioDeviceInput(BaseAudioInput):
     """
     Input class that reads audio from a real-time audio device (sound card, BlackHole, etc.).
     Supports multi-channel audio and device selection.

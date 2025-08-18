@@ -3,7 +3,7 @@ import numpy as np
 from typing import Optional
 from enum import Enum, auto
 
-from inputs.audio.core.base_input import BaseInput
+from inputs.audio.core.base_audio_input import BaseAudioInput
 
 from .base_processing_operator import BaseProcessingOperator
 
@@ -28,9 +28,9 @@ class NormalizedAmplitudeOperator(BaseProcessingOperator[float]):
         "parameters": {},
     }
 
-    def __init__(self, audio_input: BaseInput, curve: CurveType = CurveType.NONE):
+    def __init__(self, audio_input: BaseAudioInput, curve: CurveType = CurveType.NONE):
         """
-        :param audio_input: BaseInput providing audio data
+        :param audio_input: BaseAudioInput providing audio data
         :param curve: Optional non-linear mapping (CurveType)
         """
         super().__init__()

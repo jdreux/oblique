@@ -4,7 +4,7 @@ import numpy as np
 from typing_extensions import Dict
 
 from core.logger import debug
-from inputs.audio.core.base_input import BaseInput
+from inputs.audio.core.base_audio_input import BaseAudioInput
 from processing.base_processing_operator import BaseProcessingOperator
 
 
@@ -40,7 +40,7 @@ class FFTBands(BaseProcessingOperator[List[float]]):
     }
 
     def __init__(self,
-                 audio_input: BaseInput,
+                 audio_input: BaseAudioInput,
                  n_fft: int = 4096,
                  num_bands: int = 16,
                  f_min: float = 20.,

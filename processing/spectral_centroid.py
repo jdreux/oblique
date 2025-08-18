@@ -2,7 +2,7 @@ from typing import Any, Dict
 
 import numpy as np
 
-from inputs.audio.core.base_input import BaseInput
+from inputs.audio.core.base_audio_input import BaseAudioInput
 from processing.base_processing_operator import BaseProcessingOperator
 
 
@@ -18,7 +18,7 @@ class SpectralCentroid(BaseProcessingOperator[float]):
         "parameters": {},
     }
 
-    def __init__(self, audio_input: BaseInput):
+    def __init__(self, audio_input: BaseAudioInput):
         super().__init__()
         self.audio_input = audio_input
         # Techno music typically has meaningful brightness content up to ~8kHz

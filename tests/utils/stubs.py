@@ -151,10 +151,10 @@ def setup_stubs() -> None:
     if "core.renderer" not in sys.modules:
         load_module("core.renderer", root / "core" / "renderer.py")
 
-    if "inputs.audio.core.base_input" not in sys.modules:
-        base_mod = types.ModuleType("inputs.audio.core.base_input")
+    if "inputs.audio.core.base_audio_input" not in sys.modules:
+        base_mod = types.ModuleType("inputs.audio.core.base_audio_input")
 
-        class DummyBaseInput:
+        class DummyBaseAudioInput:
             sample_rate = 48000
             num_channels = 2
             device_name = "dummy"
@@ -174,7 +174,7 @@ def setup_stubs() -> None:
             def peek(self, n_buffers: int = 1, channels=None):  # pragma: no cover - stub method
                 return None
 
-        base_mod.BaseInput = DummyBaseInput
+        base_mod.BaseAudioInput = DummyBaseAudioInput
 
         inputs_pkg = types.ModuleType("inputs")
         inputs_pkg.__path__ = []
@@ -185,7 +185,7 @@ def setup_stubs() -> None:
         audio_core_pkg = types.ModuleType("inputs.audio.core")
         audio_core_pkg.__path__ = []
         sys.modules.setdefault("inputs.audio.core", audio_core_pkg)
-        sys.modules["inputs.audio.core.base_input"] = base_mod
+        sys.modules["inputs.audio.core.base_audio_input"] = base_mod
 
     # Stub modules package to avoid heavy imports
     if "modules" not in sys.modules:

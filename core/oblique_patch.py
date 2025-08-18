@@ -1,6 +1,6 @@
 from typing import Callable, List, Optional
 
-from inputs.audio.core.base_input import BaseInput
+from inputs.audio.core.base_audio_input import BaseAudioInput
 from modules.core.base_av_module import BaseAVModule
 
 
@@ -12,22 +12,22 @@ class ObliquePatch:
 
     def __init__(self,
         tick_callback: Callable[[float], BaseAVModule],
-        audio_output: Optional[BaseInput] = None,
+        audio_output: Optional[BaseAudioInput] = None,
     ) -> None:
         """
         Initialize an empty patch.
         """
-        self.audio_output: Optional[BaseInput] = audio_output
+        self.audio_output: Optional[BaseAudioInput] = audio_output
         self.tick_callback: Callable[[float], BaseAVModule] = tick_callback
 
-    # def set_inputs(self, inputs: List[BaseInput]) -> None:
+    # def set_inputs(self, inputs: List[BaseAudioInput]) -> None:
     #     """
     #     Register an input module (e.g., audio, MIDI).
     #     Returns a handle to the input's output for chaining.
     #     """
     #     self.inputs = inputs
 
-    # def set_tick_callback(self, callback: Callable[[float, int, int, List[BaseInput]], BaseAVModule]) -> None:
+    # def set_tick_callback(self, callback: Callable[[float, int, int, List[BaseAudioInput]], BaseAVModule]) -> None:
     #     """
     #     Register a callback to be called on each tick (every frame).
     #     """
@@ -57,7 +57,7 @@ class ObliquePatch:
     #         return self.modules[-1]
     #     return None
 
-    # def get_audio_input(self) -> BaseInput | None:
+    # def get_audio_input(self) -> BaseAudioInput | None:
     #     """
     #     Return the audio input node.
     #     """
