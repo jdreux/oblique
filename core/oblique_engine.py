@@ -21,14 +21,14 @@ import sounddevice as sd
 from core.logger import debug, error, info, warning
 from core.oblique_patch import ObliquePatch
 from core.performance_monitor import PerformanceMonitor
-from inputs.audio.core.base_input import BaseInput
+from inputs.audio.core.base_audio_input import BaseAudioInput
 
 
 class ObliqueEngine:
     """Coordinate input capture, processing and shader based rendering.
 
     The engine consumes an :class:`~core.oblique_patch.ObliquePatch` produced by a
-    user-defined *patch* function.  It pulls data from ``BaseInput``
+    user-defined *patch* function.  It pulls data from ``BaseAudioInput``
     implementations, feeds it through processing operators and hands the results to
     the active AV module for fragment‑shader rendering.  The design mirrors
     Shadertoy: a stock vertex shader draws a fullscreen quad while module fragment
@@ -83,7 +83,7 @@ class ObliqueEngine:
         self.ctx: Optional[moderngl.Context] = None
 
         # Audio handling
-        self.audio_output: Optional[BaseInput] = None
+        self.audio_output: Optional[BaseAudioInput] = None
         self.audio_thread: Optional[threading.Thread] = None
 
         self.audio_output = patch.audio_output
@@ -271,7 +271,7 @@ class ObliqueEngine:
 
         glfw.terminate()
 
-    def _audio_stream_playback(self, audio_input: BaseInput) -> None:
+    def _audio_stream_playback(self, audio_input: BaseAudioInput) -> None:
         """
         Streams audio from AudioDeviceInput in real-time using sounddevice.
         Runs in a separate thread.

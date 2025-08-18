@@ -6,11 +6,11 @@ import soundfile as sf
 
 from core.logger import debug, info
 
-from .base_input import BaseInput
+from .base_audio_input import BaseAudioInput
 
 SUPPORTED_FORMATS = ('.wav', '.flac', '.aiff', '.aif', '.ogg')
 
-class AudioFileInput(BaseInput):
+class AudioFileInput(BaseAudioInput):
     HISTORY_SIZE = 4  # Class-level constant for buffer history size
     """
     Input class that reads audio from a file for testing and prototyping.
