@@ -51,9 +51,9 @@ def main():
     )
     parser.add_argument("--fps", type=int, default=60, help="Target frame rate")
     parser.add_argument(
-        "--debug",
+        "--hot-reload-shaders",
         action="store_true",
-        help="Enable debug mode with performance monitoring",
+        help="Reload shaders from disk every frame",
         default=False,
     )
     parser.add_argument(
@@ -133,7 +133,7 @@ def main():
         height=args.height,
         title="Oblique MVP",
         target_fps=args.fps,
-        debug=args.debug,
+        hot_reload_shaders=args.hot_reload_shaders,
         monitor=args.monitor,
     )
 

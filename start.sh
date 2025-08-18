@@ -15,11 +15,11 @@ if [ "$1" = "--list-audio-devices" ]; then
   exit 0
 fi
 
-# Parse debug parameter
-DEBUG_FLAG=""
-if [ "$1" = "--debug" ]; then
-  DEBUG_FLAG="--debug"
-  shift  # Remove the debug parameter from arguments
+# Parse hot-reload-shaders parameter
+HOT_RELOAD_FLAG=""
+if [ "$1" = "--hot-reload-shaders" ]; then
+  HOT_RELOAD_FLAG="--hot-reload-shaders"
+  shift  # Remove the parameter from arguments
 fi
 
 # Parse syntakt parameter
@@ -28,9 +28,9 @@ AUDIO_DEVICE="0"
 if [ "$1" = "--syntakt" ]; then
   SYNTAKT_FLAG="--syntakt"
   shift  # Remove the syntakt parameter from arguments
-  
+
   echo "[INFO] Looking for Syntakt audio device..."
-  
+
   # Create a temporary script to find syntakt device
   cat > /tmp/find_syntakt.py << 'EOF'
 import sys
@@ -39,21 +39,21 @@ sys.path.insert(0, os.getcwd())
 
 try:
     import sounddevice as sd
-    
+
     # Get all devices
     devices = sd.query_devices()
     syntakt_device = None
-    
+
     for i, device in enumerate(devices):
         device_name = device.get('name', '').lower()
         if 'syntakt' in device_name:
             syntakt_device = i
             print(f"FOUND:{i}:{device.get('name', 'Unknown')}")
             break
-    
+
     if syntakt_device is None:
         print("NOT_FOUND")
-        
+
 except Exception as e:
     print(f"ERROR:{str(e)}")
 EOF
@@ -61,7 +61,7 @@ EOF
   # Run the temporary script
   RESULT=$(python3 /tmp/find_syntakt.py 2>/dev/null)
   rm -f /tmp/find_syntakt.py
-  
+
   if [[ "$RESULT" == FOUND:* ]]; then
     # Parse the result: FOUND:device_id:device_name
     IFS=':' read -r _ device_id device_name <<< "$RESULT"
@@ -80,11 +80,12 @@ MONITOR=${MONITOR:-1}
 
 echo "[DEBUG] Starting Oblique MVP with default settings..."
 echo "[DEBUG] Using monitor: $MONITOR"
-if [ -n "$DEBUG_FLAG" ]; then
-  echo "[DEBUG] Debug mode enabled"
+if [ -n "$HOT_RELOAD_FLAG" ]; then
+  echo "[DEBUG] Shader hot-reload enabled"
 fi
 if [ -n "$SYNTAKT_FLAG" ]; then
   echo "[DEBUG] Syntakt mode enabled, using audio device: $AUDIO_DEVICE"
 fi
-# python3 main.py --audio-file "projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav" --width 800 --height 800 $DEBUG_FLAG --monitor "$MONITOR" "$@" 
-python3 main.py --width 800 --height 800 $DEBUG_FLAG --monitor "$MONITOR" "$@" --audio-device "$AUDIO_DEVICE"
+# python3 main.py --audio-file "projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav" --width 800 --height 800 $HOT_RELOAD_FLAG --monitor "$MONITOR" "$@"
+python3 main.py --width 800 --height 800 $HOT_RELOAD_FLAG --monitor "$MONITOR" "$@" --audio-device "$AUDIO_DEVICE"
+
