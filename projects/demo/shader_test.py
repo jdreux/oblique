@@ -99,7 +99,7 @@ if __name__ == "__main__":
         height=600,
         title="Shader Test",
         target_fps=60,
-        debug=False,
+        hot_reload_shaders=False,
         monitor=None,
     )
 
