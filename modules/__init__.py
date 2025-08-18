@@ -9,3 +9,4 @@ from .audio_reactive.ryoji_lines import RyojiLines, RyojiLinesParams
 from .audio_reactive.spectral_visualizer import SpectralVisualizerModule, SpectralVisualizerParams
 from .utility.transform import TransformModule, TransformParams
 from .core.visual_noise import VisualNoiseModule, VisualNoiseParams
+from .utility.shadertoy_importer import ShadertoyModule, ShadertoyParams
