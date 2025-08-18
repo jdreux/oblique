@@ -7,10 +7,12 @@ The implementation targets OpenGL 3.3 / GLSL 330 and is primarily tested on
 Apple Silicon.
 """
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 import moderngl
 import numpy as np
+import os
 
 from core.logger import error, warning
 from core.shader_preprocessor import preprocess_shader
@@ -18,20 +20,33 @@ from core.shader_preprocessor import preprocess_shader
 if TYPE_CHECKING:
     from modules.core.base_av_module import BaseAVModule, Uniforms
 
-_shader_cache = {}
-_texture_cache = {}
-_debug_mode = False
-_ctx = None
+@dataclass
+class ShaderCacheEntry:
+    """Container for shader resources cached by this module."""
 
-def set_debug_mode(debug: bool) -> None:
-    """
-    Set debug mode globally. When enabled, shaders are reloaded from file every time.
+    program: moderngl.Program
+    vao: moderngl.VertexArray
+    vbo: moderngl.Buffer
+    mtime: float
+
+
+_shader_cache: dict[str, ShaderCacheEntry] = {}
+_texture_cache: dict[str, moderngl.Texture] = {}
+_hot_reload_shaders_enabled = False
+_ctx: moderngl.Context | None = None
+
+
+def set_hot_reload_shaders(enabled: bool) -> None:
+    """Enable or disable automatic shader reloading.
+
+    When enabled, shaders are reloaded from disk every time ``render_fullscreen_quad``
+    or ``blend_textures`` is called, bypassing the internal shader cache.
 
     Args:
-        debug: If True, bypass shader cache and reload from file every time
+        enabled: If ``True``, always reload shaders from file.
     """
-    global _debug_mode
-    _debug_mode = debug
+    global _hot_reload_shaders_enabled
+    _hot_reload_shaders_enabled = enabled
 
 def set_ctx(ctx: moderngl.Context) -> None:
     """
@@ -41,8 +56,9 @@ def set_ctx(ctx: moderngl.Context) -> None:
     _ctx = ctx
 
 def cleanup_shader_cache() -> None:
-    """
-    Release all cached shader resources. Call this when shutting down the application.
+    """Release all cached shader resources.
+
+    Call this when shutting down the application to avoid leaking GPU resources.
     """
     global _shader_cache
     for entry in _shader_cache.values():
@@ -50,27 +66,21 @@ def cleanup_shader_cache() -> None:
     _shader_cache.clear()
 
 
-def _release_shader_cache_entry(entry: tuple) -> None:
-    """
-    Safely release program, VAO, and VBO resources from a shader cache entry.
-    """
+def _release_shader_cache_entry(entry: ShaderCacheEntry) -> None:
+    """Safely release program, VAO and VBO resources from a cache entry."""
     if entry is not None:
-        program, vao, vbo = entry
         try:
-            vao.release()
+            entry.vao.release()
         except Exception:
             warning("Failed to release VAO")
-            pass
         try:
-            vbo.release()
+            entry.vbo.release()
         except Exception:
             warning("Failed to release VBO")
-            pass
         try:
-            program.release()
+            entry.program.release()
         except Exception:
             warning("Failed to release program")
-            pass
 
 
 def render_fullscreen_quad(
@@ -88,13 +98,14 @@ def render_fullscreen_quad(
     tuple
         ``(program, vao, vbo)`` for optional manual management.
     """
-    global _shader_cache, _debug_mode
+    global _shader_cache, _hot_reload_shaders_enabled
 
-
-    # In debug mode, always reload shader from file
-    if _debug_mode and frag_shader_path in _shader_cache:
-        _release_shader_cache_entry(_shader_cache[frag_shader_path])
-        del _shader_cache[frag_shader_path]
+    current_mtime = os.path.getmtime(frag_shader_path)
+    if frag_shader_path in _shader_cache:
+        cached = _shader_cache[frag_shader_path]
+        if _hot_reload_shaders_enabled and current_mtime > cached.mtime:
+            _release_shader_cache_entry(cached)
+            del _shader_cache[frag_shader_path]
 
     if frag_shader_path not in _shader_cache:
         # Pre-process the shader to resolve includes
@@ -136,9 +147,10 @@ def render_fullscreen_quad(
         )
         vbo = ctx.buffer(vertices.tobytes())
         vao = ctx.simple_vertex_array(program, vbo, "in_vert", "in_uv")
-        _shader_cache[frag_shader_path] = (program, vao, vbo)
+        _shader_cache[frag_shader_path] = ShaderCacheEntry(program, vao, vbo, current_mtime)
     else:
-        program, vao, vbo = _shader_cache[frag_shader_path]
+        cached_entry = _shader_cache[frag_shader_path]
+        program, vao, vbo = cached_entry.program, cached_entry.vao, cached_entry.vbo
 
     # Set uniforms efficiently
     texture_unit = 0
@@ -237,12 +249,14 @@ def blend_textures(
         fbo.use()
         ctx.clear(0.0, 0.0, 0.0, 1.0)
 
-        global _shader_cache, _debug_mode
+        global _shader_cache, _hot_reload_shaders_enabled
 
-        # In debug mode, always reload shader from file
-        if _debug_mode and blend_shader_path in _shader_cache:
-            _release_shader_cache_entry(_shader_cache[blend_shader_path])
-            del _shader_cache[blend_shader_path]
+        current_mtime = os.path.getmtime(blend_shader_path)
+        if blend_shader_path in _shader_cache:
+            cached = _shader_cache[blend_shader_path]
+            if _hot_reload_shaders_enabled and current_mtime > cached.mtime:
+                _release_shader_cache_entry(cached)
+                del _shader_cache[blend_shader_path]
 
         if blend_shader_path not in _shader_cache:
             # Pre-process the shader to resolve includes
@@ -284,9 +298,10 @@ def blend_textures(
             )
             vbo = ctx.buffer(vertices.tobytes())
             vao = ctx.simple_vertex_array(program, vbo, "in_vert", "in_uv")
-            _shader_cache[blend_shader_path] = (program, vao, vbo)
+            _shader_cache[blend_shader_path] = ShaderCacheEntry(program, vao, vbo, current_mtime)
         else:
-            program, vao, vbo = _shader_cache[blend_shader_path]
+            cached_entry = _shader_cache[blend_shader_path]
+            program, vao, vbo = cached_entry.program, cached_entry.vao, cached_entry.vbo
 
         # Efficient texture binding
         tex0.use(location=0)

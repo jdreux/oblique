@@ -72,6 +72,12 @@ load the patch.
 
 # Or run manually
 python main.py --audio "path/to/audio.wav" --width 800 --height 600 --audio "path_to_audio"
+
+# Enable live shader editing
+python main.py --hot-reload-shaders
+
+# Launch the interactive REPL with a patch
+python repl.py projects.demo.shader_test shader_test --hot-reload-shaders
 ```
 
 

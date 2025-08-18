@@ -47,7 +47,7 @@ class ObliqueEngine:
         height: int = 600,
         title: str = "Oblique MVP",
         target_fps: int = 60,
-        debug: bool = False,
+        hot_reload_shaders: bool = False,
         monitor: Optional[int] = None,
     ):
         """
@@ -59,7 +59,7 @@ class ObliqueEngine:
             height: Window height in pixels
             title: Window title
             target_fps: Target frame rate for rendering
-            debug: Enable debug mode with performance monitoring
+            hot_reload_shaders: Reload shaders from disk every frame
             monitor: Monitor index to open window on (None for default)
         """
         self.patch = patch
@@ -68,12 +68,12 @@ class ObliqueEngine:
         self.title = title
         self.target_fps = target_fps
         self.frame_duration = 1.0 / target_fps
-        self.debug = debug
+        self.hot_reload_shaders = hot_reload_shaders
         self.monitor = monitor
-        # Set global debug mode for shader reloading
-        from core.renderer import set_debug_mode
+        # Set global shader hot reload mode
+        from core.renderer import set_hot_reload_shaders
 
-        set_debug_mode(debug)
+        set_hot_reload_shaders(hot_reload_shaders)
 
         # Performance monitoring
         self.performance_monitor = PerformanceMonitor()
@@ -117,8 +117,8 @@ class ObliqueEngine:
 
             info(f"Starting Oblique engine with patch {self.patch}")
 
-            if self.debug:
-                info("Debug mode enabled - Performance monitoring active")
+            if self.hot_reload_shaders:
+                info("Hot shader reload enabled")
 
             if self.audio_output is not None:
                 self.audio_output.start()
@@ -404,12 +404,8 @@ class ObliqueEngine:
 
 
     def get_performance_stats(self) -> Optional[Dict[str, float]]:
-        """
-        Get current performance statistics if debug mode is enabled.
+        """Get current performance statistics."""
 
-        Returns:
-            Performance statistics dictionary or None if debug mode is disabled
-        """
         if self.performance_monitor:
             return self.performance_monitor.get_stats()
         return None

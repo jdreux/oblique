@@ -17,7 +17,7 @@ def _create_engine():
     patch_mod = load_module("core.oblique_patch", ROOT / "core" / "oblique_patch.py")
     engine_mod = load_module("core.oblique_engine", ROOT / "core" / "oblique_engine.py")
     patch = patch_mod.ObliquePatch(lambda t: None)
-    return engine_mod.ObliqueEngine(patch, debug=True)
+    return engine_mod.ObliqueEngine(patch, hot_reload_shaders=True)
 
 
 def test_get_performance_stats():
