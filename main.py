@@ -10,12 +10,13 @@ Silicon with GLSL 330 support.
 import argparse
 
 # --- Core imports ---
-from core import ObliqueEngine
+from core.oblique_engine import ObliqueEngine
 from core.logger import configure_logging, debug, error, info
 from inputs.audio.core.audio_device_input import AudioDeviceInput, print_audio_devices
 
 # --- Input imports ---
 from inputs.audio.core.audio_file_input import AudioFileInput
+from inputs.midi.core.midi_input import print_midi_input_ports
 from projects.demo.shader_test import shader_test
 from projects.demo.demo_audio_file import audio_file_demo_patch
 from projects.demo.demo_syntakt import create_demo_syntakt
@@ -48,6 +49,11 @@ def main():
         "--list-audio-devices",
         action="store_true",
         help="List available audio input devices and exit",
+    )
+    parser.add_argument(
+        "--list-midi-ports",
+        action="store_true",
+        help="List available MIDI input ports and exit",
     )
     parser.add_argument("--fps", type=int, default=60, help="Target frame rate")
     parser.add_argument(
@@ -97,6 +103,11 @@ def main():
     # List audio devices if requested
     if args.list_audio_devices:
         print_audio_devices()
+        return
+
+    # List MIDI ports if requested
+    if args.list_midi_ports:
+        print_midi_input_ports()
         return
 
     # Parse audio channels if specified

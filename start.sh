@@ -15,6 +15,13 @@ if [ "$1" = "--list-audio-devices" ]; then
   exit 0
 fi
 
+# Check if listing MIDI ports was requested
+if [ "$1" = "--list-midi-ports" ]; then
+  echo "[INFO] Listing available MIDI input ports..."
+  python3 main.py --list-midi-ports
+  exit 0
+fi
+
 # Parse hot-reload-shaders parameter
 HOT_RELOAD_FLAG=""
 if [ "$1" = "--hot-reload-shaders" ]; then

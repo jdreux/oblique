@@ -46,14 +46,6 @@ class VisualNoiseModule(BaseAVModule[VisualNoiseParams, VisualNoiseUniforms]):
     }
     frag_shader_path = "modules/core/shaders/visual-noise.frag"
 
-    def __init__(
-        self,
-        params: VisualNoiseParams,
-        parent: BaseProcessingOperator | None = None,
-    ):
-        super().__init__(params, parent)
-        self.parent = parent
-
     def prepare_uniforms(self, t: float) -> VisualNoiseUniforms:
         """
         Return uniforms for rendering.

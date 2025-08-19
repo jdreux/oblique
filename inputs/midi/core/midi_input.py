@@ -43,7 +43,7 @@ class MidiInput(BaseInput):
     def start(self) -> None:
         """Open the MIDI input port."""
         if self._port is None:
-            self._port = mido.open_input(self.port_name)
+            self._port = mido.open_input(name=self.port_name)
 
     def stop(self) -> None:
         """Close the MIDI input port."""
