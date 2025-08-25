@@ -6,7 +6,7 @@ from inputs.midi.core.midi_input import MidiInput
 from modules.utilities.debug import DebugModule, DebugParams
 
 
-def audio_file_demo_patch(width: int, height: int) -> ObliquePatch:
+def oblique_patch(width: int, height: int) -> ObliquePatch:
 
     midi_input = MidiInput(
         port_name='IAC Driver Bus 1'

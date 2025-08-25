@@ -1,20 +1,20 @@
 from core.oblique_patch import ObliquePatch
-from inputs.audio.core.audio_device_input import AudioDeviceInput
-from modules.core.base_av_module import BaseAVModule
+from inputs.device.elektron.syntakt_device import SyntaktChannel, SyntaktDevice
 
 # --- Module imports ---
 from modules.audio_reactive.broken_circles import BrokenCirclesModule, BrokenCirclesParams
-from modules.composition.composite_module import CompositeModule, CompositeOp, CompositeParams
-from modules.effects.level_module import LevelModule, LevelParams
-from modules.core.media_module import AspectMode, MediaModule, MediaParams
 from modules.audio_reactive.pauric_squares_module import PauricSquaresModule, PauricSquaresParams
-from modules.effects.feedback import FeedbackModule, FeedbackParams
+from modules.composition.composite_module import CompositeModule, CompositeOp, CompositeParams
+from modules.core.base_av_module import BaseAVModule
+from modules.core.media_module import AspectMode, MediaModule, MediaParams
 from modules.effects.blur_module import BlurModule, BlurParams
-
+from modules.effects.feedback import FeedbackModule, FeedbackParams
+from modules.effects.level_module import LevelModule, LevelParams
 from processing.envelope import Envelope
 from processing.normalized_amplitude import CurveType, NormalizedAmplitudeOperator
 
-def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) -> ObliquePatch:
+
+def oblique_patch(width: int, height: int) -> ObliquePatch:
     """
     Create a demo patch with some example modules.
     This is a demo of the Syntakt audio interface.
@@ -27,17 +27,24 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
         Configured ObliquePatch instance
     """
 
-    mix_LR = audio_input.get_audio_input_for_channels([0, 1])
+    syntakt = SyntaktDevice()
 
-    t1 = audio_input.get_audio_input_for_channels([2])
-    t2 = audio_input.get_audio_input_for_channels([3])
-    t3 = audio_input.get_audio_input_for_channels([4])
-    t4 = audio_input.get_audio_input_for_channels([5])
-    t5 = audio_input.get_audio_input_for_channels([6])
-    t8 = audio_input.get_audio_input_for_channels([9])
-    t9 = audio_input.get_audio_input_for_channels([10])
-    t10 = audio_input.get_audio_input_for_channels([11])
-    t11 = audio_input.get_audio_input_for_channels([12])
+    syntakt.start()
+
+    mix_LR = syntakt.get_main_lr_track()
+
+    t1, t2, t3, t4, t5, t8, t9, t10, t11 = [syntakt.get_track(track_number) for track_number in [
+        SyntaktChannel.TRACK_1,
+        SyntaktChannel.TRACK_2,
+        SyntaktChannel.TRACK_3,
+        SyntaktChannel.TRACK_4,
+        SyntaktChannel.TRACK_5,
+        SyntaktChannel.TRACK_8,
+        SyntaktChannel.TRACK_9,
+        SyntaktChannel.TRACK_10,
+        SyntaktChannel.TRACK_11,
+    ]]
+
 
     a1 = NormalizedAmplitudeOperator(t1)
     a2 = NormalizedAmplitudeOperator(t2)
@@ -63,8 +70,8 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
             width=width,
             height=height,
             tile_size=1,
+            motif_texture=broken_circles_module,
         ),
-        motif_module=broken_circles_module,
     )
 
     media_module = MediaModule(
@@ -89,9 +96,9 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
             width=width,
             height=height,
             operation=CompositeOp.ATOP,
+            top_texture=level_module,
+            bottom_texture=media_module,
         ),
-        top_module=level_module,
-        bottom_module=media_module,
     )
 
     feedback_module = FeedbackModule(
@@ -100,8 +107,8 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
             height=height,
             feedback_strength=0.5,
             direction=(-0.01, 0.010),
+            input_texture=pauric_squares_module,
         ),
-        upstream_module=pauric_squares_module
     )
 
     blur_module = BlurModule(
@@ -109,8 +116,8 @@ def create_demo_syntakt(width: int, height: int, audio_input: AudioDeviceInput) 
             width=width,
             height=height,
             blur_amount=10000,
+            input_texture=pauric_squares_module,
         ),
-        upstream_module=pauric_squares_module,
     )
 
     def tick_callback(t: float) -> BaseAVModule:

@@ -12,7 +12,7 @@ source venv/bin/activate
 
 # Default values
 PATCH_PATH=""
-PATCH_FUNCTION=""
+PATCH_FUNCTION="oblique_patch"
 WIDTH="800"
 HEIGHT="600"
 FPS="60"
@@ -26,10 +26,6 @@ while [[ $# -gt 0 ]]; do
     --patch-path)
       PATCH_PATH="$2"
       CREATE_TEMP_PATCH=false
-      shift 2
-      ;;
-    --function)
-      FUNCTION="$2"
       shift 2
       ;;
     --width)
@@ -63,20 +59,18 @@ while [[ $# -gt 0 ]]; do
       echo ""
       echo "Options:"
       echo "  --patch-path PATCH_PATH         Use existing patch module path (disables temp patch creation)"
-      echo "  --patch-function PATCH_FUNCTION     Patch factory function name (required with --patch-path)"
       echo "  --width WIDTH           Window width (default: 800)"
       echo "  --height HEIGHT         Window height (default: 600)"
       echo "  --fps FPS               Target frame rate (default: 60)"
       echo "  --hot-reload-shaders    Enable shader hot-reloading"
       echo "  --log-level LEVEL       Logging level: FATAL, ERROR, WARNING, INFO, DEBUG, TRACE (default: INFO)"
 
-      echo "  --no-temp-patch         Disable temporary patch creation (requires --module)"
+      echo "  --no-temp-patch         Disable temporary patch creation (requires --patch-path)"
       echo "  --help, -h              Show this help message"
       echo ""
       echo "Examples:"
       echo "  $0                                           # Create basic temp patch"
       echo "  $0 --patch-path projects.demo.shader_test        # Use existing patch"
-      echo "  $0 --patch-function shader_test"
       echo "  $0 --hot-reload-shaders                      # Enable shader hot-reloading"
 
       echo ""
@@ -111,7 +105,7 @@ if [ "$CREATE_TEMP_PATCH" = true ]; then
   fi
   
   PATCH_PATH="temp_patch"
-  PATCH_FUNCTION="temp_patch"
+  PATCH_FUNCTION="oblique_patch"
   
   # Add the temp directory to Python path
   export PYTHONPATH="$TEMP_DIR:$PYTHONPATH"
@@ -120,8 +114,8 @@ if [ "$CREATE_TEMP_PATCH" = true ]; then
   echo "[INFO] Open this file in your editor of choice to start editing"
 else
   # Validate required parameters for existing module
-  if [ -z "$PATCH_PATH" ] || [ -z "$PATCH_FUNCTION" ]; then
-    echo "[ERROR] --patch-path and --patch-function are required when --no-temp-patch is used"
+  if [ -z "$PATCH_PATH" ]; then
+    echo "[ERROR] --patch-path is required when --no-temp-patch is used"
     exit 1
   fi
 fi

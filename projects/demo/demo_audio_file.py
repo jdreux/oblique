@@ -22,7 +22,7 @@ from processing.spectral_centroid import SpectralCentroid
 
 
 
-def audio_file_demo_patch(width: int, height: int) -> ObliquePatch: # type: ignore
+def oblique_patch(width: int, height: int) -> ObliquePatch: # type: ignore
     """
     Create a demo patch with some example modules.
     This is a demo of the audio input from file

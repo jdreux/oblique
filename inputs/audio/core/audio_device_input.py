@@ -224,7 +224,7 @@ class AudioDeviceInput(BaseAudioInput):
         filtered_result = self._filter_channels(concatenated, channels)
         return np.ascontiguousarray(filtered_result, dtype=np.float32)
 
-    def get_audio_input_for_channels(self, channels: List[int]) -> "AudioDeviceChannelInput":
+    def get_channel_audio_input(self, channels: List[int]) -> "AudioDeviceChannelInput":
         """
         Get a new AudioDeviceChannelInput instance that captures only the specified channels.
         """
@@ -253,8 +253,8 @@ class AudioDeviceInput(BaseAudioInput):
         Get the number of audio channels in the input source.
         :return: Number of channels (1 for mono, 2 for stereo, etc.).
         """
-        if self._stream is None:
-            raise RuntimeError("AudioDeviceInput not started. Call start() first.")
+        # if self._stream is None:
+        #     raise RuntimeError("AudioDeviceInput not started. Call start() first.")
 
         # Return the number of selected channels, not the total device channels
         if self._channel_indices is not None:

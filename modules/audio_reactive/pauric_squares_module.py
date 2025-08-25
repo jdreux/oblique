@@ -15,7 +15,7 @@ class PauricSquaresUniforms(Uniforms, total=True):
     u_resolution: tuple[int, int]
     u_time: float
     u_tile_size: int
-    u_texture: BaseAVModule
+    u_texture: ParamTexture
 
 class PauricSquaresModule(BaseAVModule[PauricSquaresParams, PauricSquaresUniforms]):
     """
@@ -45,7 +45,6 @@ class PauricSquaresModule(BaseAVModule[PauricSquaresParams, PauricSquaresUniform
         Returns:
             Uniforms: Uniform values to pass to the shader
         """
-        assert self.motif_texture is not None, "Motif texture not set, call render_texture first"
         return PauricSquaresUniforms(
             u_resolution=(self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
             u_time=t,

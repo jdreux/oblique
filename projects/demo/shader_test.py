@@ -13,7 +13,7 @@ from modules.audio_reactive.protoplasm import ProtoplasmModule, ProtoplasmParams
 from modules.audio_reactive.blue_back_n_gray import BlueBackNGrayModule, BlueBackNGrayParams
 
 
-def shader_test(width: int, height: int) -> ObliquePatch:
+def oblique_patch(width: int, height: int) -> ObliquePatch:
 
     debug_module = DebugModule(
             DebugParams(

@@ -6,9 +6,11 @@ Edit this file and reload using reload_patch() or r() in the REPL
 from math import cos, sin
 
 from core.oblique_patch import ObliquePatch
+from modules.audio_reactive.blue_back_n_gray import BlueBackNGrayModule, BlueBackNGrayParams
 from modules.core.base_av_module import BaseAVModule
-from modules.core.visual_noise import VisualNoiseModule, VisualNoiseParams
 from modules.effects.feedback import FeedbackModule, FeedbackParams
+from inputs.midi.core.midi_input import list_midi_input_ports, print_midi_input_ports
+from inputs.audio.core.audio_device_input import list_audio_devices, print_audio_devices
 
 
 def temp_patch(width: int, height: int) -> ObliquePatch:
@@ -23,33 +25,31 @@ def temp_patch(width: int, height: int) -> ObliquePatch:
         Configured ObliquePatch instance
     """
 
+
     # Create a simple visual noise module
-    noise_module = VisualNoiseModule(
-        VisualNoiseParams(
+    blue_back_n_gray_module = BlueBackNGrayModule(
+        BlueBackNGrayParams(
             width=width,
             height=height,
-            noise_size="large",
-            color_mode="rgba",
-            intensity=1.0,
-            speed=1.0,
+            strip_offset=50.0,
+            n_circles=64,
         )
     )
+
 
     feedback_module = FeedbackModule(
         FeedbackParams(
             width=width,
             height=height,
-            input_texture=noise_module,
+            input_texture=blue_back_n_gray_module   ,
             feedback_strength=0.5,
             direction=(0,0)
         )
     )
 
     def tick_callback(t: float) -> BaseAVModule:
-        # Animate noise scale over time
-        noise_module.params.speed = sin(t * 0.3) * 0.01
-        noise_module.params.intensity = 1.0 + 0.5 * cos(t * 0.5)
-        feedback_module.params.direction = (sin(t * 0.3), cos(t * 0.3))
+        # blue_back_n_gray_module.params.strip_offset = 50.0 * (sin(t) - 0.5)
+        # feedback_module.params.direction = (sin(t * 0.3), cos(t * 0.3))
 
         return feedback_module
 

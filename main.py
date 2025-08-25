@@ -9,17 +9,17 @@ Silicon with GLSL 330 support.
 
 import argparse
 
+from core.logger import configure_logging, debug, error, info
+
 # --- Core imports ---
 from core.oblique_engine import ObliqueEngine
-from core.logger import configure_logging, debug, error, info
 from inputs.audio.core.audio_device_input import AudioDeviceInput, print_audio_devices
 
 # --- Input imports ---
 from inputs.audio.core.audio_file_input import AudioFileInput
 from inputs.midi.core.midi_input import print_midi_input_ports
-from projects.demo.shader_test import shader_test
-from projects.demo.demo_audio_file import audio_file_demo_patch
-from projects.demo.demo_syntakt import create_demo_syntakt
+
+# from projects.demo.demo_audio_file import oblique_patch
 
 
 def main():
@@ -82,6 +82,13 @@ def main():
         default=None,
         help="Log file path (auto-generated if not specified)",
     )
+    parser.add_argument(
+        "--shader-path",
+        type=str,
+        default=None,
+        help="Module path containing oblique_patch function (e.g., 'projects.demo.shader_test')",
+        required=True,
+    )
 
     args = parser.parse_args()
 
@@ -131,11 +138,19 @@ def main():
         return
 
     # Create the patch TODO: remove the width/height hacks for retina displays, implement proper retina display detection
-    if isinstance(audio_input, AudioDeviceInput) and audio_input.device_name.lower() == "syntakt":
-        patch = create_demo_syntakt(args.width*2, args.height*2, audio_input)
-    else:
-        # patch = audio_file_demo_patch(args.width*2, args.height*2)
-        patch = shader_test(args.width*2, args.height*2)
+
+    import importlib
+    try:
+        module = importlib.import_module(args.shader_path)
+        oblique_patch = getattr(module, 'oblique_patch')
+        debug(f"Using patch from module: {args.shader_path}")
+        patch = oblique_patch(args.width*2, args.height*2)
+    except ImportError as e:
+        error(f"Could not import module '{args.shader_path}': {e}")
+        return
+    except AttributeError:
+        error(f"Module '{args.shader_path}' does not have an 'oblique_patch' function")
+        return
 
     # Create and run the engine
     engine = ObliqueEngine(

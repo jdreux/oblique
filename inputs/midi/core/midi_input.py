@@ -104,8 +104,12 @@ def list_midi_input_ports() -> List[str]:
 
 def print_midi_input_ports() -> None:
     """Log the available MIDI input ports."""
+    info("\n" + "=" * 100)
+    info("MIDI INPUT DEVICES")
+    info("=" * 100)
     for name in list_midi_input_ports():
-        info(name)
+        info(f"{name}")
+    info("=" * 100)
 
 
 if __name__ == "__main__":

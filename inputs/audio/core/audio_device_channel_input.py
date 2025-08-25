@@ -102,11 +102,3 @@ class AudioDeviceChannelInput(BaseAudioInput):
         parent_name = self.from_device.device_name
         channel_str = ", ".join(str(ch) for ch in self.channels)
         return f"{parent_name} (channels: {channel_str})"
-
-    # @property
-    # def selected_channels(self) -> List[int]:
-    #     """
-    #     Get the list of channel indices this input is configured to capture.
-    #     :return: List of channel indices.
-    #     """
-    #     return self.channels.copy()

@@ -29,6 +29,15 @@ if [ "$1" = "--hot-reload-shaders" ]; then
   shift  # Remove the parameter from arguments
 fi
 
+# Parse shader-path parameter
+SHADER_PATH_FLAG="--shader-path projects.demo.demo_audio_file"
+CUSTOM_SHADER_PATH=false
+if [ "$1" = "--shader-path" ]; then
+  SHADER_PATH_FLAG="--shader-path $2"
+  CUSTOM_SHADER_PATH=true
+  shift 2  # Remove both the parameter and its value from arguments
+fi
+
 # Parse syntakt parameter
 SYNTAKT_FLAG=""
 AUDIO_DEVICE="0"
@@ -93,6 +102,13 @@ fi
 if [ -n "$SYNTAKT_FLAG" ]; then
   echo "[DEBUG] Syntakt mode enabled, using audio device: $AUDIO_DEVICE"
 fi
+if [ -n "$SHADER_PATH_FLAG" ]; then
+  if [ "$CUSTOM_SHADER_PATH" = true ]; then
+    echo "[DEBUG] Using custom shader path: $SHADER_PATH_FLAG"
+  else
+    echo "[DEBUG] Using default shader path: $SHADER_PATH_FLAG"
+  fi
+fi
 # python3 main.py --audio-file "projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav" --width 800 --height 800 $HOT_RELOAD_FLAG --monitor "$MONITOR" "$@"
-python3 main.py --width 800 --height 800 $HOT_RELOAD_FLAG --monitor "$MONITOR" "$@" --audio-device "$AUDIO_DEVICE"
+python3 main.py --width 800 --height 800 $HOT_RELOAD_FLAG $SHADER_PATH_FLAG --monitor "$MONITOR" "$@" --audio-device "$AUDIO_DEVICE"
 
