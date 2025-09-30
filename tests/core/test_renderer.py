@@ -1,10 +1,12 @@
 import sys
 from pathlib import Path
+
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 
 import pytest
-from pathlib import Path
-from tests.utils.stubs import setup_stubs, load_module
+
+from core.paths import resolve_asset_path
+from tests.utils.stubs import load_module, setup_stubs
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -47,7 +49,14 @@ def test_render_to_texture_requires_ctx():
     renderer = load_module("core.renderer", ROOT / "core" / "renderer.py")
     renderer._ctx = None
     with pytest.raises(RuntimeError):
-        renderer.render_to_texture(object(), 1, 1, "shaders/passthrough.frag", {}, 0)
+        renderer.render_to_texture(
+            object(),
+            1,
+            1,
+            str(resolve_asset_path("shaders/passthrough.frag")),
+            {},
+            0,
+        )
 
 
 def test_blend_textures_requires_ctx():
@@ -58,7 +67,13 @@ def test_blend_textures_requires_ctx():
     renderer._ctx = None
     tex = moderngl.Texture()
     with pytest.raises(RuntimeError):
-        renderer.blend_textures(1, 1, tex, tex, "shaders/additive-blend.frag")
+        renderer.blend_textures(
+            1,
+            1,
+            tex,
+            tex,
+            str(resolve_asset_path("shaders/additive-blend.frag")),
+        )
 
 
 def test_render_fullscreen_quad_caches():
@@ -67,7 +82,7 @@ def test_render_fullscreen_quad_caches():
     import moderngl
 
     ctx = moderngl.create_context()
-    shader_path = "shaders/passthrough.frag"
+    shader_path = str(resolve_asset_path("shaders/passthrough.frag"))
     renderer._shader_cache.clear()
     renderer.render_fullscreen_quad(ctx, shader_path, {})
     assert shader_path in renderer._shader_cache

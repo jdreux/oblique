@@ -8,6 +8,7 @@ from modules.core.base_av_module import (
 )
 
 
+
 @dataclass
 class IkedaTestPatternParams(BaseAVParams):
     """Parameters for the Ikeda Test Pattern module."""

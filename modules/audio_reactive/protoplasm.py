@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from dataclasses import dataclass
+
 import moderngl
 
 from modules.core.base_av_module import (

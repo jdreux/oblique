@@ -2,11 +2,13 @@
 
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import Tuple
 
 import moderngl
 from PIL import Image
 
+from core.paths import resolve_asset_path
 from modules.core.base_av_module import BaseAVModule, BaseAVParams, Uniforms
 
 
@@ -42,7 +44,16 @@ class MediaModule(BaseAVModule[MediaParams, MediaUniforms]):
     def __init__(self, params: MediaParams):
         super().__init__(params)
         self.aspect_mode = params.aspect_mode
-        self.image = Image.open(self.params.file_path).convert("RGBA").transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+
+        source_path = Path(self.params.file_path)
+        if not source_path.is_absolute() and not source_path.exists():
+            candidate = resolve_asset_path(self.params.file_path)
+            if candidate.exists():
+                source_path = candidate
+
+        self.params.file_path = str(source_path)
+
+        self.image = Image.open(source_path).convert("RGBA").transpose(Image.Transpose.FLIP_TOP_BOTTOM)
         self.img_width, self.img_height = self.image.size
         self.texture = None
 

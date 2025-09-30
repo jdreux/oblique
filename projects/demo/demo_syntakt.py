@@ -76,7 +76,7 @@ def oblique_patch(width: int, height: int) -> ObliquePatch:
 
     media_module = MediaModule(
         MediaParams(
-            file_path="./projects/demo/media/banana-alpha.png",
+            file_path="projects/demo/media/banana-alpha.png",
             width=width,
             height=height,
             aspect_mode=AspectMode.PRESERVE,

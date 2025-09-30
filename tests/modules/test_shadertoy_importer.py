@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from core.paths import resolve_asset_path
 from tests.utils.stubs import load_module, setup_stubs
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -20,7 +21,7 @@ def test_shadertoy_uniform_mapping():
     params = ShadertoyParams(
         width=100,
         height=50,
-        frag_shader_path="shaders/passthrough.frag",
+        frag_shader_path=str(resolve_asset_path("shaders/passthrough.frag")),
         iChannel0=tex,
     )
     module = ShadertoyModule(params)

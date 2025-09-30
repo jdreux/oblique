@@ -2,6 +2,8 @@ from dataclasses import dataclass
 
 from processing.fft_bands import FFTBands
 
+from dataclasses import dataclass
+
 from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamFloatList, ParamInt, Uniforms
 
 

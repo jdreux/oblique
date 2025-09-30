@@ -7,7 +7,9 @@ This module provides functionality to pre-process GLSL shaders by resolving
 
 import re
 from pathlib import Path
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Union
+
+from core.paths import resolve_asset_path
 
 
 class ShaderPreprocessor:
@@ -21,7 +23,11 @@ class ShaderPreprocessor:
     - Include path resolution
     """
 
-    def __init__(self, shader_dir: str = "shaders", lygia_dir: str = "external/lygia"):
+    def __init__(
+        self,
+        shader_dir: Union[str, Path, None] = None,
+        lygia_dir: Union[str, Path, None] = None,
+    ):
         """
         Initialize the pre-processor.
         
@@ -29,8 +35,10 @@ class ShaderPreprocessor:
             shader_dir: Directory containing shader files
             lygia_dir: Directory containing lygia library files
         """
-        self.shader_dir = Path(shader_dir)
-        self.lygia_dir = Path(lygia_dir)
+        shader_root = resolve_asset_path("shaders") if shader_dir is None else Path(shader_dir)
+        lygia_root = resolve_asset_path("external/lygia") if lygia_dir is None else Path(lygia_dir)
+        self.shader_dir = shader_root
+        self.lygia_dir = lygia_root
         self._processed_files: Set[str] = set()
         self._include_stack: List[str] = []
 
