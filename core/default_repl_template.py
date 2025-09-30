@@ -48,8 +48,8 @@ def temp_patch(width: int, height: int) -> ObliquePatch:
     )
 
     def tick_callback(t: float) -> BaseAVModule:
-        # blue_back_n_gray_module.params.strip_offset = 50.0 * (sin(t) - 0.5)
-        # feedback_module.params.direction = (sin(t * 0.3), cos(t * 0.3))
+        blue_back_n_gray_module.params.strip_offset = 50.0 * (sin(t*0.1) - 0.5)
+        feedback_module.params.direction = (sin(t * 0.3), cos(t * 0.3))
 
         return feedback_module
 

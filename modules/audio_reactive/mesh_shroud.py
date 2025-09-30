@@ -3,6 +3,7 @@ from typing import Tuple
 from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamFloatList, Uniforms
 
 
+
 class MeshShroudParams(BaseAVParams):
     amplitude: ParamFloat
     fft_bands: ParamFloatList

@@ -1,3 +1,62 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "oblique"
+version = "0.1.0"
+description = "Shader-driven audiovisual synthesizer"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE.md" }
+authors = [{ name = "Oblique Contributors" }]
+dependencies = [
+    "moderngl>=5.12.0",
+    "glfw>=2.9.0",
+    "numpy>=2.3.0",
+    "sounddevice>=0.5.1",
+    "soundfile>=0.12.1",
+    "typing_extensions>=4.14.0",
+    "Pillow>=11.0.0",
+    "mido>=1.3.0",
+    "python-rtmidi>=1.5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4.0",
+    "pytest-cov>=6.0.0",
+]
+
+[project.scripts]
+oblique = "cli:main"
+
+[tool.setuptools]
+include-package-data = true
+py-modules = ["cli", "main", "repl"]
+
+[tool.setuptools.packages.find]
+include = [
+    "core",
+    "core.*",
+    "inputs",
+    "inputs.*",
+    "modules",
+    "modules.*",
+    "processing",
+    "processing.*",
+    "projects",
+    "projects.*",
+    "shaders",
+    "external",
+    "external.*",
+]
+
+[tool.setuptools.package-data]
+"projects.demo" = ["media/*"]
+"shaders" = ["*.frag", "*.glsl"]
+"external.lygia" = ["*.glsl"]
+
 [tool.ruff]
 lint.select = ["E", "F", "W", "C90", "I"]
 lint.ignore = []

@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 from typing import List, Optional
 
+from dataclasses import dataclass
+from typing import List, Optional
+
 from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamInt, ParamFloat, Uniforms
 from processing.fft_bands import FFTBands
 from processing.spectral_centroid import SpectralCentroid

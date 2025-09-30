@@ -21,6 +21,7 @@ import sounddevice as sd
 from core.logger import debug, error, info, warning
 from core.oblique_patch import ObliquePatch
 from core.performance_monitor import PerformanceMonitor
+from core.paths import resolve_asset_path
 from inputs.audio.core.base_audio_input import BaseAudioInput
 
 
@@ -93,8 +94,8 @@ class ObliqueEngine:
         self.running = False
 
         # Shader paths
-        self.additive_blend_shader = "shaders/additive-blend.frag"
-        self.passthrough_shader = "shaders/passthrough.frag"
+        self.additive_blend_shader = str(resolve_asset_path("shaders/additive-blend.frag"))
+        self.passthrough_shader = str(resolve_asset_path("shaders/passthrough.frag"))
 
         # Cached display resources (created in _create_display_resources)
         self._display_program: Optional[moderngl.Program] = None

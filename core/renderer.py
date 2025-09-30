@@ -15,6 +15,7 @@ import numpy as np
 import os
 
 from core.logger import error, warning
+from core.paths import resolve_asset_path
 from core.shader_preprocessor import preprocess_shader
 
 if TYPE_CHECKING:
@@ -100,16 +101,18 @@ def render_fullscreen_quad(
     """
     global _shader_cache, _hot_reload_shaders_enabled
 
-    current_mtime = os.path.getmtime(frag_shader_path)
-    if frag_shader_path in _shader_cache:
-        cached = _shader_cache[frag_shader_path]
+    resolved_path = str(resolve_asset_path(frag_shader_path))
+
+    current_mtime = os.path.getmtime(resolved_path)
+    if resolved_path in _shader_cache:
+        cached = _shader_cache[resolved_path]
         if _hot_reload_shaders_enabled and current_mtime > cached.mtime:
             _release_shader_cache_entry(cached)
-            del _shader_cache[frag_shader_path]
+            del _shader_cache[resolved_path]
 
-    if frag_shader_path not in _shader_cache:
+    if resolved_path not in _shader_cache:
         # Pre-process the shader to resolve includes
-        fragment_shader = preprocess_shader(frag_shader_path)
+        fragment_shader = preprocess_shader(resolved_path)
         vertex_shader = """
             #version 330
             in vec2 in_vert;
@@ -147,9 +150,9 @@ def render_fullscreen_quad(
         )
         vbo = ctx.buffer(vertices.tobytes())
         vao = ctx.simple_vertex_array(program, vbo, "in_vert", "in_uv")
-        _shader_cache[frag_shader_path] = ShaderCacheEntry(program, vao, vbo, current_mtime)
+        _shader_cache[resolved_path] = ShaderCacheEntry(program, vao, vbo, current_mtime)
     else:
-        cached_entry = _shader_cache[frag_shader_path]
+        cached_entry = _shader_cache[resolved_path]
         program, vao, vbo = cached_entry.program, cached_entry.vao, cached_entry.vbo
 
     # Set uniforms efficiently
