@@ -2,11 +2,11 @@ import math
 
 from core.oblique_patch import ObliquePatch
 from inputs.audio.core.audio_file_input import AudioFileInput
-from modules.audio_reactive.mit_particles import MITParticlesModule, MITParticlesParams
-from modules.effects.barrel_distortion import BarrelDistortionModule, BarrelDistortionParams
-from modules.composition.composite_module import CompositeModule, CompositeParams, CompositeOp
-from modules.core.base_av_module import BaseAVModule
 from modules.audio_reactive.circle_echo import CircleEcho, CircleEchoParams
+from modules.audio_reactive.mit_particles import MITParticlesModule, MITParticlesParams
+from modules.composition.composite_module import CompositeModule, CompositeOp, CompositeParams
+from modules.core.base_av_module import BaseAVModule
+from modules.effects.barrel_distortion import BarrelDistortionModule, BarrelDistortionParams
 from modules.effects.feedback import FeedbackModule, FeedbackParams
 from modules.audio_reactive.grid_swap_module import GridSwapModule, GridSwapModuleParams
 from modules.audio_reactive.ikeda_tiny_barcode import IkedaTinyBarcodeModule, IkedaTinyBarcodeParams
@@ -132,7 +132,7 @@ def oblique_patch(width: int, height: int) -> ObliquePatch: # type: ignore
 
     media_module = MediaModule(
         MediaParams(
-            file_path="./projects/demo/media/banana-alpha.png",
+            file_path="projects/demo/media/banana-alpha.png",
             width=width,
             height=height,
             aspect_mode=AspectMode.PRESERVE,

@@ -1,7 +1,9 @@
 import collections
 import queue
+import re
 import threading
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, cast
 
 import numpy as np
 import sounddevice as sd
@@ -303,30 +305,128 @@ def get_channel_names(device_id: int) -> List[str]:
         return [f"Channel {i}" for i in range(max_channels)]
 
 
+@dataclass(frozen=True)
+class AudioDeviceDescriptor:
+    """Describe an audio capture device returned by :mod:`sounddevice`."""
+
+    id: int
+    name: str
+    backend: str
+    max_input_channels: int
+    default_samplerate: float
+
+    def create_input(
+        self,
+        *,
+        channels: Optional[List[int]] = None,
+        samplerate: Optional[int] = None,
+        chunk_size: int = 256,
+    ) -> "AudioDeviceInput":
+        """Return an :class:`AudioDeviceInput` bound to this descriptor."""
+
+        effective_samplerate = samplerate or int(self.default_samplerate)
+        return AudioDeviceInput(
+            device_id=self.id,
+            channels=channels,
+            samplerate=effective_samplerate,
+            chunk_size=chunk_size,
+        )
+
+
+def iter_audio_devices() -> Iterable[AudioDeviceDescriptor]:
+    """Yield available audio capture devices with basic metadata."""
+
+    try:
+        hostapis = sd.query_hostapis()
+        hostapi_names = [str(api.get("name", "Unknown")) for api in hostapis]
+        all_devices = sd.query_devices()
+    except Exception as exc:  # pragma: no cover - depends on host system
+        raise RuntimeError(f"Unable to enumerate audio devices: {exc}") from exc
+
+    for index, raw_device in enumerate(all_devices):
+        device_info = cast(Dict[str, Any], raw_device)
+        max_channels = int(device_info.get("max_input_channels", 0))
+        if max_channels <= 0:
+            continue
+
+        hostapi_index = int(device_info.get("hostapi", 0))
+        backend = (
+            hostapi_names[hostapi_index]
+            if 0 <= hostapi_index < len(hostapi_names)
+            else "Unknown"
+        )
+
+        yield AudioDeviceDescriptor(
+            id=index,
+            name=str(device_info.get("name", f"Device {index}")),
+            backend=backend,
+            max_input_channels=max_channels,
+            default_samplerate=float(device_info.get("default_samplerate", 44100.0)),
+        )
+
+
+def find_audio_device_like(pattern: str) -> Optional[AudioDeviceDescriptor]:
+    """Return the first device whose name matches ``pattern`` (case-insensitive)."""
+
+    try:
+        expression = re.compile(pattern, re.IGNORECASE)
+    except re.error as exc:  # pragma: no cover - defensive validation
+        raise ValueError(f"Invalid regular expression '{pattern}': {exc}") from exc
+
+    matches = [device for device in iter_audio_devices() if expression.search(device.name)]
+    if not matches:
+        return None
+
+    matches.sort(
+        key=lambda device: (device.max_input_channels, device.default_samplerate, -device.id),
+        reverse=True,
+    )
+    return matches[0]
+
+
+def audio_device_like(
+    pattern: str,
+    *,
+    channels: Optional[List[int]] = None,
+    samplerate: Optional[int] = None,
+    chunk_size: int = 256,
+) -> "AudioDeviceInput":
+    """Create an :class:`AudioDeviceInput` from the first device matching ``pattern``."""
+
+    descriptor = find_audio_device_like(pattern)
+    if descriptor is None:
+        raise RuntimeError(
+            f"No audio capture device matches pattern '{pattern}'.",
+        )
+
+    return descriptor.create_input(
+        channels=channels,
+        samplerate=samplerate,
+        chunk_size=chunk_size,
+    )
+
+
 def list_audio_devices() -> List[Dict[str, Any]]:
     """
     List all available audio input devices with their capabilities.
 
     :return: List of dictionaries containing device information
     """
-    devices = []
-    all_devices = sd.query_devices()
-    for i, device in enumerate(all_devices):
-        device_dict = cast(Dict[str, Any], device)
-        max_channels = device_dict.get("max_input_channels", 0)
-        if max_channels > 0:  # Only input devices
-            channel_names = get_channel_names(i)
-            devices.append(
-                {
-                    "id": i,
-                    "name": device_dict.get("name", "Unknown Device"),
-                    "max_input_channels": max_channels,
-                    "default_samplerate": device_dict.get("default_samplerate", 44100),
-                    "hostapi": device_dict.get("hostapi", "Unknown"),
-                    "channel_names": channel_names,
-                    "num_channels": len(channel_names),  # Actual number of channels with names
-                }
-            )
+    devices: List[Dict[str, Any]] = []
+    for descriptor in iter_audio_devices():
+        channel_names = get_channel_names(descriptor.id)
+        devices.append(
+            {
+                "id": descriptor.id,
+                "name": descriptor.name,
+                "backend": descriptor.backend,
+                "max_input_channels": descriptor.max_input_channels,
+                "default_samplerate": descriptor.default_samplerate,
+                "hostapi": descriptor.backend,
+                "channel_names": channel_names,
+                "num_channels": len(channel_names),
+            }
+        )
     return devices
 
 
@@ -348,7 +448,7 @@ def print_audio_devices() -> None:
         info(f"\nDevice ID: {device['id']}")
         info(f"Name: {device['name']}")
         info(f"Sample Rate: {int(device['default_samplerate'])} Hz")
-        info(f"Host API: {device['hostapi']}")
+        info(f"Host API: {device['backend']}")
         info(f"Total Channels: {device['num_channels']}")
         info("-" * 80)
 

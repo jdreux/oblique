@@ -2,6 +2,7 @@ from typing import Any, Dict
 
 import numpy as np
 
+from core.paths import resolve_asset_path
 from inputs.audio.core.base_audio_input import BaseAudioInput
 from processing.base_processing_operator import BaseProcessingOperator
 
@@ -82,7 +83,11 @@ if __name__ == "__main__":  # pragma: no cover
     file_path = (
         sys.argv[1]
         if len(sys.argv) > 1
-        else "../projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav"
+        else str(
+            resolve_asset_path(
+                "projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav"
+            )
+        )
     )
     input_device = AudioFileInput(file_path, chunk_size=2048)
     input_device.start()

@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 from typing import Tuple
 
+from dataclasses import dataclass
+from typing import Tuple
+
 from modules.core.base_av_module import BaseAVModule, BaseAVParams, Uniforms
 from processing.fft_bands import FFTBands
 

@@ -64,21 +64,36 @@ load the patch.
 ## Quick Start
 
 ```bash
-# Install dependencies
-./install.sh
+# Install Oblique (editable mode is handy during development)
+pip install --editable .
 
-# Run with demo audio
-./start.sh
+# Launch the engine with the bundled demo patch (projects.demo.demo_audio_file)
+oblique start projects.demo.demo_audio_file
 
-# Or run manually
-python main.py --audio "path/to/audio.wav" --width 800 --height 600 --audio "path_to_audio"
+# Point to a custom patch module or file (defaults to oblique_patch())
+oblique start path/to/oblique_patch.py
 
-# Enable live shader editing
-python main.py --hot-reload-shaders
+# Tweak windowing, frame rate, logging and shader reload behaviour
+oblique start --width 1280 --height 720 --fps 30 --log-level DEBUG --watch
 
-# Launch the interactive REPL with a patch
-python repl.py projects.demo.shader_test shader_test --hot-reload-shaders
+# Start a REPL scaffolded with a temporary patch (watch enables shader reload)
+oblique repl start --watch
+
+# Preview the configuration without launching anything
+oblique start projects.demo.demo_audio_file --dry-run
 ```
+
+`oblique start` requires an explicit patch module or file path. `--watch`
+monitors both the patch file and GLSL shaders for edits—handy during
+development but it does add a small performance overhead. The deprecated
+`start.sh` and `repl.sh` wrappers will be removed in a future release—use the
+`oblique` entry point provided by `pip install .` (or a future Homebrew
+formula) instead of invoking `python cli.py …` directly.
+
+If your module exposes a factory with a different name you can append
+`:<callable>` to the module path—for example `oblique start
+my_project.live:build_patch`. This uses the familiar `module:function` syntax
+shared by tools like `sphinx` and `uvicorn`.
 
 
 ## Testing
@@ -117,6 +132,20 @@ We use the system microphone (or audio interface) via `sounddevice` to:
 - Capture audio in real time, potentially from a file
 - Perform FFT analysis
 - Send normalized bands and envelope to the processing layer
+
+Audio sources are configured inside project files. Helper utilities make
+device discovery straightforward:
+
+```python
+from inputs.audio.core import audio_device_like
+
+# Create an AudioDeviceInput from the first device whose name matches the pattern
+audio_input = audio_device_like("Digitakt")
+```
+
+If you need metadata without instantiating a device, `find_audio_device_like`
+and `iter_audio_devices` expose lightweight descriptors you can use to present a
+selection UI or apply custom heuristics.
 
 ---
 

@@ -1,0 +1,5 @@
+include requirements.txt
+recursive-include shaders *.frag *.glsl
+recursive-include modules *.frag *.glsl
+recursive-include projects *.py *.frag *.glsl *.png *.wav
+recursive-include external *.glsl *.md *.json *.txt
