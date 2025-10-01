@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from dataclasses import dataclass
 from typing import Literal
 
 from processing.base_processing_operator import BaseProcessingOperator

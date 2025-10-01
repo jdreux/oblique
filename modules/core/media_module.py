@@ -46,10 +46,21 @@ class MediaModule(BaseAVModule[MediaParams, MediaUniforms]):
         self.aspect_mode = params.aspect_mode
 
         source_path = Path(self.params.file_path)
-        if not source_path.is_absolute() and not source_path.exists():
-            candidate = resolve_asset_path(self.params.file_path)
+        candidate_paths = [source_path]
+        if not source_path.is_absolute():
+            asset_candidate = resolve_asset_path(self.params.file_path)
+            if asset_candidate not in candidate_paths:
+                candidate_paths.append(asset_candidate)
+
+        for candidate in candidate_paths:
             if candidate.exists():
                 source_path = candidate
+                break
+        else:
+            searched = ", ".join(str(path) for path in candidate_paths)
+            raise FileNotFoundError(
+                f"Media file '{self.params.file_path}' was not found. Checked: {searched}."
+            )
 
         self.params.file_path = str(source_path)
 

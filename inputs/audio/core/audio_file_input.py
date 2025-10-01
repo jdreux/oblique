@@ -35,10 +35,21 @@ class AudioFileInput(BaseAudioInput):
             )
 
         source_path = Path(file_path)
-        if not source_path.is_absolute() and not source_path.exists():
-            candidate = resolve_asset_path(file_path)
+        candidate_paths = [source_path]
+        if not source_path.is_absolute():
+            asset_candidate = resolve_asset_path(file_path)
+            if asset_candidate not in candidate_paths:
+                candidate_paths.append(asset_candidate)
+
+        for candidate in candidate_paths:
             if candidate.exists():
                 source_path = candidate
+                break
+        else:
+            searched = ", ".join(str(path) for path in candidate_paths)
+            raise FileNotFoundError(
+                f"Audio file '{file_path}' was not found. Checked: {searched}."
+            )
 
         self.file_path = str(source_path)
         self.file = None
