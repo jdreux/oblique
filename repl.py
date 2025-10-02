@@ -4,7 +4,8 @@ This utility starts an :class:`~core.oblique_engine.ObliqueEngine` in a backgrou
 thread and drops the user into a Python REPL. The active engine instance and a
 ``reload_patch`` helper are exposed in the console's local scope so patches can
 be edited and reloaded on the fly. Shader hot reloading can be toggled via the
-``--hot-reload-shaders`` flag.
+``--hot-reload-shaders`` flag, while ``--hot-reload-python`` enables automatic
+patch module re-imports when files change.
 """
 
 import argparse
@@ -13,6 +14,7 @@ import importlib
 import sys
 import threading
 import time
+from pathlib import Path
 
 from core.logger import configure_logging, error, info
 from core.oblique_engine import ObliqueEngine
@@ -33,7 +35,16 @@ def main() -> None:
     parser.add_argument("--width", type=int, default=800)
     parser.add_argument("--height", type=int, default=600)
     parser.add_argument("--fps", type=int, default=60, help="Target frame rate")
-    parser.add_argument("--hot-reload-shaders", action="store_true", default=True)
+    parser.add_argument(
+        "--hot-reload-shaders",
+        action="store_true",
+        help="Reload GLSL shaders when files change",
+    )
+    parser.add_argument(
+        "--hot-reload-python",
+        action="store_true",
+        help="Reload the patch module automatically when files change",
+    )
     parser.add_argument("--log-level", type=str, default="INFO",
                         choices=["FATAL", "ERROR", "WARNING", "INFO", "DEBUG", "TRACE"],
                         help="Logging level")
@@ -49,6 +60,13 @@ def main() -> None:
         error(f"Failed to load patch: {exc}")
         raise
 
+    module_file = None
+    module_obj = sys.modules.get(args.patch_path)
+    if module_obj is not None:
+        module_path_attr = getattr(module_obj, "__file__", None)
+        if module_path_attr is not None:
+            module_file = Path(module_path_attr).resolve()
+
     engine = ObliqueEngine(
         patch=patch,
         width=args.width,
@@ -62,6 +80,9 @@ def main() -> None:
         'reload_requested': False,
         'quit_requested': False
     }
+
+    python_watcher_stop = threading.Event()
+    python_watcher_thread = None
 
     def reload_patch() -> None:
         """Request patch reload - will be handled in main loop."""
@@ -104,6 +125,38 @@ def main() -> None:
 
     repl_thread = threading.Thread(target=start_repl, daemon=True)
     repl_thread.start()
+
+    if args.hot_reload_python:
+        if module_file is None or not module_file.exists():
+            info(
+                "Python hot reload requested but patch file could not be resolved; disabling automatic reload.",
+            )
+        else:
+            info(f"Watching {module_file} for Python changes")
+
+            def watch_python_patch() -> None:
+                try:
+                    last_mtime = module_file.stat().st_mtime
+                except FileNotFoundError:
+                    last_mtime = 0.0
+                while not python_watcher_stop.wait(0.5):
+                    try:
+                        current_mtime = module_file.stat().st_mtime
+                    except FileNotFoundError:
+                        continue
+
+                    if current_mtime <= last_mtime:
+                        continue
+
+                    last_mtime = current_mtime
+                    repl_state['reload_requested'] = True
+                    info("Patch file change detected; reload queued")
+
+            python_watcher_thread = threading.Thread(
+                target=watch_python_patch,
+                daemon=True,
+            )
+            python_watcher_thread.start()
 
     # Run engine with REPL integration (must be on main thread for macOS)
     try:
@@ -173,6 +226,9 @@ def main() -> None:
         error(f"Error in Oblique REPL engine: {e}")
         raise
     finally:
+        python_watcher_stop.set()
+        if python_watcher_thread is not None:
+            python_watcher_thread.join(timeout=1.0)
         engine.cleanup()
 
 

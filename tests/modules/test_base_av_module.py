@@ -1,8 +1,11 @@
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
 import sys
+
 import pytest
-from tests.utils.stubs import setup_stubs, load_module
+
+from core.paths import resolve_asset_path
+from tests.utils.stubs import load_module, setup_stubs
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -23,7 +26,7 @@ def _make_module():
         height: int = 1
 
     class DummyModule(BaseAVModule[Params, Uniforms]):
-        frag_shader_path = "shaders/passthrough.frag"
+        frag_shader_path = str(resolve_asset_path("shaders/passthrough.frag"))
 
         def prepare_uniforms(self, t: float) -> Uniforms:
             return {}

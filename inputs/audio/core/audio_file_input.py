@@ -1,10 +1,12 @@
 import collections
+from pathlib import Path
 from typing import List, Optional
 
 import numpy as np
 import soundfile as sf
 
 from core.logger import debug, info
+from core.paths import resolve_asset_path
 
 from .base_audio_input import BaseAudioInput
 
@@ -26,12 +28,30 @@ class AudioFileInput(BaseAudioInput):
         """
         super().__init__(chunk_size=chunk_size)
         # Validate supported audio file formats
-        self.file_path = file_path
-        if not self.file_path.lower().endswith(SUPPORTED_FORMATS):
+        if not file_path.lower().endswith(SUPPORTED_FORMATS):
             raise ValueError(
-                f"Unsupported audio file format for '{self.file_path}'. "
+                f"Unsupported audio file format for '{file_path}'. "
                 f"Supported formats are: {', '.join(SUPPORTED_FORMATS)}"
             )
+
+        source_path = Path(file_path)
+        candidate_paths = [source_path]
+        if not source_path.is_absolute():
+            asset_candidate = resolve_asset_path(file_path)
+            if asset_candidate not in candidate_paths:
+                candidate_paths.append(asset_candidate)
+
+        for candidate in candidate_paths:
+            if candidate.exists():
+                source_path = candidate
+                break
+        else:
+            searched = ", ".join(str(path) for path in candidate_paths)
+            raise FileNotFoundError(
+                f"Audio file '{file_path}' was not found. Checked: {searched}."
+            )
+
+        self.file_path = str(source_path)
         self.file = None
         self.samplerate = None
         self.channels = None
@@ -134,7 +154,11 @@ if __name__ == "__main__":
     file_path = (
         sys.argv[1]
         if len(sys.argv) > 1
-        else "../projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav"
+        else str(
+            resolve_asset_path(
+                "projects/demo/audio/Just takes one try mix even shorter [master]19.06.2025.wav"
+            )
+        )
     )
     input_device = AudioFileInput(file_path, chunk_size=2048)
     input_device.start()

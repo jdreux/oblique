@@ -10,6 +10,7 @@ from modules.core.base_av_module import (
 )
 
 
+
 @dataclass
 class MITParticlesParams(BaseAVParams):
     """Parameters for the MIT Particles module.
