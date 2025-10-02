@@ -240,3 +240,6 @@ renders/
 *.hdf5
 *.npz
 *.npy 
+
+# Oblique
+.oblique/
