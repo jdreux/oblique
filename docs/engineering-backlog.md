@@ -11,46 +11,46 @@ Prioritized task list. Tasks are ordered by execution sequence within each sprin
 ```
 SPRINT 1 (Week 1-2): Foundations
 ──────────────────────────────────
-C1 ─── Fix _resolve_param order           (no deps, do FIRST — 1 line, unblocks C2)
-C2 ─── Fix CircleEcho + audit all modules (depends on C1)
-C3 ─── Fix Uniforms TypedDicts            (no deps, parallel with C1/C2)
-A1 ─── Shader error recovery              (no deps, parallel with C1-C3)
-B2 ─── Add u_mix to CompositeModule       (no deps, parallel)
+C1 ─── [IC4] Fix _resolve_param order                  (no deps, do FIRST — 1 line, unblocks C2) [DONE 2026-03-11, 8ad9269]
+C2 ─── [IC4] Fix CircleEcho + audit all modules        (depends on C1) [DONE 2026-03-11, 337a7c0]
+C3 ─── [IC4] Fix Uniforms TypedDicts                   (no deps, parallel with C1/C2) [DONE 2026-03-11, 67e1278]
+A1 ─── [IC4] Shader error recovery                     (no deps, parallel with C1-C3) [DONE 2026-03-11, 8212b32]
+B2 ─── [IC4] Add u_mix to CompositeModule              (no deps, parallel) [DONE 2026-03-11, f75cd4a]
 
 SPRINT 2 (Week 2-3): Registry & Memory
 ──────────────────────────────────
-A2 ─── Module registry + CLI              (no deps, but informs everything after)
-C4 ─── Texture cache LRU                  (no deps, parallel with A2)
-C5 ─── Ping-pong history eviction         (no deps, parallel with A2)
-C6 ─── Standardize u_ prefix              (no deps, but easier after C2 audit)
+A2 ─── [IC4 + Arch Review] Module registry + CLI       (no deps, but informs everything after) [DONE 2026-03-11, a40afa5]
+C4 ─── [IC4] Texture cache LRU                          (no deps, parallel with A2) [DONE 2026-03-11, 98af33e]
+C5 ─── [IC4] Ping-pong history eviction                 (no deps, parallel with A2) [DONE 2026-03-11, 58d3097]
+C6 ─── [Sr. Architect] Standardize u_ prefix            (no deps, but easier after C2 audit) [DONE 2026-03-11, 185fcc8]
 
 SPRINT 3 (Week 3-4): AI Feedback Loop
 ──────────────────────────────────
-A3 ─── Rich frame analysis                (no deps)
-A4 ─── Param range annotations            (depends on A2 — registry reads metadata)
-A5 ─── Uniform contract verification      (no deps, but pairs well with A1)
+A3 ─── [IC4] Rich frame analysis                         (no deps) [DONE 2026-03-11, a748345]
+A4 ─── [IC4] Param range annotations                     (depends on A2 — registry reads metadata) [DONE 2026-03-11, 7f5c9b9]
+A5 ─── [IC4] Uniform contract verification               (no deps, but pairs well with A1) [DONE 2026-03-11, 53b4b85]
 
 SPRINT 4 (Week 5-6): AI Tooling
 ──────────────────────────────────
-A6 ─── Shader pre-validation CLI          (depends on A1 for fallback patterns)
-A7 ─── Patch templates + oblique new      (depends on A2 — uses registry for module discovery)
-D5 ─── Module scaffolding command          (depends on A2, pairs with A7)
+A6 ─── [IC4] Shader pre-validation CLI                    (depends on A1 for fallback patterns)
+A7 ─── [IC4 + Arch Review] Patch templates + oblique new  (depends on A2 — uses registry for module discovery)
+D5 ─── [IC4 + Arch Review] Module scaffolding command     (depends on A2, pairs with A7)
 
 SPRINT 5 (Week 7-9): API Rework
 ──────────────────────────────────
-B1 ─── Remove width/height from params    (depends on A2 — registry makes it mechanical)
-D6 ─── TexturePass inheritance opt-in     (no hard dep, but do during B1 refactor)
+B1 ─── [Sr. Architect] Remove width/height from params   (depends on A2 — registry makes it mechanical)
+D6 ─── [Sr. Architect] TexturePass inheritance opt-in    (no hard dep, but do during B1 refactor)
 
 SPRINT 6 (Week 10-12): Composition API
 ──────────────────────────────────
-B3 ─── Pipe/chain operator                (depends on B1 + B2)
+B3 ─── [Sr. Architect] Pipe/chain operator                (depends on B1 + B2)
 
 ONGOING (parallel with any sprint)
 ──────────────────────────────────
-D1 ─── Texture filter fix                 (no deps, quick)
-D2 ─── --profile flag                     (depends on A2 loosely)
-D3 ─── Deterministic --seed               (no deps)
-D4 ─── A/B comparison rendering           (depends on A3)
+D1 ─── [IC4] Texture filter fix                           (no deps, quick)
+D2 ─── [IC4] --profile flag                               (depends on A2 loosely)
+D3 ─── [IC4] Deterministic --seed                         (no deps)
+D4 ─── [IC4] A/B comparison rendering                     (depends on A3)
 ```
 
 ### Critical Path
@@ -61,6 +61,24 @@ The longest dependency chain is: **C1 → C2 → A2 → A4 → B1 → B3**. This
 
 - **Sr. Architect (you)**: B1, B3, C6, D6 — these require design decisions about the module contract, API surface, and backward compatibility
 - **IC4 Engineer**: Everything else — well-scoped, clear acceptance criteria, no ambiguous design calls
+
+### Sprint 1 Delivery Notes (2026-03-11)
+
+- **Completed**: C1, C2, C3, A1, B2.
+- **Commit order**: `8ad9269` (C1), `337a7c0` (C2), `67e1278` (C3), `8212b32` (A1), `f75cd4a` (B2).
+- **Test discipline**: full suite (`source venv/bin/activate && pytest`) run after each task commit; final state for this batch: `53 passed, 13 skipped`.
+
+### Sprint 2 Delivery Notes (2026-03-11)
+
+- **Completed**: A2, C4, C5, C6.
+- **Commit order**: `a40afa5` (A2), `98af33e` (C4), `58d3097` (C5), `185fcc8` (C6).
+- **Test discipline**: full suite (`source venv/bin/activate && pytest`) run after each task commit; final state for this batch: `62 passed, 13 skipped`.
+
+### Sprint 3 Delivery Notes (2026-03-11)
+
+- **Completed**: A3, A4, A5.
+- **Commit order**: `a748345` (A3), `7f5c9b9` (A4), `53b4b85` (A5).
+- **Test discipline**: full suite (`source venv/bin/activate && pytest`) run after each task commit; final state for this batch: `77 passed, 14 skipped`.
 
 ---
 
@@ -90,6 +108,15 @@ These tasks make Oblique usable by an AI coding agent for patch creation, iterat
 **Test**: Write a GPU test that compiles a valid shader, then modifies the source to invalid GLSL, and verifies the renderer falls back without crashing. Also test that a first-ever bad shader still raises.
 
 **Acceptance**: `oblique render` with a broken shader logs a warning and renders the last good frame instead of crashing.
+
+**Status (2026-03-11)**: ✅ Complete (`8212b32`)
+**Result**:
+- Added `_last_good_cache` fallback behavior in `render_fullscreen_quad` and warning logs on compile failure.
+- Added `cleanup_last_good_cache()` and wired cleanup into headless and engine shutdown paths.
+- Added regression tests for fallback and first-compile failure behavior in `tests/core/test_renderer.py`.
+**Follow-up**:
+- Add a true integration test that exercises real shader compile failure on GPU (current failure path test is stub-driven).
+- Consider warning-rate limiting when hot reload repeatedly retries an invalid shader.
 
 ---
 
@@ -127,6 +154,16 @@ These tasks make Oblique usable by an AI coding agent for patch creation, iterat
 **Test**: Unit test that `discover_modules()` finds all module classes, that `get_registry()` returns correct counts, that `search_modules("feedback")` finds `FeedbackModule`, that `--json` output is valid JSON matching `ModuleSpec` schema.
 
 **Acceptance**: `oblique list-modules --json` returns structured metadata for all modules. An AI agent can parse this JSON to discover available modules, their params, ranges, and tags without reading any source files.
+
+**Status (2026-03-11)**: ✅ Complete (`a40afa5`)
+**Result**:
+- Added `core/registry.py` with `ParamSpec`, `ModuleSpec`, decorator-based registration, module discovery, and search helpers.
+- Decorated all current `BaseAVModule` subclasses (22 modules) with category/description/tags/cost metadata.
+- Added CLI commands: `oblique list-modules` (table/JSON with tag+category filters) and `oblique describe <ModuleName>` (text/JSON detail).
+- Added tests covering registry discovery/search/serialization and parser/CLI command behavior.
+**Follow-up**:
+- Add Sr. Architect review pass for tag taxonomy consistency and `cost_hint` calibration.
+- Consider a stricter schema validator for `ModuleSpec` JSON output to lock API stability before public tooling relies on it.
 
 ---
 
@@ -166,6 +203,16 @@ These tasks make Oblique usable by an AI coding agent for patch creation, iterat
 
 **Acceptance**: `oblique render <patch> --t 1.0 --inspect` outputs 16+ metrics as JSON. `oblique render <patch> --duration 2 --fps 5 --inspect` adds temporal analysis.
 
+**Status (2026-03-11)**: ✅ Complete (`a748345`)
+**Result**:
+- Added new `core/frame_analysis.py` with `analyze_frame`, `analyze_temporal`, `perceptual_hash`, and `hash_distance` (pure NumPy).
+- Updated `HeadlessRenderer.inspect()` to emit rich metrics and added `HeadlessRenderer.inspect_sequence()` with temporal motion metrics.
+- Updated `oblique render --inspect` to print JSON and include temporal analysis when used with `--duration` or `--frames`.
+- Added tests for synthetic frame analysis cases, temporal analysis behavior, headless inspect coverage, and CLI inspect JSON/timeline behavior.
+**Follow-up**:
+- Consider exposing perceptual hash in CLI `--inspect` output for snapshot similarity checks.
+- Consider adding optional histogram metrics (luminance and hue bins) for deeper agent-side diagnostics.
+
 ---
 
 ### A4. Parameter range annotations on all modules
@@ -197,6 +244,16 @@ These tasks make Oblique usable by an AI coding agent for patch creation, iterat
 
 **Acceptance**: `oblique describe FeedbackModule --json` shows param ranges and descriptions. An AI agent knows that `feedback_strength` is 0.0-1.0 without reading source.
 
+**Status (2026-03-11)**: ✅ Complete (`7f5c9b9`)
+**Result**:
+- Added `field(metadata=...)` annotations with `min`/`max`/`description` across the targeted `*Params` dataclasses in `modules/`.
+- Added enum metadata for enum-like params (`noise_size`, `color_mode`, `operation`, plus related enum/string controls such as `aspect_mode` and `transform_order`).
+- Extended `ParamSpec` extraction in `core/registry.py` to preserve `enum_values` in registry output.
+- Added registry tests to verify numeric params in annotated modules expose ranges/descriptions and that enum metadata survives discovery.
+**Follow-up**:
+- Add a schema-level distinction for scalar ranges vs vector/tuple ranges (current `min`/`max` are shared bounds).
+- Schedule a pass to align param bounds with creative presets used in real-time patches.
+
 ---
 
 ### A5. Uniform contract verification (debug mode)
@@ -219,6 +276,16 @@ These tasks make Oblique usable by an AI coding agent for patch creation, iterat
 **Test**: Create a module with a deliberate uniform mismatch (Python sends `u_brightnes`, shader expects `u_brightness`). Run in debug mode and verify warning is logged.
 
 **Acceptance**: `oblique render <patch> --t 1.0 --debug` logs any uniform mismatches between Python and GLSL.
+
+**Status (2026-03-11)**: ✅ Complete (`53b4b85`)
+**Result**:
+- Added renderer debug mode (`_debug_mode`, `set_debug_mode`) and uniform contract validation in `render_fullscreen_quad`.
+- Debug mode now logs both extra provided uniforms and missing expected shader uniforms (excluding `in_vert`/`in_uv`).
+- Added `--debug` flags to both `oblique start` and `oblique render` and wired them to renderer debug mode.
+- Added tests covering renderer mismatch warning behavior and CLI parser/runtime debug wiring.
+**Follow-up**:
+- Add rate-limiting/deduplication for repeated mismatch warnings during shader hot reload.
+- Include optional uniform type/shape details in debug warnings to catch value-shape issues, not just missing keys.
 
 ---
 
@@ -335,6 +402,15 @@ These are structural changes that improve the composition model and developer ex
 
 **Acceptance**: `CompositeModule` supports smooth crossfading between two visual sources.
 
+**Status (2026-03-11)**: ✅ Complete (`f75cd4a`)
+**Result**:
+- Added `mix` param with metadata to `CompositeParams`, plus `u_mix` in `CompositeUniforms`.
+- Updated `prepare_uniforms` to resolve dynamic `mix` values via `_resolve_param`.
+- Updated GLSL to apply `result = mix(bottom, result, u_mix);`.
+- Added module + shader coverage tests in `tests/modules/test_composite_module_mix.py`.
+**Follow-up**:
+- Add image-based render assertions for `u_mix` at 0.0 / 0.5 / 1.0 once a stable GPU integration harness is in place.
+
 ---
 
 ### B3. Pipe/chain operator on BaseAVModule
@@ -409,6 +485,13 @@ else:
 
 **Acceptance**: `_resolve_param` correctly calls `.process()` on processing operators.
 
+**Status (2026-03-11)**: ✅ Complete (`8ad9269`)
+**Result**:
+- Swapped `_resolve_param` type-check order so `BaseProcessingOperator` resolves before generic callables.
+- Added regression test with a callable processing operator to ensure `.process()` takes precedence.
+**Follow-up**:
+- Keep this regression test as a guard during B1 API refactor where param resolution paths will be touched again.
+
 ---
 
 ### C2. Fix CircleEcho to use `_resolve_param`
@@ -443,6 +526,14 @@ Also do `self._resolve_param(self.params.width)` and `self._resolve_param(self.p
 **Test**: Pass a lambda as `n_circles` to CircleEcho, render a frame, verify the lambda is called and the integer value reaches the shader.
 
 **Acceptance**: All `ParamX` fields in all modules go through `_resolve_param` before being sent to the shader.
+
+**Status (2026-03-11)**: ✅ Complete (`337a7c0`)
+**Result**:
+- Fixed `CircleEcho.prepare_uniforms()` to resolve width/height + dynamic params through `_resolve_param`.
+- Audit identified another direct dynamic-param bypass in `SpectralVisualizer`; fixed in same pass.
+- Added coverage tests for callable param resolution in both modules (`tests/modules/test_audio_reactive_param_resolution.py`).
+**Follow-up**:
+- Re-run this audit after B1 (`width`/`height` contract refactor), since every `prepare_uniforms` implementation will be edited.
 
 ---
 
@@ -480,6 +571,13 @@ Also do `self._resolve_param(self.params.width)` and `self._resolve_param(self.p
 
 **Acceptance**: All `*Uniforms` TypedDicts accurately reflect what the renderer expects (moderngl types, not Python wrapper types).
 
+**Status (2026-03-11)**: ✅ Complete (`67e1278`)
+**Result**:
+- Updated texture uniform annotations to `moderngl.Texture` in `composite`, `feedback`, and audited additional modules (`transform`, `blur`, `level`, `barrel_distortion`, `grid_swap`, `pauric_squares`).
+- Added annotation-level regression test in `tests/modules/test_uniform_texture_types.py`.
+**Follow-up**:
+- Run mypy/pyright once strict static type checking is introduced to enforce these contracts automatically.
+
 ---
 
 ### C4. Texture cache LRU eviction
@@ -499,6 +597,14 @@ Also do `self._resolve_param(self.params.width)` and `self._resolve_param(self.p
 **Test**: Create 100 textures via the cache, verify only 64 remain. Verify evicted textures are released (mock `.release()` and check call count).
 
 **Acceptance**: `_texture_cache` never exceeds 64 entries. GPU memory stays bounded.
+
+**Status (2026-03-11)**: ✅ Complete (`98af33e`)
+**Result**:
+- Migrated `_texture_cache` to `OrderedDict` LRU semantics in `core/renderer.py`.
+- Added hard cap (`64`) with eviction of oldest entries and explicit texture release on eviction.
+- Added regression test verifying cache capacity enforcement and release order.
+**Follow-up**:
+- Expose cache cap via config/env if runtime workloads need tuning beyond 64 entries.
 
 ---
 
@@ -521,6 +627,15 @@ Also do `self._resolve_param(self.params.width)` and `self._resolve_param(self.p
 
 **Acceptance**: `_texture_history` stays bounded. No stale-resolution textures accumulate.
 
+**Status (2026-03-11)**: ✅ Complete (`58d3097`)
+**Result**:
+- Added ping-pong history eviction in `BaseAVModule` scoped by `(owner, pass_tag, resolution)`.
+- On resolution change, stale-history textures are removed and released via renderer cache-aware release helper.
+- Added safety cap to keep at most 4 history entries per pass/resolution bucket.
+- Added regression test that renders at one resolution then another and verifies stale entries are evicted/released.
+**Follow-up**:
+- Add metrics/log hooks for eviction counts to make long-session memory behavior observable in profiling runs.
+
 ---
 
 ### C6. Standardize `u_` prefix convention
@@ -536,11 +651,20 @@ Also do `self._resolve_param(self.params.width)` and `self._resolve_param(self.p
 1. In `renderer.py`, find the code in `_render_texture_pass` that prepends `u_` to keys. Remove it.
 2. Update all `TexturePass` usage to include explicit `u_` prefixes in their uniform dicts.
 3. Update all `prepare_uniforms` return dicts to consistently use `u_` prefixed keys.
-4. Add a comment or docstring in `base_av_module.py` documenting the convention: "All uniform keys must be prefixed with `u_`. The renderer does not add prefixes."
+4. Add a comment or docstring in `base_av_module.py` documenting the convention: "All uniform keys must be prefixed with `u_`. The renderer does not add prefixes." --> architect note: do not do this step. no need for the note. just remove the u_ appender and fixe everything. 
 
 **Test**: Verify all existing patches render identically before and after. Search all `.py` files for uniform dicts missing `u_` prefix.
 
 **Acceptance**: Every uniform key in Python code starts with `u_`. No auto-prefix magic.
+
+**Status (2026-03-11)**: ✅ Complete (`185fcc8`)
+**Result**:
+- Removed auto-prefixing from `_render_texture_pass`; `TexturePass.uniforms` keys now pass through verbatim.
+- Updated internal module/shader pairs to explicit `u_` naming (`Composite`, `GridSwap`, `Media`, and additive blend helper shader path).
+- Updated TexturePass-dependent module code (e.g. `BlueBackNGray`) to declare explicit `u_` keys.
+- Added regression test proving pass uniforms are no longer auto-prefixed.
+**Follow-up**:
+- `ShadertoyModule` intentionally keeps native Shadertoy uniform names (`iResolution`, `iTime`, `iChannel*`) for compatibility; document this as an explicit exception in contributor docs.
 
 ---
 
