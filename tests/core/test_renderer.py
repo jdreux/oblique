@@ -258,3 +258,37 @@ def test_debug_mode_logs_uniform_contract_mismatches(tmp_path, monkeypatch):
 
     assert any("Python provides but shader ignores" in message for message in warnings)
     assert any("Shader expects but Python doesn't provide" in message for message in warnings)
+
+
+def test_render_fullscreen_quad_preserves_input_texture_filter(monkeypatch):
+    setup_stubs()
+    renderer = load_module("core.renderer", ROOT / "core" / "renderer.py")
+    import moderngl
+
+    ctx = moderngl.create_context()
+
+    class DummyProgram(dict):
+        def release(self):
+            return None
+
+    monkeypatch.setattr(
+        ctx,
+        "program",
+        lambda *args, **kwargs: DummyProgram(
+            {"u_texture": None, "u_time": None, "u_resolution": None}
+        ),
+    )
+
+    texture = moderngl.Texture()
+    texture.filter = ("custom", "custom")
+
+    renderer._shader_cache.clear()
+    renderer._last_good_cache.clear()
+    shader_path = str(resolve_asset_path("shaders/passthrough.frag"))
+    renderer.render_fullscreen_quad(
+        ctx,
+        shader_path,
+        {"u_texture": texture, "u_time": 0.0, "u_resolution": (1, 1)},
+    )
+
+    assert texture.filter == ("custom", "custom")

@@ -73,6 +73,10 @@ class TexturePass:
     previous_uniform_name:
         If ping‑pong is enabled and a previous texture exists, it will be injected under this
         uniform name (default: ``u_previous``).
+    filter:
+        Optional texture filtering override for this pass's render target and
+        nested pass traversal. When ``None``, the caller-provided default filter
+        is used.
     inherit_parent_uniforms:
         Controls whether this pass receives uniforms inherited from its parent pass/module.
         When ``False``, only this pass's explicit ``uniforms`` values and ``u_resolution``
@@ -89,6 +93,7 @@ class TexturePass:
     ping_pong: bool = False
     name: str | None = None
     previous_uniform_name: str = "u_previous"
+    filter: int | None = None
     inherit_parent_uniforms: bool = True
 
 
@@ -295,6 +300,7 @@ class BaseAVModule(ABC, Generic[P, U]):
 
         pass_width = pass_obj.width if pass_obj.width is not None else parent_width
         pass_height = pass_obj.height if pass_obj.height is not None else parent_height
+        pass_filter = pass_obj.filter if pass_obj.filter is not None else texture_filter
 
         # Build uniforms for this pass from inherited values (opt-in per pass).
         uniforms: dict[str, Any] = {}
@@ -311,13 +317,13 @@ class BaseAVModule(ABC, Generic[P, U]):
                     parent_width=pass_width,
                     parent_height=pass_height,
                     t=t,
-                    texture_filter=texture_filter,
+                    texture_filter=pass_filter,
                     inherited_uniforms=uniforms,
                     processed=processed,
                     owner_tag=owner_tag,
                 )
             elif isinstance(source, BaseAVModule):
-                tex = source.render_texture(ctx, pass_width, pass_height, t, texture_filter)
+                tex = source.render_texture(ctx, pass_width, pass_height, t, pass_filter)
             elif isinstance(source, moderngl.Texture):
                 tex = source
             else:
@@ -338,7 +344,7 @@ class BaseAVModule(ABC, Generic[P, U]):
             if prev_tex is None:
                 # Sane default: provide a zero-initialized texture as previous
                 prev_tex = ctx.texture((pass_width, pass_height), 4, dtype="f4", alignment=1)
-                prev_tex.filter = (texture_filter, texture_filter)
+                prev_tex.filter = (pass_filter, pass_filter)
                 prev_tex.repeat_x = False
                 prev_tex.repeat_y = False
             prev_uniform = pass_obj.previous_uniform_name or "u_previous"
@@ -351,7 +357,7 @@ class BaseAVModule(ABC, Generic[P, U]):
             pass_height,
             pass_obj.frag_shader_path,
             cast(Uniforms, uniforms),
-            texture_filter,
+            pass_filter,
             cache_tag=cache_tag,
         )
 

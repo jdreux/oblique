@@ -301,3 +301,53 @@ def test_texture_pass_can_opt_out_of_parent_uniform_inheritance(monkeypatch):
     assert isolated_uniforms["u_local_only"] == pytest.approx(123.0)
     assert "u_parent_value" not in isolated_uniforms
     assert "u_time" not in isolated_uniforms
+
+
+def test_texture_pass_filter_override_is_opt_in(monkeypatch):
+    setup_stubs()
+    import moderngl
+
+    base_mod = sys.modules.get("modules.core.base_av_module")
+    if base_mod is None:
+        base_mod = load_module(
+            "modules.core.base_av_module",
+            ROOT / "modules/core/base_av_module.py",
+        )
+
+    BaseAVModule = base_mod.BaseAVModule
+    BaseAVParams = base_mod.BaseAVParams
+    TexturePass = base_mod.TexturePass
+    Uniforms = base_mod.Uniforms
+
+    @dataclass
+    class Params(BaseAVParams):
+        width: int = 1
+        height: int = 1
+
+    class DummyModule(BaseAVModule[Params, Uniforms]):
+        frag_shader_path = str(resolve_asset_path("shaders/passthrough.frag"))
+
+        def prepare_uniforms(self, t: float) -> Uniforms:
+            return {}
+
+    recorded_filters: list[int] = []
+
+    def fake_render_to_texture(
+        module_arg,
+        width,
+        height,
+        frag_shader_path,
+        uniforms,
+        filter,
+        cache_tag,
+    ):
+        recorded_filters.append(filter)
+        return moderngl.Texture()
+
+    monkeypatch.setattr(base_mod, "render_to_texture", fake_render_to_texture)
+
+    module = DummyModule(Params())
+    module.texture_pass.filter = moderngl.LINEAR
+    module.render_texture(moderngl.create_context(), 4, 4, 0.0, filter=moderngl.NEAREST)
+
+    assert recorded_filters == [moderngl.LINEAR]

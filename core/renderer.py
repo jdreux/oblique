@@ -269,8 +269,7 @@ def render_fullscreen_quad(
     for name, value in uniforms.items():
         if name in program:
             if isinstance(value, moderngl.Texture):
-                # Optimize texture binding
-                value.filter = (moderngl.LINEAR, moderngl.LINEAR)
+                # Preserve texture-defined filtering unless explicitly configured at creation.
                 value.use(location=texture_unit)
                 program[name] = texture_unit
                 texture_unit += 1
