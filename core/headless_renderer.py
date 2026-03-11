@@ -34,7 +34,7 @@ from PIL import Image
 
 from core.logger import info, warning
 from core.oblique_patch import ObliquePatch
-from core.renderer import cleanup_shader_cache, cleanup_texture_cache, set_ctx
+from core.renderer import cleanup_last_good_cache, cleanup_shader_cache, cleanup_texture_cache, set_ctx
 
 
 class HeadlessRenderer:
@@ -252,6 +252,7 @@ class HeadlessRenderer:
     def close(self) -> None:
         """Release GPU resources."""
         cleanup_shader_cache()
+        cleanup_last_good_cache()
         cleanup_texture_cache()
         self.ctx.release()
 

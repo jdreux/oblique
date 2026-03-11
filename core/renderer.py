@@ -32,6 +32,7 @@ class ShaderCacheEntry:
 
 
 _shader_cache: dict[str, ShaderCacheEntry] = {}
+_last_good_cache: dict[str, ShaderCacheEntry] = {}
 _texture_cache: dict[str, moderngl.Texture] = {}
 _hot_reload_shaders_enabled = False
 _ctx: moderngl.Context | None = None
@@ -65,6 +66,16 @@ def cleanup_shader_cache() -> None:
     for entry in _shader_cache.values():
         _release_shader_cache_entry(entry)
     _shader_cache.clear()
+
+
+def cleanup_last_good_cache() -> None:
+    """Release all cached last-known-good shader resources."""
+    global _last_good_cache, _shader_cache
+    active_entry_ids = {id(entry) for entry in _shader_cache.values()}
+    for entry in _last_good_cache.values():
+        if id(entry) not in active_entry_ids:
+            _release_shader_cache_entry(entry)
+    _last_good_cache.clear()
 
 
 def cleanup_texture_cache() -> None:
@@ -114,7 +125,7 @@ def render_fullscreen_quad(
     tuple
         ``(program, vao, vbo)`` for optional manual management.
     """
-    global _shader_cache, _hot_reload_shaders_enabled
+    global _shader_cache, _last_good_cache, _hot_reload_shaders_enabled
 
     resolved_path = str(resolve_asset_path(frag_shader_path))
 
@@ -122,7 +133,9 @@ def render_fullscreen_quad(
     if resolved_path in _shader_cache:
         cached = _shader_cache[resolved_path]
         if _hot_reload_shaders_enabled and current_mtime > cached.mtime:
-            _release_shader_cache_entry(cached)
+            # Keep resources alive when this is also our last-known-good fallback.
+            if _last_good_cache.get(resolved_path) is not cached:
+                _release_shader_cache_entry(cached)
             del _shader_cache[resolved_path]
 
     if resolved_path not in _shader_cache:
@@ -138,34 +151,52 @@ def render_fullscreen_quad(
                 gl_Position = vec4(in_vert, 0.0, 1.0);
             }
         """
-        program = ctx.program(
-            vertex_shader=vertex_shader,
-            fragment_shader=fragment_shader,
-        )
-        vertices = np.array(
-            [
-                -1.0,
-                -1.0,
-                0.0,
-                0.0,
-                1.0,
-                -1.0,
-                1.0,
-                0.0,
-                -1.0,
-                1.0,
-                0.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-            ],
-            dtype="f4",
-        )
-        vbo = ctx.buffer(vertices.tobytes())
-        vao = ctx.simple_vertex_array(program, vbo, "in_vert", "in_uv")
-        _shader_cache[resolved_path] = ShaderCacheEntry(program, vao, vbo, current_mtime)
+        try:
+            program = ctx.program(
+                vertex_shader=vertex_shader,
+                fragment_shader=fragment_shader,
+            )
+        except moderngl.Error as compile_error:
+            fallback = _last_good_cache.get(resolved_path)
+            if fallback is None:
+                raise
+            warning(
+                f"Shader compile failed for {frag_shader_path}; using last good shader: {compile_error}"
+            )
+            _shader_cache[resolved_path] = fallback
+            program, vao, vbo = fallback.program, fallback.vao, fallback.vbo
+        else:
+            vertices = np.array(
+                [
+                    -1.0,
+                    -1.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                    -1.0,
+                    1.0,
+                    0.0,
+                    -1.0,
+                    1.0,
+                    0.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                ],
+                dtype="f4",
+            )
+            vbo = ctx.buffer(vertices.tobytes())
+            vao = ctx.simple_vertex_array(program, vbo, "in_vert", "in_uv")
+            cache_entry = ShaderCacheEntry(program, vao, vbo, current_mtime)
+
+            previous_last_good = _last_good_cache.get(resolved_path)
+            if previous_last_good is not None and previous_last_good is not cache_entry:
+                _release_shader_cache_entry(previous_last_good)
+
+            _shader_cache[resolved_path] = cache_entry
+            _last_good_cache[resolved_path] = cache_entry
     else:
         cached_entry = _shader_cache[resolved_path]
         program, vao, vbo = cached_entry.program, cached_entry.vao, cached_entry.vbo

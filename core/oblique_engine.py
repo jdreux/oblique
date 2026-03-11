@@ -439,8 +439,9 @@ class ObliqueEngine:
                 pass
 
         # Clean up shader cache
-        from core.renderer import cleanup_shader_cache
+        from core.renderer import cleanup_last_good_cache, cleanup_shader_cache
         cleanup_shader_cache()
+        cleanup_last_good_cache()
 
         if self.window is not None:
             glfw.terminate()

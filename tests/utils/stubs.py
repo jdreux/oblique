@@ -106,6 +106,9 @@ def setup_stubs() -> None:
 
         viewport = (0, 0, 0, 0)
 
+    class DummyError(Exception):
+        pass
+
     if "moderngl" not in sys.modules:
         sys.modules["moderngl"] = types.SimpleNamespace(
             Texture=DummyTexture,
@@ -113,6 +116,7 @@ def setup_stubs() -> None:
             Buffer=DummyBuffer,
             VertexArray=DummyVAO,
             Context=DummyContext,
+            Error=DummyError,
             create_context=lambda *a, **k: DummyContext(),
             NEAREST=0,
             LINEAR=1,
