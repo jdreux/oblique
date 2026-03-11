@@ -19,7 +19,7 @@ class TransformParams(BaseAVParams):
 
 class TransformUniforms(Uniforms, total=True):
     u_transform_matrix: Tuple[Tuple[float, float, float], Tuple[float, float, float], Tuple[float, float, float]]  # 3x3 matrix as mat3
-    u_texture: BaseAVModule
+    u_texture: moderngl.Texture
 
 
 class TransformModule(BaseAVModule[TransformParams, TransformUniforms]):

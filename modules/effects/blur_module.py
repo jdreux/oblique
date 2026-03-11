@@ -17,7 +17,7 @@ class BlurUniforms(Uniforms, total=True):
     u_time: float
     u_resolution: tuple[int, int]
     u_kernel_size: int
-    u_input_texture: BaseAVModule
+    u_input_texture: moderngl.Texture
 
 
 class BlurModule(BaseAVModule[BlurParams, BlurUniforms]):

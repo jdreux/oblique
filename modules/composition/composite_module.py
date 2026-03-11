@@ -50,8 +50,8 @@ class CompositeParams(BaseAVParams):
     operation: CompositeOp = CompositeOp.ADD
 
 class CompositeUniforms(Uniforms, total=True):
-    top_tex: BaseAVModule
-    bottom_tex: BaseAVModule
+    top_tex: moderngl.Texture
+    bottom_tex: moderngl.Texture
     u_op: int
 
 class CompositeModule(BaseAVModule[CompositeParams, CompositeUniforms]):

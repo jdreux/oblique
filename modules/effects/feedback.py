@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+import moderngl
+
 from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamTexture, Uniforms
 
 
@@ -17,7 +19,7 @@ class FeedbackUniforms(Uniforms, total=True):
     u_time: float
     u_resolution: tuple[int, int]
     u_feedback_strength: float
-    u_input_texture: ParamTexture
+    u_input_texture: moderngl.Texture
     u_direction: tuple[float, float]
 
 

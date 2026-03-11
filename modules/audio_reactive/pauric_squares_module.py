@@ -15,7 +15,7 @@ class PauricSquaresUniforms(Uniforms, total=True):
     u_resolution: tuple[int, int]
     u_time: float
     u_tile_size: int
-    u_texture: ParamTexture
+    u_texture: moderngl.Texture
 
 class PauricSquaresModule(BaseAVModule[PauricSquaresParams, PauricSquaresUniforms]):
     """

@@ -15,7 +15,7 @@ class BarrelDistortionParams(BaseAVParams):
 class BarrelDistortionUniforms(Uniforms, total=True):
     u_strength: float
     u_center: tuple[float, float]
-    u_texture: moderngl.Texture | BaseAVModule
+    u_texture: moderngl.Texture
 
 
 class BarrelDistortionModule(BaseAVModule[BarrelDistortionParams, BarrelDistortionUniforms]):

@@ -37,7 +37,7 @@ class LevelUniforms(Uniforms, total=True):
     """Uniforms for the Level module shader."""
     u_time: float
     u_resolution: Tuple[int, int]
-    u_texture: BaseAVModule
+    u_texture: moderngl.Texture
     u_invert: float  # 1.0 if invert enabled, 0.0 otherwise
     u_black_level: float
     u_brightness: float

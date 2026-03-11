@@ -21,7 +21,7 @@ class GridSwapModuleUniforms(Uniforms, total=True):
     u_swap_frequency: float
     u_swap_phase: float
     u_num_swaps: int
-    tex0: BaseAVModule
+    tex0: moderngl.Texture
 
 
 class GridSwapModule(BaseAVModule[GridSwapModuleParams, GridSwapModuleUniforms]):
