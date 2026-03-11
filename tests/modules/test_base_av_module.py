@@ -49,6 +49,22 @@ def test_resolve_param():
     assert module._resolve_param(DummyOperator()) == 7
 
 
+def test_resolve_param_prefers_processing_operator_over_callable():
+    setup_stubs()
+    module = _make_module()
+    base_mod = sys.modules["modules.core.base_av_module"]
+    BaseProcessingOperator = base_mod.BaseProcessingOperator
+
+    class CallableOperator(BaseProcessingOperator[int]):
+        def __call__(self) -> int:
+            return 3
+
+        def process(self) -> int:
+            return 11
+
+    assert module._resolve_param(CallableOperator()) == 11
+
+
 def test_resolve_texture_param():
     setup_stubs()
     import moderngl

@@ -385,10 +385,10 @@ class BaseAVModule(ABC, Generic[P, U]):
 
     def _resolve_param(self, param: ParamInt | ParamFloat | ParamBool | ParamStr | ParamIntList | ParamFloatList |
         ParamBoolList | ParamStrList) -> int | float | bool | str | list[int] | list[float] | list[bool] | list[str]:
-        if isinstance(param, Callable):
-            return param()
-        elif isinstance(param, BaseProcessingOperator):
+        if isinstance(param, BaseProcessingOperator):
             return param.process()
+        elif isinstance(param, Callable):
+            return param()
         else:
             return param
 
