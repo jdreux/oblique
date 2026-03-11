@@ -105,6 +105,18 @@ def _enforce_texture_cache_limit() -> None:
             pass
 
 
+def release_texture_reference(texture: moderngl.Texture) -> None:
+    """Remove a texture from cache and release its GPU resources."""
+    keys = [key for key, cached in _texture_cache.items() if cached is texture]
+    for key in keys:
+        _texture_cache.pop(key, None)
+
+    try:
+        texture.release()
+    except Exception:
+        pass
+
+
 def _release_shader_cache_entry(entry: ShaderCacheEntry) -> None:
     """Safely release program, VAO and VBO resources from a cache entry."""
     if entry is not None:

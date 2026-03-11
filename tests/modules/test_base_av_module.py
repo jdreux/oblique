@@ -106,3 +106,76 @@ def test_render_texture_invokes_renderer(monkeypatch):
     assert called["args"][0] is module
     assert called["args"][1:4] == (2, 3, module.frag_shader_path)
     assert called["args"][4]["u_resolution"] == (2, 3)
+
+
+def test_ping_pong_history_evicts_stale_resolution(monkeypatch):
+    setup_stubs()
+    import moderngl
+
+    base_mod = sys.modules.get("modules.core.base_av_module")
+    if base_mod is None:
+        base_mod = load_module(
+            "modules.core.base_av_module",
+            ROOT / "modules/core/base_av_module.py",
+        )
+
+    BaseAVModule = base_mod.BaseAVModule
+    BaseAVParams = base_mod.BaseAVParams
+    Uniforms = base_mod.Uniforms
+
+    @dataclass
+    class Params(BaseAVParams):
+        width: int = 1
+        height: int = 1
+
+    class PingPongModule(BaseAVModule[Params, Uniforms]):
+        frag_shader_path = str(resolve_asset_path("shaders/passthrough.frag"))
+        ping_pong = True
+        previous_uniform_name = "u_previous"
+
+        def prepare_uniforms(self, t: float) -> Uniforms:
+            return {}
+
+    module = PingPongModule(Params())
+
+    class DummyTexture:
+        def __init__(self, label: str):
+            self.label = label
+            self.released = False
+
+        def release(self):
+            self.released = True
+
+    created: list[DummyTexture] = []
+    released: list[DummyTexture] = []
+
+    def fake_render_to_texture(
+        module_arg,
+        width,
+        height,
+        frag_shader_path,
+        uniforms,
+        filter,
+        cache_tag,
+    ):
+        tex = DummyTexture(f"{cache_tag}:{width}x{height}")
+        created.append(tex)
+        return tex
+
+    def fake_release_texture_reference(texture):
+        released.append(texture)
+        texture.release()
+
+    monkeypatch.setattr(base_mod, "render_to_texture", fake_render_to_texture)
+    monkeypatch.setattr(base_mod, "release_texture_reference", fake_release_texture_reference)
+
+    ctx = moderngl.create_context()
+    module.render_texture(ctx, 800, 600, 0.0)
+    module.render_texture(ctx, 800, 600, 0.1)
+    assert any(key.endswith("800x600") for key in module._texture_history)
+
+    module.render_texture(ctx, 1920, 1080, 0.2)
+    assert module._texture_history
+    assert all(key.endswith("1920x1080") for key in module._texture_history)
+    assert released
+    assert all(tex.released for tex in released)

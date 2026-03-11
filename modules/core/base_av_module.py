@@ -13,7 +13,7 @@ from typing import Any, Callable, Generic, TypedDict, TypeVar, Union, cast, over
 
 import moderngl
 
-from core.renderer import render_to_texture
+from core.renderer import release_texture_reference, render_to_texture
 from processing.base_processing_operator import BaseProcessingOperator
 
 # Dynamic parameter types - can be static values or computed at runtime
@@ -356,8 +356,42 @@ class BaseAVModule(ABC, Generic[P, U]):
         if pass_obj.ping_pong:
             current_key = f"{owner_tag}:{pass_tag}:pp:{self._frame_index % 2}:{pass_width}x{pass_height}"
             self._texture_history[current_key] = tex
+            self._evict_ping_pong_history(owner_tag, pass_tag, pass_width, pass_height)
 
         return tex
+
+    def _evict_ping_pong_history(
+        self,
+        owner_tag: str,
+        pass_tag: str,
+        width: int,
+        height: int,
+    ) -> None:
+        """Keep ping-pong history bounded for each pass tag/resolution pair."""
+        prefix = f"{owner_tag}:{pass_tag}:pp:"
+        current_resolution_suffix = f":{width}x{height}"
+
+        matching_keys: list[str] = []
+        for key in list(self._texture_history.keys()):
+            if not key.startswith(prefix):
+                continue
+
+            if not key.endswith(current_resolution_suffix):
+                stale = self._texture_history.pop(key, None)
+                if stale is not None:
+                    release_texture_reference(stale)
+                continue
+
+            matching_keys.append(key)
+
+        # Safety guard: retain at most 4 entries per pass tag and current resolution.
+        if len(matching_keys) <= 4:
+            return
+
+        for key in matching_keys[:-4]:
+            stale = self._texture_history.pop(key, None)
+            if stale is not None:
+                release_texture_reference(stale)
 
     @overload
     def _resolve_param(self, param: ParamInt) -> int: ...
