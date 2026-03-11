@@ -48,10 +48,13 @@ class CircleEcho(BaseAVModule[CircleEchoParams, CircleEchoUniforms]):
 
     def prepare_uniforms(self, t: float) -> CircleEchoUniforms:
         uniforms: CircleEchoUniforms = {
-            "u_resolution": (self.params.width, self.params.height),
-            "u_n_circles": self.params.n_circles,
-            "u_mod_depth": self.params.mod_depth,
-            "u_audio_level": self.params.audio_level,
+            "u_resolution": (
+                self._resolve_param(self.params.width),
+                self._resolve_param(self.params.height),
+            ),
+            "u_n_circles": self._resolve_param(self.params.n_circles),
+            "u_mod_depth": self._resolve_param(self.params.mod_depth),
+            "u_audio_level": self._resolve_param(self.params.audio_level),
             "u_band_amps": tuple(self.band_levels_processor.process())
         }
         return uniforms

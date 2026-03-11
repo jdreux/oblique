@@ -59,8 +59,11 @@ class SpectralVisualizerModule(BaseAVModule[SpectralVisualizerParams, SpectralVi
             self.set_bands(list(processor_bands))
         uniforms: SpectralVisualizerUniforms = {
             "u_time": t,
-            "u_resolution": (self.params.width, self.params.height),
+            "u_resolution": (
+                self._resolve_param(self.params.width),
+                self._resolve_param(self.params.height),
+            ),
             "u_bands": self.bands,
-            "u_num_bands": self.params.num_bands,
+            "u_num_bands": self._resolve_param(self.params.num_bands),
         }
         return uniforms
