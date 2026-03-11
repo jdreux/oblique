@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from core.registry import oblique_module
 from modules.core.base_av_module import (
@@ -23,12 +23,54 @@ class MITParticlesParams(BaseAVParams):
     - For 30fps: 200-500 particles  
     - For 15fps: 500-1000 particles
     """
-    num_particles: ParamInt = 200  # Reduced from 10 for better default performance
-    circle_radius: ParamFloat = 200.0
-    gravity_strength: ParamFloat = 6.0
-    swirl_strength: ParamFloat = 140.0
-    noise_strength: ParamFloat = 20.0
-    particle_size: ParamFloat = 3.0  # Slightly larger for visibility with fewer particles
+    num_particles: ParamInt = field(
+        default=200,
+        metadata={
+            "min": 1,
+            "max": 2000,
+            "description": "Number of simulated particles (higher values increase GPU cost).",
+        },
+    )
+    circle_radius: ParamFloat = field(
+        default=200.0,
+        metadata={
+            "min": 1.0,
+            "max": 4000.0,
+            "description": "Target radius of the particle orbit in pixels.",
+        },
+    )
+    gravity_strength: ParamFloat = field(
+        default=6.0,
+        metadata={
+            "min": 0.0,
+            "max": 50.0,
+            "description": "Radial spring force pulling particles toward the orbit.",
+        },
+    )
+    swirl_strength: ParamFloat = field(
+        default=140.0,
+        metadata={
+            "min": 0.0,
+            "max": 800.0,
+            "description": "Tangential swirl acceleration applied to particles.",
+        },
+    )
+    noise_strength: ParamFloat = field(
+        default=20.0,
+        metadata={
+            "min": 0.0,
+            "max": 400.0,
+            "description": "Random acceleration noise injected into particle motion.",
+        },
+    )
+    particle_size: ParamFloat = field(
+        default=3.0,
+        metadata={
+            "min": 0.1,
+            "max": 24.0,
+            "description": "Base rendered size of each particle in pixels.",
+        },
+    )
 
 
 

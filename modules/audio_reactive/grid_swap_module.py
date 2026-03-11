@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Tuple
 
 import moderngl
@@ -9,11 +9,43 @@ from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, 
 
 @dataclass
 class GridSwapModuleParams(BaseAVParams):
-    swapped_texture: ParamTexture 
-    grid_size: ParamInt = 8  # NxN grid size
-    swap_frequency: ParamFloat = 1.0  # How often swaps occur (in Hz)
-    swap_phase: ParamFloat = 0.0  # Phase offset for swap timing
-    num_swaps: ParamInt = 8
+    swapped_texture: ParamTexture = field(
+        metadata={
+            "description": "Input texture whose grid cells are swapped.",
+        }
+    )
+    grid_size: ParamInt = field(
+        default=8,
+        metadata={
+            "min": 1,
+            "max": 64,
+            "description": "Number of cells per axis in the swap grid.",
+        },
+    )
+    swap_frequency: ParamFloat = field(
+        default=1.0,
+        metadata={
+            "min": 0.0,
+            "max": 20.0,
+            "description": "Swap cadence in Hz.",
+        },
+    )
+    swap_phase: ParamFloat = field(
+        default=0.0,
+        metadata={
+            "min": 0.0,
+            "max": 6.2832,
+            "description": "Phase offset applied to swap timing.",
+        },
+    )
+    num_swaps: ParamInt = field(
+        default=8,
+        metadata={
+            "min": 1,
+            "max": 64,
+            "description": "Number of swap pairs applied each frame.",
+        },
+    )
 
 class GridSwapModuleUniforms(Uniforms, total=True):
     u_time: float

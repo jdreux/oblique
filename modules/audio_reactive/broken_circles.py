@@ -1,7 +1,7 @@
 """
 BrokenCirclesModule: Generates 5 concentric circles, each responding to a different input audio amplitude.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Tuple
 
 from core.logger import debug
@@ -22,7 +22,11 @@ metadata = {
 
 @dataclass(kw_only=True)
 class BrokenCirclesParams(BaseAVParams):
-    modulators: List[BaseProcessingOperator[float]]  # List of 5 modulation operators, one for each circle. Must be 5.
+    modulators: List[BaseProcessingOperator[float]] = field(
+        metadata={
+            "description": "List of five modulation operators, one per circle ring.",
+        }
+    )
 
 class BrokenCirclesUniforms(Uniforms, total=True):
     u_resolution: Tuple[int, int]

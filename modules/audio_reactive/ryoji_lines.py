@@ -1,7 +1,4 @@
-from dataclasses import dataclass
-from typing import List, Optional
-
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional
 
 from core.registry import oblique_module
@@ -17,10 +14,34 @@ SHADER_BANDS_SIZE = 512
 class RyojiLinesParams(BaseAVParams):
     """Parameters for the RyojiLines module."""
 
-    num_bands: ParamInt = SHADER_BANDS_SIZE  # Default to full shader capacity
-    fade_rate: ParamFloat = 0.95
-    band_levels_processor: Optional[FFTBands] = None
-    spectral_centroid_processor: Optional[SpectralCentroid] = None
+    num_bands: ParamInt = field(
+        default=SHADER_BANDS_SIZE,
+        metadata={
+            "min": 1,
+            "max": SHADER_BANDS_SIZE,
+            "description": "Number of FFT bands consumed by the shader.",
+        },
+    )
+    fade_rate: ParamFloat = field(
+        default=0.95,
+        metadata={
+            "min": 0.0,
+            "max": 1.0,
+            "description": "Trail fade factor used by the line animation.",
+        },
+    )
+    band_levels_processor: Optional[FFTBands] = field(
+        default=None,
+        metadata={
+            "description": "Optional FFT processor supplying band amplitudes.",
+        },
+    )
+    spectral_centroid_processor: Optional[SpectralCentroid] = field(
+        default=None,
+        metadata={
+            "description": "Optional spectral centroid processor for brightness modulation.",
+        },
+    )
 
 
 class RyojiLinesUniforms(Uniforms, total=True):

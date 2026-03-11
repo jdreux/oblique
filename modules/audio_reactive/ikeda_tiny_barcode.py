@@ -1,8 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from processing.fft_bands import FFTBands
-
-from dataclasses import dataclass
 
 from core.registry import oblique_module
 from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamFloatList, ParamInt, Uniforms
@@ -11,12 +9,51 @@ from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, 
 @dataclass
 class IkedaTinyBarcodeParams(BaseAVParams):
     """Parameters for the Ikeda Tiny Barcode pattern module."""
-    fft_bands: ParamFloatList
-    speed_scale: ParamFloat = 1.0
-    pattern_intensity: ParamFloat = 1.0
-    barcode_width: ParamFloat = 32.0
-    noise_scale: ParamFloat = 512.0
-    threshold: ParamFloat = 0.1
+    fft_bands: ParamFloatList = field(
+        metadata={
+            "description": "FFT amplitude array used to modulate barcode thresholds.",
+        }
+    )
+    speed_scale: ParamFloat = field(
+        default=1.0,
+        metadata={
+            "min": 0.0,
+            "max": 4.0,
+            "description": "Time multiplier controlling pattern animation speed.",
+        },
+    )
+    pattern_intensity: ParamFloat = field(
+        default=1.0,
+        metadata={
+            "min": 0.0,
+            "max": 4.0,
+            "description": "Brightness multiplier applied to the final binary pattern.",
+        },
+    )
+    barcode_width: ParamFloat = field(
+        default=32.0,
+        metadata={
+            "min": 1.0,
+            "max": 512.0,
+            "description": "Horizontal scaling factor for barcode element width.",
+        },
+    )
+    noise_scale: ParamFloat = field(
+        default=512.0,
+        metadata={
+            "min": 8.0,
+            "max": 2048.0,
+            "description": "Vertical quantization scale used by the hash noise function.",
+        },
+    )
+    threshold: ParamFloat = field(
+        default=0.1,
+        metadata={
+            "min": 0.0,
+            "max": 1.0,
+            "description": "Threshold subtracted from FFT values before pattern gating.",
+        },
+    )
 
 
 

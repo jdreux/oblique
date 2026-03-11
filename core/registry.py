@@ -29,6 +29,7 @@ class ParamSpec:
     min: float | None
     max: float | None
     description: str
+    enum_values: list[str] | None
     semantic: str
 
 
@@ -151,6 +152,11 @@ def _extract_params(module_cls: type) -> list[ParamSpec]:
                     min=metadata.get("min"),
                     max=metadata.get("max"),
                     description=metadata.get("description", ""),
+                    enum_values=(
+                        [str(item) for item in metadata.get("enum_values", [])]
+                        if metadata.get("enum_values") is not None
+                        else None
+                    ),
                     semantic=_infer_semantic(param.name, _type_to_string(param.type)),
                 )
             )
@@ -170,6 +176,7 @@ def _extract_params(module_cls: type) -> list[ParamSpec]:
                 min=None,
                 max=None,
                 description="",
+                enum_values=None,
                 semantic=_infer_semantic(name, type_text),
             )
         )

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Tuple
 
 import moderngl
@@ -10,12 +10,50 @@ from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamTexture
 
 @dataclass
 class TransformParams(BaseAVParams):
-    input_texture: ParamTexture  # Input texture to transform
-    scale: Tuple[float, float] = (1.0, 1.0)  # 2D scale factors (x, y) - values >1 enlarge, <1 shrink
-    angle: float = 0.0  # Rotation angle in degrees
-    pivot: Tuple[float, float] = (0.5, 0.5)  # Pivot point for rotation (0-1 UV space)
-    translate: Tuple[float, float] = (0.0, 0.0)  # Translation in UV space
-    transform_order: str = "SRT"  # Scale, Rotate, Translate order
+    input_texture: ParamTexture = field(
+        metadata={
+            "description": "Input texture to transform in UV space.",
+        }
+    )
+    scale: Tuple[float, float] = field(
+        default=(1.0, 1.0),
+        metadata={
+            "min": 0.0,
+            "max": 8.0,
+            "description": "X/Y scale multipliers applied in the transform matrix.",
+        },
+    )
+    angle: float = field(
+        default=0.0,
+        metadata={
+            "min": -360.0,
+            "max": 360.0,
+            "description": "Rotation angle in degrees.",
+        },
+    )
+    pivot: Tuple[float, float] = field(
+        default=(0.5, 0.5),
+        metadata={
+            "min": 0.0,
+            "max": 1.0,
+            "description": "Normalized pivot point used for scaling and rotation.",
+        },
+    )
+    translate: Tuple[float, float] = field(
+        default=(0.0, 0.0),
+        metadata={
+            "min": -1.0,
+            "max": 1.0,
+            "description": "Normalized UV translation offset (x, y).",
+        },
+    )
+    transform_order: str = field(
+        default="SRT",
+        metadata={
+            "description": "Order of affine operations (permutation of S, R, T).",
+            "enum_values": ["SRT", "STR", "RST", "RTS", "TSR", "TRS"],
+        },
+    )
 
 
 class TransformUniforms(Uniforms, total=True):

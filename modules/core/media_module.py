@@ -1,6 +1,6 @@
 # modules/file_texture_module.py
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Tuple
@@ -21,8 +21,18 @@ class AspectMode(int, Enum):
 
 @dataclass(kw_only=True)
 class MediaParams(BaseAVParams):
-    file_path: str
-    aspect_mode: AspectMode = AspectMode.PRESERVE
+    file_path: str = field(
+        metadata={
+            "description": "Path to the image file to load as a texture.",
+        }
+    )
+    aspect_mode: AspectMode = field(
+        default=AspectMode.PRESERVE,
+        metadata={
+            "description": "How the source image is fit into the output frame.",
+            "enum_values": ["stretch", "preserve", "cover", "fill"],
+        },
+    )
 
 class MediaUniforms(Uniforms, total=True):
     u_resolution: Tuple[int, int]

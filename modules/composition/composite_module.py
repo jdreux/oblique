@@ -46,9 +46,23 @@ class CompositeParams(BaseAVParams):
         height (int): Output height
         operation (CompositeOp): Blend/composite operation to use
     """
-    top_texture: ParamTexture
-    bottom_texture: ParamTexture
-    operation: CompositeOp = CompositeOp.ADD
+    top_texture: ParamTexture = field(
+        metadata={
+            "description": "Foreground/top texture input.",
+        }
+    )
+    bottom_texture: ParamTexture = field(
+        metadata={
+            "description": "Background/bottom texture input.",
+        }
+    )
+    operation: CompositeOp = field(
+        default=CompositeOp.ADD,
+        metadata={
+            "description": "Blend/composite operation used to combine top and bottom textures.",
+            "enum_values": [op.name.lower() for op in CompositeOp],
+        },
+    )
     mix: ParamFloat = field(
         default=1.0,
         metadata={

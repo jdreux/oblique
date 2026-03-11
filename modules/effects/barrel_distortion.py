@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import moderngl
 
@@ -8,9 +8,27 @@ from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, 
 
 @dataclass
 class BarrelDistortionParams(BaseAVParams):
-    input_texture: ParamTexture  # Input texture to apply distortion to
-    strength: ParamFloat = 0.1  # Distortion strength (positive = barrel, negative = pincushion)
-    center: tuple[ParamFloat, ParamFloat] = (0.5, 0.5)  # Center point for distortion (0-1 UV space)
+    input_texture: ParamTexture = field(
+        metadata={
+            "description": "Input texture to apply radial distortion to.",
+        }
+    )
+    strength: ParamFloat = field(
+        default=0.1,
+        metadata={
+            "min": -1.0,
+            "max": 1.0,
+            "description": "Distortion strength (positive=barrel, negative=pincushion).",
+        },
+    )
+    center: tuple[ParamFloat, ParamFloat] = field(
+        default=(0.5, 0.5),
+        metadata={
+            "min": 0.0,
+            "max": 1.0,
+            "description": "Normalized UV center point of distortion.",
+        },
+    )
 
 
 class BarrelDistortionUniforms(Uniforms, total=True):

@@ -1,7 +1,4 @@
-from dataclasses import dataclass
-from typing import List, Optional
-
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional
 
 from core.registry import oblique_module
@@ -13,7 +10,14 @@ SHADER_BANDS_SIZE = 512
 
 @dataclass
 class SpectralVisualizerParams(BaseAVParams):
-    num_bands: int = SHADER_BANDS_SIZE
+    num_bands: int = field(
+        default=SHADER_BANDS_SIZE,
+        metadata={
+            "min": 1,
+            "max": SHADER_BANDS_SIZE,
+            "description": "Number of FFT bins to visualize as vertical bars.",
+        },
+    )
     width: int = 800
     height: int = 600
 

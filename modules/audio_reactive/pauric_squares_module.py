@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import moderngl
 
@@ -9,8 +9,19 @@ from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamInt, Un
 @dataclass
 class PauricSquaresParams(BaseAVParams):
     """Parameters for the Pauric Squares module."""
-    motif_texture: ParamTexture
-    tile_size: ParamInt = 8
+    motif_texture: ParamTexture = field(
+        metadata={
+            "description": "Input motif texture sampled inside each tile cell.",
+        }
+    )
+    tile_size: ParamInt = field(
+        default=8,
+        metadata={
+            "min": 1,
+            "max": 128,
+            "description": "Tile grid density (cells per axis).",
+        },
+    )
 
 class PauricSquaresUniforms(Uniforms, total=True):
     u_resolution: tuple[int, int]

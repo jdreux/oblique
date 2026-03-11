@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Tuple
 
 import moderngl
@@ -21,16 +21,60 @@ class LevelParams(BaseAVParams):
         contrast (float): Scale factor for RGB channels around mid-gray (0.5-2.0 typical)
         opacity (float): Alpha channel adjustment (0.0-1.0)
     """
-    parent_module: BaseAVModule
+    parent_module: BaseAVModule = field(
+        metadata={
+            "description": "Source module whose output texture is level-adjusted.",
+        }
+    )
     # Pre-processing operations
-    invert: ParamBool = False
-    black_level: ParamFloat = 0.0  # Any pixel <= this becomes black
-    brightness: ParamFloat = 0.0  # Add/subtract offset to RGB (-1 to 1 range)
-    gamma: ParamFloat = 1.0  # Gamma correction (0.1 to 3.0 typical)
-    contrast: ParamFloat = 1.0  # Scale factor for RGB channels
+    invert: ParamBool = field(
+        default=False,
+        metadata={
+            "description": "Invert output colors after other level operations.",
+        },
+    )
+    black_level: ParamFloat = field(
+        default=0.0,
+        metadata={
+            "min": 0.0,
+            "max": 1.0,
+            "description": "Luminance threshold below which pixels are clamped to black.",
+        },
+    )
+    brightness: ParamFloat = field(
+        default=0.0,
+        metadata={
+            "min": -1.0,
+            "max": 1.0,
+            "description": "Linear RGB offset added after contrast.",
+        },
+    )
+    gamma: ParamFloat = field(
+        default=1.0,
+        metadata={
+            "min": 0.1,
+            "max": 4.0,
+            "description": "Gamma correction factor (1.0 leaves gamma unchanged).",
+        },
+    )
+    contrast: ParamFloat = field(
+        default=1.0,
+        metadata={
+            "min": 0.0,
+            "max": 4.0,
+            "description": "Contrast multiplier around mid-gray.",
+        },
+    )
 
     # Post-processing
-    opacity: ParamFloat = 1.0  # Alpha channel adjustment (0.0 to 1.0)
+    opacity: ParamFloat = field(
+        default=1.0,
+        metadata={
+            "min": 0.0,
+            "max": 1.0,
+            "description": "Final alpha multiplier.",
+        },
+    )
 
 
 

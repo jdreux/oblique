@@ -1,7 +1,4 @@
-from dataclasses import dataclass
-from typing import Tuple
-
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Tuple
 
 from core.registry import oblique_module
@@ -11,9 +8,30 @@ from processing.fft_bands import FFTBands
 
 @dataclass
 class CircleEchoParams(BaseAVParams):
-    n_circles: int = 8
-    mod_depth: float = 0.8
-    audio_level: float = 0.0
+    n_circles: int = field(
+        default=8,
+        metadata={
+            "min": 1,
+            "max": 16,
+            "description": "Number of concentric circles to render.",
+        },
+    )
+    mod_depth: float = field(
+        default=0.8,
+        metadata={
+            "min": 0.0,
+            "max": 1.0,
+            "description": "Depth of radial modulation applied to each circle.",
+        },
+    )
+    audio_level: float = field(
+        default=0.0,
+        metadata={
+            "min": 0.0,
+            "max": 1.0,
+            "description": "Global audio reactivity gain for circle deformation.",
+        },
+    )
 
 
 class CircleEchoUniforms(Uniforms, total=True):

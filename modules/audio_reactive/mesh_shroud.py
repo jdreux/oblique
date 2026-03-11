@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Tuple
 
 from core.registry import oblique_module
@@ -13,8 +13,18 @@ from modules.core.base_av_module import (
 
 @dataclass
 class MeshShroudParams(BaseAVParams):
-    amplitude: ParamFloat
-    fft_bands: ParamFloatList
+    amplitude: ParamFloat = field(
+        metadata={
+            "min": 0.0,
+            "max": 4.0,
+            "description": "Global amplitude scaling applied to mesh motion.",
+        }
+    )
+    fft_bands: ParamFloatList = field(
+        metadata={
+            "description": "FFT amplitude array used by the mesh shroud shader.",
+        }
+    )
 
 class MeshShroudUniforms(Uniforms, total=True):
     u_time: float

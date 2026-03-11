@@ -10,7 +10,7 @@ following uniforms are provided:
 ``audioTex`` – optional audio texture (e.g. FFT data)
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Tuple
 
 import moderngl
@@ -41,12 +41,31 @@ class ShadertoyUniforms(Uniforms, total=False):
 class ShadertoyParams(BaseAVParams):
     """Parameters for :class:`ShadertoyModule`."""
 
-    frag_shader_path: str
-    iChannel0: ParamTexture | None = None
-    iChannel1: ParamTexture | None = None
-    iChannel2: ParamTexture | None = None
-    iChannel3: ParamTexture | None = None
-    audio_tex: ParamTexture | None = None
+    frag_shader_path: str = field(
+        metadata={
+            "description": "Path to the Shadertoy-style fragment shader to run.",
+        }
+    )
+    iChannel0: ParamTexture | None = field(
+        default=None,
+        metadata={"description": "Optional texture bound to iChannel0."},
+    )
+    iChannel1: ParamTexture | None = field(
+        default=None,
+        metadata={"description": "Optional texture bound to iChannel1."},
+    )
+    iChannel2: ParamTexture | None = field(
+        default=None,
+        metadata={"description": "Optional texture bound to iChannel2."},
+    )
+    iChannel3: ParamTexture | None = field(
+        default=None,
+        metadata={"description": "Optional texture bound to iChannel3."},
+    )
+    audio_tex: ParamTexture | None = field(
+        default=None,
+        metadata={"description": "Optional audio texture bound to audioTex."},
+    )
 
 
 @oblique_module(

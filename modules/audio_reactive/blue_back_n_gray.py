@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from core.registry import oblique_module
 from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamInt, TexturePass, Uniforms
@@ -6,10 +6,38 @@ from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, 
 
 @dataclass
 class BlueBackNGrayParams(BaseAVParams):
-    n_circles: ParamInt = 8
-    mod_depth: ParamFloat = 0.6
-    audio_level: ParamFloat = 0.0
-    strip_offset: ParamFloat = 3.0  # pixels offset for strips
+    n_circles: ParamInt = field(
+        default=8,
+        metadata={
+            "min": 1,
+            "max": 16,
+            "description": "Number of concentric circles in the source pass.",
+        },
+    )
+    mod_depth: ParamFloat = field(
+        default=0.6,
+        metadata={
+            "min": 0.0,
+            "max": 1.0,
+            "description": "Audio-driven radius modulation depth for circles.",
+        },
+    )
+    audio_level: ParamFloat = field(
+        default=0.0,
+        metadata={
+            "min": 0.0,
+            "max": 1.0,
+            "description": "Global audio level multiplier for circle animation.",
+        },
+    )
+    strip_offset: ParamFloat = field(
+        default=3.0,
+        metadata={
+            "min": 0.0,
+            "max": 200.0,
+            "description": "Vertical strip displacement in pixels for the final pass.",
+        },
+    )
 
 
 class BlueBackNGrayUniforms(Uniforms, total=True):

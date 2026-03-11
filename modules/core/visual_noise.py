@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
 
 from core.registry import oblique_module
@@ -11,10 +11,36 @@ from .base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamInt, Un
 class VisualNoiseParams(BaseAVParams):
     """Parameters for the visual noise module."""
 
-    noise_size: Literal["small", "medium", "large"] = "medium"
-    color_mode: Literal["gray", "rgba"] = "gray"
-    intensity: ParamFloat = 1.0
-    speed: ParamFloat = 1.0
+    noise_size: Literal["small", "medium", "large"] = field(
+        default="medium",
+        metadata={
+            "description": "Noise grain size preset.",
+            "enum_values": ["small", "medium", "large"],
+        },
+    )
+    color_mode: Literal["gray", "rgba"] = field(
+        default="gray",
+        metadata={
+            "description": "Output color mode for generated noise.",
+            "enum_values": ["gray", "rgba"],
+        },
+    )
+    intensity: ParamFloat = field(
+        default=1.0,
+        metadata={
+            "min": 0.0,
+            "max": 1.0,
+            "description": "Overall output intensity multiplier.",
+        },
+    )
+    speed: ParamFloat = field(
+        default=1.0,
+        metadata={
+            "min": 0.0,
+            "max": 4.0,
+            "description": "Animation speed multiplier for time-based noise updates.",
+        },
+    )
 
 class VisualNoiseUniforms(Uniforms, total=True):
     u_noise_scale: float

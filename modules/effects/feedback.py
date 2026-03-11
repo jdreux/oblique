@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import moderngl
 
@@ -10,10 +10,27 @@ from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, 
 class FeedbackParams(BaseAVParams):
     """Parameters for the Feedback module."""
 
-    input_texture: ParamTexture  # Input texture for feedback
-    feedback_strength: ParamFloat = 0.97  # How much previous frame to blend. Decay rate per second is
-                                          # feedback_strength^frame_rate so it decays very quickly.
-    direction: tuple[ParamFloat, ParamFloat] = (0, 0)  # direction of the feedback effect -- 0,0 is in place
+    input_texture: ParamTexture = field(
+        metadata={
+            "description": "Current frame texture blended with the feedback buffer.",
+        }
+    )
+    feedback_strength: ParamFloat = field(
+        default=0.97,
+        metadata={
+            "min": 0.0,
+            "max": 1.0,
+            "description": "Per-frame blend amount from the previous frame.",
+        },
+    )
+    direction: tuple[ParamFloat, ParamFloat] = field(
+        default=(0.0, 0.0),
+        metadata={
+            "min": -1.0,
+            "max": 1.0,
+            "description": "UV offset applied when sampling the previous feedback frame.",
+        },
+    )
 
 
 class FeedbackUniforms(Uniforms, total=True):

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from core.registry import oblique_module
 from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamInt, ParamFloat, Uniforms
@@ -6,7 +6,14 @@ from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamInt, Pa
 
 @dataclass
 class DebugParams(BaseAVParams):
-    number: ParamFloat = 0.0
+    number: ParamFloat = field(
+        default=0.0,
+        metadata={
+            "min": -1000000.0,
+            "max": 1000000.0,
+            "description": "Numeric value exposed to the debug shader for inspection.",
+        },
+    )
     width: ParamInt = 800
     height: ParamInt = 600
 

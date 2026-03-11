@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import moderngl
 
@@ -9,9 +9,27 @@ from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, 
 @dataclass
 class BlurParams(BaseAVParams):
     """Parameters for the Blur module."""
-    input_texture: ParamTexture  # Input texture to blur
-    blur_amount: ParamFloat = 10.0  # Blur strength (pixels)
-    kernel_size: ParamInt = 5  # Kernel size: larger is more blur but slower. Recommend 5-20
+    input_texture: ParamTexture = field(
+        metadata={
+            "description": "Input texture to blur.",
+        }
+    )
+    blur_amount: ParamFloat = field(
+        default=10.0,
+        metadata={
+            "min": 0.0,
+            "max": 128.0,
+            "description": "Blur radius in pixels (module-level control).",
+        },
+    )
+    kernel_size: ParamInt = field(
+        default=5,
+        metadata={
+            "min": 1,
+            "max": 64,
+            "description": "Gaussian kernel radius/size used by the blur shader.",
+        },
+    )
 
 
 class BlurUniforms(Uniforms, total=True):
