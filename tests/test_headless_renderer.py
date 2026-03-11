@@ -123,7 +123,27 @@ class TestRenderSequence:
 class TestInspect:
     def test_keys_present(self, renderer):
         stats = renderer.inspect(0.0)
-        assert set(stats.keys()) == {"width", "height", "mean_brightness", "non_black_ratio"}
+        expected_keys = {
+            "width",
+            "height",
+            "mean_brightness",
+            "brightness_std",
+            "non_black_ratio",
+            "clipped_ratio",
+            "mean_color_rgb",
+            "color_variance",
+            "mean_saturation",
+            "dominant_hue",
+            "edge_density",
+            "spatial_balance",
+            "center_brightness",
+            "edge_brightness",
+            "is_blank",
+            "is_saturated",
+            "is_dark",
+            "has_color",
+        }
+        assert expected_keys.issubset(stats.keys())
 
     def test_dimensions_match(self, renderer):
         stats = renderer.inspect(0.0)
@@ -133,6 +153,12 @@ class TestInspect:
     def test_non_blank(self, renderer):
         stats = renderer.inspect(0.5)
         assert stats["non_black_ratio"] > 0.0, "VisualNoise should produce non-black pixels"
+
+    def test_inspect_sequence_includes_temporal_metrics(self, renderer):
+        stats = renderer.inspect_sequence([0.0, 0.1, 0.2])
+        expected = {"mean_motion", "motion_variance", "peak_motion", "is_static", "is_chaotic", "motion_profile"}
+        assert expected.issubset(stats.keys())
+        assert len(stats["motion_profile"]) == 2
 
 
 @_skip_if_no_gpu

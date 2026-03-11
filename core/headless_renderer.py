@@ -32,6 +32,7 @@ import moderngl
 import numpy as np
 from PIL import Image
 
+from core.frame_analysis import analyze_frame, analyze_temporal
 from core.logger import info, warning
 from core.oblique_patch import ObliquePatch
 from core.renderer import cleanup_last_good_cache, cleanup_shader_cache, cleanup_texture_cache, set_ctx
@@ -223,7 +224,7 @@ class HeadlessRenderer:
     # ------------------------------------------------------------------
 
     def inspect(self, t: float) -> dict:
-        """Return basic visual statistics for a frame at time *t*.
+        """Return rich visual statistics for a frame at time *t*.
 
         Useful for an AI agent to detect blank or broken output without
         loading the image file.
@@ -231,18 +232,30 @@ class HeadlessRenderer:
         Returns
         -------
         dict with keys:
-            ``width``, ``height``, ``mean_brightness``, ``non_black_ratio``
-            (fraction of pixels with mean channel value > 0.01).
+            ``width`` and ``height`` plus the keys returned by
+            :func:`core.frame_analysis.analyze_frame`.
         """
         arr = self.render_frame(t)
-        brightness = float(arr[:, :, :3].mean())
-        pixel_brightness = arr[:, :, :3].mean(axis=2)
-        non_black_ratio = float((pixel_brightness > 0.01).mean())
+        stats = analyze_frame(arr)
         return {
             "width": self.width,
             "height": self.height,
-            "mean_brightness": round(brightness, 4),
-            "non_black_ratio": round(non_black_ratio, 4),
+            **stats,
+        }
+
+    def inspect_sequence(self, times: list[float]) -> dict:
+        """Render a timeline and return frame + temporal analysis metrics."""
+        if not times:
+            raise ValueError("inspect_sequence requires at least one time sample.")
+
+        frames = [self.render_frame(t) for t in times]
+        frame_stats = analyze_frame(frames[-1])
+        temporal_stats = analyze_temporal(frames)
+        return {
+            "width": self.width,
+            "height": self.height,
+            **frame_stats,
+            **temporal_stats,
         }
 
     # ------------------------------------------------------------------

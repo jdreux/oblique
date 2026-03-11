@@ -470,10 +470,19 @@ def run_render(args: argparse.Namespace) -> ExitCode:
         with HeadlessRenderer(patch, args.width, args.height) as renderer:
             renderer.prime_audio(t=args.prime_audio)
 
-            # --inspect: print stats and exit
+            # --inspect: print frame stats as JSON and exit
             if args.inspect:
-                stats = renderer.inspect(args.t)
-                print(stats)
+                if args.duration is not None or args.frames is not None:
+                    times, _ = _build_render_timeline(
+                        start_t=args.t,
+                        duration=args.duration,
+                        frames=args.frames,
+                        fps=args.fps,
+                    )
+                    stats = renderer.inspect_sequence(times)
+                else:
+                    stats = renderer.inspect(args.t)
+                print(json.dumps(stats, indent=2))
                 return ExitCode.OK
 
             # Determine output mode
@@ -687,7 +696,7 @@ def build_parser() -> argparse.ArgumentParser:
     render_parser.add_argument("--prime-audio", type=float, default=0.5, metavar="SECS",
         help="Seconds of audio to prime before rendering (default: 0.5)")
     render_parser.add_argument("--inspect", action="store_true",
-        help="Print frame stats (brightness, non-black ratio) instead of saving")
+        help="Print JSON frame stats (and temporal stats for multi-frame timelines)")
     render_parser.add_argument("--log-level", default="WARNING")
     render_parser.set_defaults(func=run_render)
 

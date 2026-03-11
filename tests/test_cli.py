@@ -153,6 +153,95 @@ def test_render_video_uses_fps_timeline_for_frame_count(monkeypatch: pytest.Monk
     assert output == "/tmp/out.mp4"
 
 
+def test_render_inspect_prints_json_for_single_frame(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    class FakeHeadlessRenderer:
+        def __init__(self, patch: object, width: int, height: int) -> None:
+            self.patch = patch
+            self.width = width
+            self.height = height
+
+        def __enter__(self) -> "FakeHeadlessRenderer":
+            return self
+
+        def __exit__(self, *_: object) -> None:
+            return None
+
+        def prime_audio(self, t: float) -> None:
+            return None
+
+        def inspect(self, t: float) -> dict[str, object]:
+            return {"mode": "single", "t": t}
+
+        def inspect_sequence(self, times: list[float]) -> dict[str, object]:  # pragma: no cover - safety
+            raise AssertionError("inspect_sequence should not be called")
+
+    fake_module = ModuleType("core.headless_renderer")
+    fake_module.HeadlessRenderer = FakeHeadlessRenderer
+    monkeypatch.setitem(sys.modules, "core.headless_renderer", fake_module)
+    monkeypatch.setattr(cli_module, "parse_patch_reference", lambda _: object())
+    monkeypatch.setattr(
+        cli_module,
+        "instantiate_patch",
+        lambda *_args, **_kwargs: (object(), None, None),
+    )
+
+    args = _render_args(inspect=True, t=1.25)
+    assert run_render(args) == ExitCode.OK
+
+    out = capsys.readouterr().out
+    assert '"mode": "single"' in out
+    assert '"t": 1.25' in out
+
+
+def test_render_inspect_uses_temporal_analysis_for_multi_frame(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    calls: dict[str, object] = {}
+
+    class FakeHeadlessRenderer:
+        def __init__(self, patch: object, width: int, height: int) -> None:
+            self.patch = patch
+            self.width = width
+            self.height = height
+
+        def __enter__(self) -> "FakeHeadlessRenderer":
+            return self
+
+        def __exit__(self, *_: object) -> None:
+            return None
+
+        def prime_audio(self, t: float) -> None:
+            return None
+
+        def inspect(self, t: float) -> dict[str, object]:  # pragma: no cover - safety
+            raise AssertionError("inspect should not be called")
+
+        def inspect_sequence(self, times: list[float]) -> dict[str, object]:
+            calls["times"] = times
+            return {"mode": "temporal", "motion_profile": [0.1, 0.2]}
+
+    fake_module = ModuleType("core.headless_renderer")
+    fake_module.HeadlessRenderer = FakeHeadlessRenderer
+    monkeypatch.setitem(sys.modules, "core.headless_renderer", fake_module)
+    monkeypatch.setattr(cli_module, "parse_patch_reference", lambda _: object())
+    monkeypatch.setattr(
+        cli_module,
+        "instantiate_patch",
+        lambda *_args, **_kwargs: (object(), None, None),
+    )
+
+    args = _render_args(inspect=True, t=0.0, frames=3, fps=10)
+    assert run_render(args) == ExitCode.OK
+
+    out = capsys.readouterr().out
+    assert '"mode": "temporal"' in out
+    assert calls["times"] == pytest.approx([0.0, 0.1, 0.2])  # type: ignore[arg-type]
+
+
 def test_parser_supports_module_registry_commands() -> None:
     parser = cli_module.build_parser()
     args = parser.parse_args(
