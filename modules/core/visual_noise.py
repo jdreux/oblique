@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Literal
 
+from core.registry import oblique_module
 from processing.base_processing_operator import BaseProcessingOperator
 
 from .base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamInt, Uniforms
@@ -23,6 +24,12 @@ class VisualNoiseUniforms(Uniforms, total=True):
     u_time: float
 
 
+@oblique_module(
+    category="core",
+    description="Generates animated grayscale or RGBA procedural noise.",
+    tags=["noisy", "evolving", "monochrome", "colorful"],
+    cost_hint="low",
+)
 class VisualNoiseModule(BaseAVModule[VisualNoiseParams, VisualNoiseUniforms]):
     """
     Visual noise module that generates different types of noise patterns.

@@ -4,6 +4,7 @@ from processing.fft_bands import FFTBands
 
 from dataclasses import dataclass
 
+from core.registry import oblique_module
 from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamFloatList, ParamInt, Uniforms
 
 
@@ -29,6 +30,12 @@ class IkedaTinyBarcodeUniforms(Uniforms, total=True):
     u_fft_bands: list[float]
 
 
+@oblique_module(
+    category="audio_reactive",
+    description="Produces glitchy barcode patterns modulated by FFT band activity.",
+    tags=["glitch", "geometric", "audio-reactive", "rhythmic", "monochrome"],
+    cost_hint="medium",
+)
 class IkedaTinyBarcodeModule(BaseAVModule[IkedaTinyBarcodeParams, IkedaTinyBarcodeUniforms]):
     """
     Ikeda Tiny Barcode module that generates a glitchy barcode pattern based on ShaderToy implementation.

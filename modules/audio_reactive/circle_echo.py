@@ -4,6 +4,7 @@ from typing import Tuple
 from dataclasses import dataclass
 from typing import Tuple
 
+from core.registry import oblique_module
 from modules.core.base_av_module import BaseAVModule, BaseAVParams, Uniforms
 from processing.fft_bands import FFTBands
 
@@ -22,6 +23,12 @@ class CircleEchoUniforms(Uniforms, total=True):
     u_band_amps: Tuple[float, ...]
 
 
+@oblique_module(
+    category="audio_reactive",
+    description="Draws concentric circles whose modulation responds to audio bands.",
+    tags=["geometric", "audio-reactive", "pulsing", "rhythmic"],
+    cost_hint="medium",
+)
 class CircleEcho(BaseAVModule[CircleEchoParams, CircleEchoUniforms]):
     """
     CircleEcho - Concentric modulated circles.

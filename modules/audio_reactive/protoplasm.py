@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 import moderngl
 
+from core.registry import oblique_module
 from modules.core.base_av_module import (
     BaseAVModule,
     BaseAVParams,
@@ -22,6 +23,12 @@ class ProtoplasmUniforms(Uniforms, total=True):
     u_noise_texture: TexturePass
 
 
+@oblique_module(
+    category="audio_reactive",
+    description="Generates organic ray-marched forms modulated by procedural noise.",
+    tags=["organic", "audio-reactive", "flowing", "chaotic", "evolving"],
+    cost_hint="high",
+)
 class ProtoplasmModule(BaseAVModule[ProtoplasmParams, ProtoplasmUniforms]):
     """
     Protoplasm module that generates organic, volumetric patterns using ray marching and FBM noise.

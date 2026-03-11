@@ -4,6 +4,7 @@ from typing import Tuple
 
 import moderngl
 
+from core.registry import oblique_module
 from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamTexture, Uniforms
 
 
@@ -63,6 +64,12 @@ class CompositeUniforms(Uniforms, total=True):
     u_op: int
     u_mix: float
 
+@oblique_module(
+    category="composition",
+    description="Composites two texture sources using blend and passthrough operations.",
+    tags=["composite", "clean", "transform"],
+    cost_hint="medium",
+)
 class CompositeModule(BaseAVModule[CompositeParams, CompositeUniforms]):
     """
     Composite module that blends two input modules using a selectable blend/composite operation.

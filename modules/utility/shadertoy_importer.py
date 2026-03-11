@@ -16,6 +16,7 @@ from typing import Tuple
 import moderngl
 from typing_extensions import TypedDict
 
+from core.registry import oblique_module
 from modules.core.base_av_module import (
     BaseAVModule,
     BaseAVParams,
@@ -48,6 +49,12 @@ class ShadertoyParams(BaseAVParams):
     audio_tex: ParamTexture | None = None
 
 
+@oblique_module(
+    category="utility",
+    description="Runs Shadertoy-style fragment shaders with mapped compatibility uniforms.",
+    tags=["evolving", "colorful", "frequency-split", "audio-reactive"],
+    cost_hint="medium",
+)
 class ShadertoyModule(BaseAVModule[ShadertoyParams, ShadertoyUniforms]):
     """Render a Shadertoy fragment shader with minimal edits."""
 

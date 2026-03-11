@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 import moderngl
 
+from core.registry import oblique_module
 from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamInt, Uniforms, ParamTexture
 
 
@@ -17,6 +18,12 @@ class PauricSquaresUniforms(Uniforms, total=True):
     u_tile_size: int
     u_texture: moderngl.Texture
 
+@oblique_module(
+    category="audio_reactive",
+    description="Tiles a motif texture into animated, audio-reactive square patterns.",
+    tags=["geometric", "audio-reactive", "minimal", "rhythmic"],
+    cost_hint="medium",
+)
 class PauricSquaresModule(BaseAVModule[PauricSquaresParams, PauricSquaresUniforms]):
     """
     Pauric Squares module that generates animated square patterns in the style of Pauric Freeman.

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from core.registry import oblique_module
 from modules.core.base_av_module import (
     BaseAVModule,
     BaseAVParams,
@@ -45,6 +46,12 @@ class MITParticlesUniforms(Uniforms, total=True):
 
 
 
+@oblique_module(
+    category="audio_reactive",
+    description="Simulates and renders an audio-reactive particle field with ping-pong state.",
+    tags=["particle", "audio-reactive", "chaotic", "evolving", "dense"],
+    cost_hint="high",
+)
 class MITParticlesModule(BaseAVModule[MITParticlesParams, MITParticlesUniforms]):
     """
     MIT Particles module that renders a cloud of white particles that gravitate toward 

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import List, Tuple
 
 from core.logger import debug
+from core.registry import oblique_module
 from modules.core.base_av_module import BaseAVModule, BaseAVParams, Uniforms
 from processing.base_processing_operator import BaseProcessingOperator
 
@@ -28,6 +29,12 @@ class BrokenCirclesUniforms(Uniforms, total=True):
     u_amplitudes: List[float]
     u_time: float
 
+@oblique_module(
+    category="audio_reactive",
+    description="Draws concentric circles driven by independent modulation operators.",
+    tags=["geometric", "audio-reactive", "pulsing", "monochrome"],
+    cost_hint="medium",
+)
 class BrokenCirclesModule(BaseAVModule[BrokenCirclesParams, BrokenCirclesUniforms]):
     """
     AV module that draws 5 concentric circles, each modulated by a different audio amplitude.

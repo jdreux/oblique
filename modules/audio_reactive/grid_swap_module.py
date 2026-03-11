@@ -3,6 +3,7 @@ from typing import Tuple
 
 import moderngl
 
+from core.registry import oblique_module
 from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamInt, ParamTexture, Uniforms
 
 
@@ -24,6 +25,12 @@ class GridSwapModuleUniforms(Uniforms, total=True):
     tex0: moderngl.Texture
 
 
+@oblique_module(
+    category="audio_reactive",
+    description="Swaps grid cells between source textures with rhythmic timing controls.",
+    tags=["geometric", "glitch", "audio-reactive", "rhythmic"],
+    cost_hint="medium",
+)
 class GridSwapModule(BaseAVModule[GridSwapModuleParams, GridSwapModuleUniforms]):
     """
     Grid Swap Module - Takes a texture input and performs square swapping operations on an NxN grid.

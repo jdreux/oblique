@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import importlib.util
+import json
 import os
 import re
 import sys
@@ -522,6 +523,92 @@ def run_render(args: argparse.Namespace) -> ExitCode:
     return ExitCode.OK
 
 
+def run_list_modules(args: argparse.Namespace) -> ExitCode:
+    """Implementation of the ``oblique list-modules`` command."""
+    try:
+        from core.registry import discover_modules, module_spec_to_dict, search_modules
+
+        discover_modules()
+        specs = search_modules(query=None, tags=args.tag, category=args.category)
+    except Exception as exc:
+        error(f"Unable to discover modules: {exc}")
+        return ExitCode.INTERNAL
+
+    if args.json:
+        payload = [module_spec_to_dict(spec) for spec in specs]
+        print(json.dumps(payload, indent=2))
+        return ExitCode.OK
+
+    if not specs:
+        print("No modules found.")
+        return ExitCode.OK
+
+    name_width = max(len("Name"), *(len(spec.name) for spec in specs))
+    category_width = max(len("Category"), *(len(spec.category) for spec in specs))
+    print(f"{'Name':<{name_width}}  {'Category':<{category_width}}  Description")
+    print(
+        f"{'-' * name_width}  {'-' * category_width}  {'-' * len('Description')}"
+    )
+    for spec in specs:
+        print(f"{spec.name:<{name_width}}  {spec.category:<{category_width}}  {spec.description}")
+    return ExitCode.OK
+
+
+def run_describe(args: argparse.Namespace) -> ExitCode:
+    """Implementation of the ``oblique describe`` command."""
+    try:
+        from core.registry import discover_modules, get_registry, module_spec_to_dict
+
+        discover_modules()
+        registry = get_registry()
+    except Exception as exc:
+        error(f"Unable to discover modules: {exc}")
+        return ExitCode.INTERNAL
+
+    spec = registry.get(args.module_name)
+    if spec is None:
+        spec = next(
+            (item for item in registry.values() if item.name.lower() == args.module_name.lower()),
+            None,
+        )
+
+    if spec is None:
+        sys.stderr.write(
+            f"error: unknown module '{args.module_name}'\n"
+            "hint: run 'oblique list-modules' to view available module names\n"
+        )
+        return ExitCode.USAGE
+
+    if args.json:
+        print(json.dumps(module_spec_to_dict(spec), indent=2))
+        return ExitCode.OK
+
+    print(f"Name: {spec.name}")
+    print(f"Category: {spec.category}")
+    print(f"Class: {spec.module_class}")
+    print(f"Shader: {spec.shader_path}")
+    print(f"Cost: {spec.cost_hint}")
+    print(f"Tags: {', '.join(spec.tags)}")
+    print("Inputs: " + (", ".join(spec.inputs) if spec.inputs else "(none)"))
+    print("Outputs: " + (", ".join(spec.outputs) if spec.outputs else "(none)"))
+    print(f"Description: {spec.description}")
+    print("Parameters:")
+    if not spec.params:
+        print("  (none)")
+    else:
+        for param in spec.params:
+            pieces = [param.type]
+            if param.min is not None or param.max is not None:
+                pieces.append(f"range={param.min}..{param.max}")
+            if param.default is not None:
+                pieces.append(f"default={param.default}")
+            if param.description:
+                pieces.append(param.description)
+            detail = " | ".join(pieces)
+            print(f"  - {param.name}: {detail}")
+    return ExitCode.OK
+
+
 def _build_render_timeline(
     start_t: float,
     duration: Optional[float],
@@ -603,6 +690,32 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print frame stats (brightness, non-black ratio) instead of saving")
     render_parser.add_argument("--log-level", default="WARNING")
     render_parser.set_defaults(func=run_render)
+
+    list_modules_parser = subparsers.add_parser(
+        "list-modules",
+        help="List discoverable AV modules and metadata summaries",
+    )
+    list_modules_parser.add_argument("--json", action="store_true", help="Output full ModuleSpec JSON")
+    list_modules_parser.add_argument(
+        "--tag",
+        action="append",
+        default=[],
+        help="Filter by tag (repeatable)",
+    )
+    list_modules_parser.add_argument(
+        "--category",
+        default=None,
+        help="Filter by module category",
+    )
+    list_modules_parser.set_defaults(func=run_list_modules)
+
+    describe_parser = subparsers.add_parser(
+        "describe",
+        help="Show full metadata for a single module",
+    )
+    describe_parser.add_argument("module_name", help="Module class name (e.g. FeedbackModule)")
+    describe_parser.add_argument("--json", action="store_true", help="Output as JSON")
+    describe_parser.set_defaults(func=run_describe)
 
     return parser
 

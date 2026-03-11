@@ -1,9 +1,17 @@
+from dataclasses import dataclass
 from typing import Tuple
 
-from modules.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamFloatList, Uniforms
+from core.registry import oblique_module
+from modules.core.base_av_module import (
+    BaseAVModule,
+    BaseAVParams,
+    ParamFloat,
+    ParamFloatList,
+    Uniforms,
+)
 
 
-
+@dataclass
 class MeshShroudParams(BaseAVParams):
     amplitude: ParamFloat
     fft_bands: ParamFloatList
@@ -13,9 +21,12 @@ class MeshShroudUniforms(Uniforms, total=True):
     u_resolution: Tuple[int, int]
     u_fft_bands: list[float]
     u_amp: float
-
-
-
+@oblique_module(
+    category="audio_reactive",
+    description="Renders a mesh-like spectrum shroud driven by FFT amplitudes.",
+    tags=["audio-reactive", "flowing", "dense", "evolving"],
+    cost_hint="high",
+)
 class MeshShroudModule(BaseAVModule[MeshShroudParams, MeshShroudUniforms]):
     """
     MeshShroudModule - Renders a floating mesh spectrum visualizer using FFT band data.
@@ -26,7 +37,7 @@ class MeshShroudModule(BaseAVModule[MeshShroudParams, MeshShroudUniforms]):
         "description": "Renders a frequency spectrum visualizer with mesh animation.",
         "parameters": MeshShroudParams.__annotations__,
     }
-    frag_shader_path = "shaders/mesh-shroud.frag"
+    frag_shader_path = "modules/audio_reactive/shaders/mesh-shroud.frag"
 
     def __init__(
         self,

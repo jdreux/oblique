@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 import moderngl
 
+from core.registry import oblique_module
 from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamTexture, Uniforms
 
 
@@ -18,6 +19,12 @@ class BarrelDistortionUniforms(Uniforms, total=True):
     u_texture: moderngl.Texture
 
 
+@oblique_module(
+    category="effects",
+    description="Applies barrel or pincushion distortion to texture UV coordinates.",
+    tags=["distortion", "transform", "geometric"],
+    cost_hint="low",
+)
 class BarrelDistortionModule(BaseAVModule[BarrelDistortionParams, BarrelDistortionUniforms]):
     """
     Barrel/Pincushion distortion module that applies radial distortion to UV coordinates.

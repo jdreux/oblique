@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from core.registry import oblique_module
 from modules.core.base_av_module import (
     BaseAVModule,
     BaseAVParams,
@@ -22,6 +23,12 @@ debug_texture: TexturePass = TexturePass(
     frag_shader_path="modules/utility/shaders/debug.frag",
 )
 
+@oblique_module(
+    category="audio_reactive",
+    description="Generates high-contrast geometric test patterns inspired by Ryoji Ikeda.",
+    tags=["geometric", "minimal", "glitch", "monochrome"],
+    cost_hint="medium",
+)
 class IkedaTestPatternModule(BaseAVModule[IkedaTestPatternParams, IkedaTestPatternUniforms]):
     """
     Ikeda Test Pattern module that generates geometric patterns inspired by Ryoji Ikeda's work.

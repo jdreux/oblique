@@ -4,6 +4,7 @@ from typing import Tuple
 import moderngl
 import numpy as np
 
+from core.registry import oblique_module
 from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamTexture, Uniforms
 
 
@@ -22,6 +23,12 @@ class TransformUniforms(Uniforms, total=True):
     u_texture: moderngl.Texture
 
 
+@oblique_module(
+    category="utility",
+    description="Applies affine UV transformations using a configurable mat3 pipeline.",
+    tags=["transform", "clean", "static"],
+    cost_hint="low",
+)
 class TransformModule(BaseAVModule[TransformParams, TransformUniforms]):
     """
     Transform module that applies affine transformations to UV coordinates.

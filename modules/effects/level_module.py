@@ -3,6 +3,7 @@ from typing import Tuple
 
 import moderngl
 
+from core.registry import oblique_module
 from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamBool, ParamFloat, Uniforms
 
 
@@ -46,6 +47,12 @@ class LevelUniforms(Uniforms, total=True):
     u_opacity: float
 
 
+@oblique_module(
+    category="effects",
+    description="Applies level controls such as brightness, contrast, and gamma.",
+    tags=["clean", "composite", "transform", "muted"],
+    cost_hint="low",
+)
 class LevelModule(BaseAVModule[LevelParams, LevelUniforms]):
     """
     Level module that applies level adjustments to input textures.

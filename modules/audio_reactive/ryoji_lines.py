@@ -4,6 +4,7 @@ from typing import List, Optional
 from dataclasses import dataclass
 from typing import List, Optional
 
+from core.registry import oblique_module
 from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamInt, ParamFloat, Uniforms
 from processing.fft_bands import FFTBands
 from processing.spectral_centroid import SpectralCentroid
@@ -29,6 +30,12 @@ class RyojiLinesUniforms(Uniforms, total=True):
     u_time: float
 
 
+@oblique_module(
+    category="audio_reactive",
+    description="Renders FFT-driven line fields with spectral brightness modulation.",
+    tags=["geometric", "minimal", "audio-reactive", "frequency-split", "rhythmic"],
+    cost_hint="medium",
+)
 class RyojiLines(BaseAVModule[RyojiLinesParams, RyojiLinesUniforms]):
     """
     RyojiLines - Renders animated parallel lines representing FFT frequency bands.

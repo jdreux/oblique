@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 import moderngl
 
+from core.registry import oblique_module
 from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamInt, ParamTexture, Uniforms
 
 
@@ -20,6 +21,12 @@ class BlurUniforms(Uniforms, total=True):
     u_input_texture: moderngl.Texture
 
 
+@oblique_module(
+    category="effects",
+    description="Applies Gaussian blur to upstream textures with configurable kernel size.",
+    tags=["blur", "muted", "organic"],
+    cost_hint="medium",
+)
 class BlurModule(BaseAVModule[BlurParams, BlurUniforms]):
     """
     Blur module that applies Gaussian blur to input textures using Lygia's gaussianBlur function.

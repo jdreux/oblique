@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 import moderngl
 
+from core.registry import oblique_module
 from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamTexture, Uniforms
 
 
@@ -23,6 +24,12 @@ class FeedbackUniforms(Uniforms, total=True):
     u_direction: tuple[float, float]
 
 
+@oblique_module(
+    category="effects",
+    description="Blends current and previous frames to create feedback trails.",
+    tags=["feedback", "distortion", "evolving"],
+    cost_hint="low",
+)
 class FeedbackModule(BaseAVModule[FeedbackParams, FeedbackUniforms]):
     """
     Feedback module that provides access to the previous frame's output via a ping-pong texture pass.

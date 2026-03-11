@@ -151,3 +151,71 @@ def test_render_video_uses_fps_timeline_for_frame_count(monkeypatch: pytest.Monk
     assert end_t == pytest.approx(2.0)
     assert fps == 20
     assert output == "/tmp/out.mp4"
+
+
+def test_parser_supports_module_registry_commands() -> None:
+    parser = cli_module.build_parser()
+    args = parser.parse_args(
+        ["list-modules", "--json", "--tag", "feedback", "--category", "effects"]
+    )
+    assert args.command == "list-modules"
+    assert args.json is True
+    assert args.tag == ["feedback"]
+    assert args.category == "effects"
+
+    describe_args = parser.parse_args(["describe", "FeedbackModule", "--json"])
+    assert describe_args.command == "describe"
+    assert describe_args.module_name == "FeedbackModule"
+    assert describe_args.json is True
+
+
+def test_list_modules_json_output(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    class DummySpec:
+        name = "FeedbackModule"
+        category = "effects"
+        description = "Feedback module"
+        tags = ["feedback"]
+        params = []
+        inputs = ["input_texture"]
+        outputs = ["texture"]
+        cost_hint = "low"
+        shader_path = "modules/effects/shaders/feedback.frag"
+        module_class = "modules.effects.feedback.FeedbackModule"
+
+    fake_registry = ModuleType("core.registry")
+    fake_registry.discover_modules = lambda: {"FeedbackModule": DummySpec()}
+    fake_registry.search_modules = lambda query, tags, category: [DummySpec()]
+    fake_registry.module_spec_to_dict = lambda spec: {
+        "name": spec.name,
+        "category": spec.category,
+        "description": spec.description,
+        "tags": spec.tags,
+        "params": spec.params,
+        "inputs": spec.inputs,
+        "outputs": spec.outputs,
+        "cost_hint": spec.cost_hint,
+        "shader_path": spec.shader_path,
+        "module_class": spec.module_class,
+    }
+    monkeypatch.setitem(sys.modules, "core.registry", fake_registry)
+
+    args = Namespace(json=True, tag=[], category=None)
+    assert cli_module.run_list_modules(args) == ExitCode.OK
+    out = capsys.readouterr().out
+    assert '"name": "FeedbackModule"' in out
+
+
+def test_describe_unknown_module_returns_usage(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    fake_registry = ModuleType("core.registry")
+    fake_registry.discover_modules = lambda: {}
+    fake_registry.get_registry = lambda: {}
+    fake_registry.module_spec_to_dict = lambda spec: spec
+    monkeypatch.setitem(sys.modules, "core.registry", fake_registry)
+
+    args = Namespace(module_name="UnknownModule", json=False)
+    assert cli_module.run_describe(args) == ExitCode.USAGE
+    err = capsys.readouterr().err
+    assert "unknown module" in err

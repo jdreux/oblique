@@ -4,6 +4,7 @@ from typing import List, Optional
 from dataclasses import dataclass
 from typing import List, Optional
 
+from core.registry import oblique_module
 from modules.core.base_av_module import BaseAVModule, BaseAVParams, Uniforms
 from processing.fft_bands import FFTBands
 
@@ -23,6 +24,12 @@ class SpectralVisualizerUniforms(Uniforms, total=True):
     u_time: float
 
 
+@oblique_module(
+    category="audio_reactive",
+    description="Displays FFT spectrum bars with dynamic color mapping.",
+    tags=["audio-reactive", "frequency-split", "colorful", "rhythmic"],
+    cost_hint="medium",
+)
 class SpectralVisualizerModule(BaseAVModule[SpectralVisualizerParams, SpectralVisualizerUniforms]):
     """
     SpectralVisualizer - Renders a frequency spectrum visualizer using FFT band data.

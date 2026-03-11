@@ -9,6 +9,7 @@ import moderngl
 from PIL import Image
 
 from core.paths import resolve_asset_path
+from core.registry import oblique_module
 from modules.core.base_av_module import BaseAVModule, BaseAVParams, Uniforms
 
 
@@ -30,6 +31,12 @@ class MediaUniforms(Uniforms, total=True):
     u_transform: Tuple[float, float, float, float]  # scale_x, scale_y, offset_x, offset_y
     tex: moderngl.Texture
 
+@oblique_module(
+    category="core",
+    description="Loads image files into textures with configurable aspect handling.",
+    tags=["static", "clean", "muted", "composite"],
+    cost_hint="low",
+)
 class MediaModule(BaseAVModule[MediaParams, MediaUniforms]):
     """
     Loads an image file and outputs it as a texture, with aspect ratio handling.

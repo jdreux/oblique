@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from core.registry import oblique_module
 from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamInt, TexturePass, Uniforms
 
 
@@ -17,6 +18,12 @@ class BlueBackNGrayUniforms(Uniforms, total=True):
     u_circles_texture: object  # The texture from the circles pass
 
 
+@oblique_module(
+    category="audio_reactive",
+    description="Renders concentric circles with strip-offset post processing.",
+    tags=["geometric", "audio-reactive", "minimal", "monochrome"],
+    cost_hint="medium",
+)
 class BlueBackNGrayModule(BaseAVModule[BlueBackNGrayParams, BlueBackNGrayUniforms]):
     """
     BlueBackNGray - Concentric circles with gray edges on white background and vertical strips offset effect.

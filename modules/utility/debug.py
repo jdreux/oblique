@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from core.registry import oblique_module
 from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamInt, ParamFloat, Uniforms
 
 
@@ -13,6 +14,12 @@ class DebugUniforms(Uniforms, total=True):
     u_number: float
 
 
+@oblique_module(
+    category="utility",
+    description="Displays numeric debug values with minimal shader output.",
+    tags=["minimal", "clean", "static"],
+    cost_hint="low",
+)
 class DebugModule(BaseAVModule[DebugParams, DebugUniforms]):
     """
     Debug module that displays an input number and string using a shader.
