@@ -237,3 +237,67 @@ def test_texture_pass_uniforms_require_explicit_u_prefix(monkeypatch):
     assert recorded_uniforms
     assert any("plain_key" in uniforms for uniforms in recorded_uniforms)
     assert all("u_plain_key" not in uniforms for uniforms in recorded_uniforms)
+
+
+def test_texture_pass_can_opt_out_of_parent_uniform_inheritance(monkeypatch):
+    setup_stubs()
+    import moderngl
+
+    base_mod = sys.modules.get("modules.core.base_av_module")
+    if base_mod is None:
+        base_mod = load_module(
+            "modules.core.base_av_module",
+            ROOT / "modules/core/base_av_module.py",
+        )
+
+    BaseAVModule = base_mod.BaseAVModule
+    BaseAVParams = base_mod.BaseAVParams
+    TexturePass = base_mod.TexturePass
+    Uniforms = base_mod.Uniforms
+
+    @dataclass
+    class Params(BaseAVParams):
+        width: int = 1
+        height: int = 1
+
+    class DummyModule(BaseAVModule[Params, Uniforms]):
+        frag_shader_path = str(resolve_asset_path("shaders/passthrough.frag"))
+        isolated_pass = TexturePass(
+            frag_shader_path=str(resolve_asset_path("shaders/passthrough.frag")),
+            uniforms={"u_local_only": 123.0},
+            name="isolated",
+            inherit_parent_uniforms=False,
+        )
+
+        def prepare_uniforms(self, t: float) -> Uniforms:
+            return {
+                "u_time": t,
+                "u_parent_value": 42.0,
+                "u_isolated": self.isolated_pass,
+            }
+
+    captured_by_tag: dict[str, dict] = {}
+
+    def fake_render_to_texture(
+        module_arg,
+        width,
+        height,
+        frag_shader_path,
+        uniforms,
+        filter,
+        cache_tag,
+    ):
+        captured_by_tag[cache_tag] = dict(uniforms)
+        return moderngl.Texture()
+
+    monkeypatch.setattr(base_mod, "render_to_texture", fake_render_to_texture)
+
+    module = DummyModule(Params())
+    module.render_texture(moderngl.create_context(), 4, 4, 1.5)
+
+    assert "isolated" in captured_by_tag
+    isolated_uniforms = captured_by_tag["isolated"]
+    assert isolated_uniforms["u_resolution"] == (4, 4)
+    assert isolated_uniforms["u_local_only"] == pytest.approx(123.0)
+    assert "u_parent_value" not in isolated_uniforms
+    assert "u_time" not in isolated_uniforms

@@ -73,6 +73,10 @@ class TexturePass:
     previous_uniform_name:
         If ping‑pong is enabled and a previous texture exists, it will be injected under this
         uniform name (default: ``u_previous``).
+    inherit_parent_uniforms:
+        Controls whether this pass receives uniforms inherited from its parent pass/module.
+        When ``False``, only this pass's explicit ``uniforms`` values and ``u_resolution``
+        are provided.
     """
 
     frag_shader_path: str
@@ -85,6 +89,7 @@ class TexturePass:
     ping_pong: bool = False
     name: str | None = None
     previous_uniform_name: str = "u_previous"
+    inherit_parent_uniforms: bool = True
 
 
 
@@ -196,9 +201,9 @@ class BaseAVModule(ABC, Generic[P, U]):
         The rendering pipeline traverses any TexturePass instances
         returned by ``prepare_uniforms`` (or attached to the module as nested
         dependencies) to build a dependency graph on-the-fly.
-        Each pass inherits the non-pass uniforms defined for the parent module
-        and can in turn declare additional texture inputs via its own
-        ``uniforms`` mapping.
+        Each pass can inherit the non-pass uniforms defined for the parent
+        module/pass (default) and can in turn declare additional texture inputs
+        via its own ``uniforms`` mapping.
 
         The traversal guarantees that:
         1. Each TexturePass is rendered exactly once per frame.
@@ -291,8 +296,10 @@ class BaseAVModule(ABC, Generic[P, U]):
         pass_width = pass_obj.width if pass_obj.width is not None else parent_width
         pass_height = pass_obj.height if pass_obj.height is not None else parent_height
 
-        # Build uniforms for this pass starting from inherited uniforms
-        uniforms: dict[str, Any] = dict(inherited_uniforms)
+        # Build uniforms for this pass from inherited values (opt-in per pass).
+        uniforms: dict[str, Any] = {}
+        if pass_obj.inherit_parent_uniforms:
+            uniforms.update(inherited_uniforms)
         uniforms["u_resolution"] = (pass_width, pass_height)
 
         # Resolve explicit texture inputs / dependencies declared on the pass
