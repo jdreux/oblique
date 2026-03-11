@@ -1,10 +1,10 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Tuple
 
 import moderngl
 
-from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamTexture, Uniforms
+from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, ParamTexture, Uniforms
 
 
 class CompositeOp(int, Enum):
@@ -48,11 +48,20 @@ class CompositeParams(BaseAVParams):
     top_texture: ParamTexture
     bottom_texture: ParamTexture
     operation: CompositeOp = CompositeOp.ADD
+    mix: ParamFloat = field(
+        default=1.0,
+        metadata={
+            "min": 0.0,
+            "max": 1.0,
+            "description": "Blend amount. 0.0=bottom only, 1.0=full blend",
+        },
+    )
 
 class CompositeUniforms(Uniforms, total=True):
     top_tex: moderngl.Texture
     bottom_tex: moderngl.Texture
     u_op: int
+    u_mix: float
 
 class CompositeModule(BaseAVModule[CompositeParams, CompositeUniforms]):
     """
@@ -75,5 +84,6 @@ class CompositeModule(BaseAVModule[CompositeParams, CompositeUniforms]):
             "top_tex": self.params.top_texture,
             "bottom_tex": self.params.bottom_texture,
             "u_op": int(self.params.operation),
+            "u_mix": self._resolve_param(self.params.mix),
         }
         return uniforms

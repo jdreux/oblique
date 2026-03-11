@@ -8,6 +8,7 @@ Inputs:
     uniform sampler2D bottom_tex; // Bottom input texture
     uniform vec2 u_resolution; // Output resolution
     uniform int u_op; // Blend/composite operation selector
+    uniform float u_mix; // Crossfade between bottom and blended result
 */
 
 #ifdef GL_ES
@@ -44,6 +45,7 @@ uniform sampler2D top_tex;
 uniform sampler2D bottom_tex;
 uniform vec2 u_resolution;
 uniform int u_op;
+uniform float u_mix;
 
 in vec2 v_uv;
 out vec4 fragColor;
@@ -112,5 +114,6 @@ void main() {
     } else {
         result = top;
     }
+    result = mix(bottom, result, u_mix);
     fragColor = clamp(result, 0.0, 1.0);
-} 
+}
