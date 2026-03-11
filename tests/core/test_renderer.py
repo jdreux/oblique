@@ -1,4 +1,5 @@
 import sys
+from collections import OrderedDict
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[2]))
@@ -194,3 +195,25 @@ def test_shader_compile_error_raises_without_fallback(tmp_path, monkeypatch):
 
     with pytest.raises(moderngl.Error):
         renderer.render_fullscreen_quad(ctx, str(shader_file), {})
+
+
+def test_texture_cache_lru_enforces_capacity():
+    setup_stubs()
+    renderer = load_module("core.renderer", ROOT / "core" / "renderer.py")
+
+    released: list[str] = []
+
+    class DummyTexture:
+        def __init__(self, key: str):
+            self.key = key
+
+        def release(self):
+            released.append(self.key)
+
+    renderer._texture_cache = OrderedDict(
+        (f"key_{idx}", DummyTexture(f"key_{idx}")) for idx in range(70)
+    )
+    renderer._enforce_texture_cache_limit()
+
+    assert len(renderer._texture_cache) == 64
+    assert released == [f"key_{idx}" for idx in range(6)]

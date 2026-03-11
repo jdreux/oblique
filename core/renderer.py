@@ -7,6 +7,7 @@ The implementation targets OpenGL 3.3 / GLSL 330 and is primarily tested on
 Apple Silicon.
 """
 
+from collections import OrderedDict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -33,7 +34,8 @@ class ShaderCacheEntry:
 
 _shader_cache: dict[str, ShaderCacheEntry] = {}
 _last_good_cache: dict[str, ShaderCacheEntry] = {}
-_texture_cache: dict[str, moderngl.Texture] = {}
+_texture_cache: OrderedDict[str, moderngl.Texture] = OrderedDict()
+_TEXTURE_CACHE_MAX_SIZE = 64
 _hot_reload_shaders_enabled = False
 _ctx: moderngl.Context | None = None
 
@@ -91,6 +93,16 @@ def cleanup_texture_cache() -> None:
         except Exception:
             pass
     _texture_cache.clear()
+
+
+def _enforce_texture_cache_limit() -> None:
+    """Evict least-recently-used textures when cache exceeds its size cap."""
+    while len(_texture_cache) > _TEXTURE_CACHE_MAX_SIZE:
+        _, stale = _texture_cache.popitem(last=False)
+        try:
+            stale.release()
+        except Exception:
+            pass
 
 
 def _release_shader_cache_entry(entry: ShaderCacheEntry) -> None:
@@ -246,6 +258,7 @@ def render_to_texture(
 
     if cache_key in _texture_cache:
         tex = _texture_cache[cache_key]
+        _texture_cache.move_to_end(cache_key)
     else:
         tex = _ctx.texture((width, height), 4, dtype="f4", alignment=1)
         tex.filter = (filter, filter)
@@ -267,6 +280,8 @@ def render_to_texture(
         fbo.release()
 
     _texture_cache[cache_key] = tex
+    _texture_cache.move_to_end(cache_key)
+    _enforce_texture_cache_limit()
 
     return tex
 
