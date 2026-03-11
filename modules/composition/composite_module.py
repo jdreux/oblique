@@ -59,8 +59,8 @@ class CompositeParams(BaseAVParams):
     )
 
 class CompositeUniforms(Uniforms, total=True):
-    top_tex: moderngl.Texture
-    bottom_tex: moderngl.Texture
+    u_top_tex: moderngl.Texture
+    u_bottom_tex: moderngl.Texture
     u_op: int
     u_mix: float
 
@@ -88,8 +88,8 @@ class CompositeModule(BaseAVModule[CompositeParams, CompositeUniforms]):
     def prepare_uniforms(self, t: float) -> CompositeUniforms:
         uniforms: CompositeUniforms = {
             "u_resolution": (self._resolve_param(self.params.width), self._resolve_param(self.params.height)),
-            "top_tex": self.params.top_texture,
-            "bottom_tex": self.params.bottom_texture,
+            "u_top_tex": self.params.top_texture,
+            "u_bottom_tex": self.params.bottom_texture,
             "u_op": int(self.params.operation),
             "u_mix": self._resolve_param(self.params.mix),
         }

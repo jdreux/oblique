@@ -4,8 +4,8 @@ composite.frag
 Description: Blends two input textures using a selectable blend/composite operation.
 Author: Oblique AI Agent
 Inputs:
-    uniform sampler2D top_tex; // Top input texture
-    uniform sampler2D bottom_tex; // Bottom input texture
+    uniform sampler2D u_top_tex; // Top input texture
+    uniform sampler2D u_bottom_tex; // Bottom input texture
     uniform vec2 u_resolution; // Output resolution
     uniform int u_op; // Blend/composite operation selector
     uniform float u_mix; // Crossfade between bottom and blended result
@@ -41,8 +41,8 @@ precision mediump float;
 #include "lygia/color/blend/darken.glsl"
 #include "lygia/color/blend/lighten.glsl"
 
-uniform sampler2D top_tex;
-uniform sampler2D bottom_tex;
+uniform sampler2D u_top_tex;
+uniform sampler2D u_bottom_tex;
 uniform vec2 u_resolution;
 uniform int u_op;
 uniform float u_mix;
@@ -52,8 +52,8 @@ out vec4 fragColor;
 
 // Operation indices must match CompositeOp Enum order in Python
 void main() {
-    vec4 top = texture(top_tex, v_uv);
-    vec4 bottom = texture(bottom_tex, v_uv);
+    vec4 top = texture(u_top_tex, v_uv);
+    vec4 bottom = texture(u_bottom_tex, v_uv);
     vec4 result = vec4(0.0);
     // 0: add, 1: average, 2: multiply, ...
     if (u_op == 0)      // ADD: Simple sum of both colors, can overflow

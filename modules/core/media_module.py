@@ -29,7 +29,7 @@ class MediaUniforms(Uniforms, total=True):
     u_img_resolution: Tuple[int, int]
     u_aspect_mode: int
     u_transform: Tuple[float, float, float, float]  # scale_x, scale_y, offset_x, offset_y
-    tex: moderngl.Texture
+    u_tex: moderngl.Texture
 
 @oblique_module(
     category="core",
@@ -134,7 +134,7 @@ class MediaModule(BaseAVModule[MediaParams, MediaUniforms]):
             "u_img_resolution": (self.img_width, self.img_height),
             "u_aspect_mode": int(self.aspect_mode),
             "u_transform": transform,
-            "tex": self.texture
+            "u_tex": self.texture
         }
         return uniforms
 

@@ -51,9 +51,9 @@ class BlueBackNGrayModule(BaseAVModule[BlueBackNGrayParams, BlueBackNGrayUniform
     def prepare_uniforms(self, t: float) -> BlueBackNGrayUniforms:
         # Update the circles pass uniforms with resolved values
         self.circles_pass.uniforms = {
-            "n_circles": self._resolve_param(self.params.n_circles),
-            "mod_depth": self._resolve_param(self.params.mod_depth),
-            "audio_level": self._resolve_param(self.params.audio_level),
+            "u_n_circles": self._resolve_param(self.params.n_circles),
+            "u_mod_depth": self._resolve_param(self.params.mod_depth),
+            "u_audio_level": self._resolve_param(self.params.audio_level),
         }
 
         uniforms: BlueBackNGrayUniforms = BlueBackNGrayUniforms(

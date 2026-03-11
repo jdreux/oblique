@@ -2,13 +2,13 @@
 // Description: Renders an image texture with aspect ratio handling
 // Author: AI/Oblique
 // Inputs: 
-//   - uniform sampler2D tex
+//   - uniform sampler2D u_tex
 //   - uniform ivec2 u_resolution
 //   - uniform ivec2 u_img_resolution
 //   - uniform int u_aspect_mode
 //   - uniform vec4 u_transform (scale_x, scale_y, offset_x, offset_y)
 
-uniform sampler2D tex;
+uniform sampler2D u_tex;
 uniform ivec2 u_resolution;
 uniform ivec2 u_img_resolution;
 uniform int u_aspect_mode;
@@ -32,5 +32,5 @@ void main() {
     // For COVER, just crop (no bars)
     // For FILL, just let it overflow
 
-    fragColor = texture(tex, clamp(uv, 0.0, 1.0));
+    fragColor = texture(u_tex, clamp(uv, 0.0, 1.0));
 }

@@ -43,13 +43,18 @@ def test_texture_uniforms_use_moderngl_texture_type():
         "modules.audio_reactive.pauric_squares_module",
         ROOT / "modules/audio_reactive/pauric_squares_module.py",
     )
+    media = load_module(
+        "modules.core.media_module",
+        ROOT / "modules/core/media_module.py",
+    )
 
-    assert composite.CompositeUniforms.__annotations__["top_tex"] is texture_type
-    assert composite.CompositeUniforms.__annotations__["bottom_tex"] is texture_type
+    assert composite.CompositeUniforms.__annotations__["u_top_tex"] is texture_type
+    assert composite.CompositeUniforms.__annotations__["u_bottom_tex"] is texture_type
     assert feedback.FeedbackUniforms.__annotations__["u_input_texture"] is texture_type
     assert transform.TransformUniforms.__annotations__["u_texture"] is texture_type
     assert blur.BlurUniforms.__annotations__["u_input_texture"] is texture_type
     assert level.LevelUniforms.__annotations__["u_texture"] is texture_type
     assert barrel.BarrelDistortionUniforms.__annotations__["u_texture"] is texture_type
-    assert grid_swap.GridSwapModuleUniforms.__annotations__["tex0"] is texture_type
+    assert grid_swap.GridSwapModuleUniforms.__annotations__["u_tex0"] is texture_type
     assert pauric.PauricSquaresUniforms.__annotations__["u_texture"] is texture_type
+    assert media.MediaUniforms.__annotations__["u_tex"] is texture_type

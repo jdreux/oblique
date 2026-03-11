@@ -27,8 +27,8 @@ def test_composite_default_mix_uniform():
     uniforms = module.prepare_uniforms(0.0)
     assert uniforms["u_op"] == int(composite_module.CompositeOp.ADD)
     assert uniforms["u_mix"] == 1.0
-    assert uniforms["top_tex"] is top
-    assert uniforms["bottom_tex"] is bottom
+    assert uniforms["u_top_tex"] is top
+    assert uniforms["u_bottom_tex"] is bottom
 
 
 def test_composite_resolves_callable_mix():

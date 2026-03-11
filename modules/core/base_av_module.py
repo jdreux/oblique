@@ -65,8 +65,7 @@ class TexturePass:
             • A ``BaseAVModule`` instance – its rendered texture will be injected.
             • A ``moderngl.Texture`` instance.
             • Any primitive value (int, float, bool, str, tuple, list, etc.)
-        At runtime each pair produces a uniform named ``u_<uniform_name>`` unless the key
-        already starts with ``u_``.
+        Keys are passed through verbatim at runtime. Use explicit ``u_`` prefixes.
     width / height:
         Optional fixed resolution for this pass. If omitted, the caller's resolution is used.
     ping_pong:
@@ -298,8 +297,6 @@ class BaseAVModule(ABC, Generic[P, U]):
 
         # Resolve explicit texture inputs / dependencies declared on the pass
         for key, source in (pass_obj.uniforms or {}).items():
-            uniform_name = key if key.startswith("u_") else f"u_{key}"
-
             if isinstance(source, TexturePass):
                 tex = self._render_texture_pass(
                     pass_obj=source,
@@ -320,7 +317,7 @@ class BaseAVModule(ABC, Generic[P, U]):
                 # Primitive uniforms are passed as-is
                 tex = source
 
-            uniforms[uniform_name] = tex
+            uniforms[key] = tex
 
         # If ping-pong is enabled, inject previous texture if available (or create a zero texture on first frame)
         pass_tag = pass_obj.name or str(id(pass_obj))

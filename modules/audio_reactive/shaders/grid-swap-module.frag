@@ -5,7 +5,7 @@ Description: Grid Swap Module - Takes a texture input and performs square swappi
              Inspired by Ryoji Ikeda's geometric manipulations.
 Author: Oblique AI Agent
 Inputs:
-    - uniform sampler2D tex0; // Upstream texture to be swapped
+    - uniform sampler2D u_tex0; // Upstream texture to be swapped
     - uniform float u_time; // Animation time in seconds
     - uniform vec2 u_resolution; // Viewport resolution
     - uniform int u_grid_size; // NxN grid size
@@ -15,7 +15,7 @@ Inputs:
 
 out vec4 fragColor;
 
-uniform sampler2D tex0;
+uniform sampler2D u_tex0;
 uniform float u_time;
 uniform vec2 u_resolution;
 uniform int u_grid_size;
@@ -73,7 +73,7 @@ void main() {
     // Map pixel to grid cell and cell-local UV
     float N = float(u_grid_size);
     if (N == 0.0) {
-        fragColor = texture(tex0, uv);
+        fragColor = texture(u_tex0, uv);
         return;
     }
     vec2 cell = floor(uv * N);
@@ -86,9 +86,9 @@ void main() {
     vec2 finalUV = (swappedCell + local) / N;
 
     // Output color from swapped position
-    // texture(tex0, finalUV) samples the input texture at the calculated UV coordinates
-    // tex0: the input texture sampler (from the parent module)
+    // texture(u_tex0, finalUV) samples the input texture at the calculated UV coordinates
+    // u_tex0: the input texture sampler (from the parent module)
     // finalUV: the UV coordinates after applying grid cell swaps
     // This creates the visual effect of swapping grid cells by sampling from different positions
-    fragColor = texture(tex0, finalUV);
+    fragColor = texture(u_tex0, finalUV);
 }

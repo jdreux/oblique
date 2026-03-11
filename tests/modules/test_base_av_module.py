@@ -179,3 +179,61 @@ def test_ping_pong_history_evicts_stale_resolution(monkeypatch):
     assert all(key.endswith("1920x1080") for key in module._texture_history)
     assert released
     assert all(tex.released for tex in released)
+
+
+def test_texture_pass_uniforms_require_explicit_u_prefix(monkeypatch):
+    setup_stubs()
+    import moderngl
+
+    base_mod = sys.modules.get("modules.core.base_av_module")
+    if base_mod is None:
+        base_mod = load_module(
+            "modules.core.base_av_module",
+            ROOT / "modules/core/base_av_module.py",
+        )
+
+    BaseAVModule = base_mod.BaseAVModule
+    BaseAVParams = base_mod.BaseAVParams
+    TexturePass = base_mod.TexturePass
+    Uniforms = base_mod.Uniforms
+
+    @dataclass
+    class Params(BaseAVParams):
+        width: int = 1
+        height: int = 1
+
+    class DummyModule(BaseAVModule[Params, Uniforms]):
+        frag_shader_path = str(resolve_asset_path("shaders/passthrough.frag"))
+        aux_pass = TexturePass(
+            frag_shader_path=str(resolve_asset_path("shaders/passthrough.frag")),
+            uniforms={"plain_key": 123},
+            name="aux",
+        )
+
+        def prepare_uniforms(self, t: float) -> Uniforms:
+            return {
+                "u_aux": self.aux_pass,
+            }
+
+    recorded_uniforms: list[dict] = []
+
+    def fake_render_to_texture(
+        module_arg,
+        width,
+        height,
+        frag_shader_path,
+        uniforms,
+        filter,
+        cache_tag,
+    ):
+        recorded_uniforms.append(dict(uniforms))
+        return moderngl.Texture()
+
+    monkeypatch.setattr(base_mod, "render_to_texture", fake_render_to_texture)
+
+    module = DummyModule(Params())
+    module.render_texture(moderngl.create_context(), 4, 4, 0.0)
+
+    assert recorded_uniforms
+    assert any("plain_key" in uniforms for uniforms in recorded_uniforms)
+    assert all("u_plain_key" not in uniforms for uniforms in recorded_uniforms)

@@ -22,7 +22,7 @@ class GridSwapModuleUniforms(Uniforms, total=True):
     u_swap_frequency: float
     u_swap_phase: float
     u_num_swaps: int
-    tex0: moderngl.Texture
+    u_tex0: moderngl.Texture
 
 
 @oblique_module(
@@ -64,6 +64,6 @@ class GridSwapModule(BaseAVModule[GridSwapModuleParams, GridSwapModuleUniforms])
             "u_swap_frequency": self._resolve_param(self.params.swap_frequency),
             "u_swap_phase": self._resolve_param(self.params.swap_phase),
             "u_num_swaps": self._resolve_param(self.params.num_swaps),
-            "tex0": self.params.swapped_texture,
+            "u_tex0": self.params.swapped_texture,
         }
         return uniforms

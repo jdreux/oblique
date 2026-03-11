@@ -383,10 +383,10 @@ def blend_textures(
         tex0.use(location=0)
         tex1.use(location=1)
 
-        if "tex0" in program:
-            program["tex0"] = 0
-        if "tex1" in program:
-            program["tex1"] = 1
+        if "u_tex0" in program:
+            program["u_tex0"] = 0
+        if "u_tex1" in program:
+            program["u_tex1"] = 1
         if "u_resolution" in program:
             program["u_resolution"] = (width, height)
 
