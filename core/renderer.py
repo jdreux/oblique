@@ -37,6 +37,7 @@ _last_good_cache: dict[str, ShaderCacheEntry] = {}
 _texture_cache: OrderedDict[str, moderngl.Texture] = OrderedDict()
 _TEXTURE_CACHE_MAX_SIZE = 64
 _hot_reload_shaders_enabled = False
+_debug_mode = False
 _ctx: moderngl.Context | None = None
 
 
@@ -51,6 +52,30 @@ def set_hot_reload_shaders(enabled: bool) -> None:
     """
     global _hot_reload_shaders_enabled
     _hot_reload_shaders_enabled = enabled
+
+
+def set_debug_mode(enabled: bool) -> None:
+    """Enable or disable debug checks for shader/uniform contracts."""
+    global _debug_mode
+    _debug_mode = enabled
+
+
+def _program_binding_names(program: Any) -> set[str]:
+    """Collect iterable binding/member names exposed by a shader program."""
+    names: set[str] = set()
+    try:
+        if hasattr(program, "keys"):
+            names.update(str(name) for name in program.keys())
+    except Exception:
+        pass
+
+    try:
+        for member in program:
+            names.add(str(getattr(member, "name", member)))
+    except Exception:
+        pass
+    return names
+
 
 def set_ctx(ctx: moderngl.Context) -> None:
     """
@@ -149,7 +174,7 @@ def render_fullscreen_quad(
     tuple
         ``(program, vao, vbo)`` for optional manual management.
     """
-    global _shader_cache, _last_good_cache, _hot_reload_shaders_enabled
+    global _shader_cache, _last_good_cache, _hot_reload_shaders_enabled, _debug_mode
 
     resolved_path = str(resolve_asset_path(frag_shader_path))
 
@@ -224,6 +249,20 @@ def render_fullscreen_quad(
     else:
         cached_entry = _shader_cache[resolved_path]
         program, vao, vbo = cached_entry.program, cached_entry.vao, cached_entry.vbo
+
+    if _debug_mode:
+        shader_uniforms = _program_binding_names(program)
+        provided_uniforms = {str(name) for name in uniforms}
+        extra = provided_uniforms - shader_uniforms
+        missing = shader_uniforms - provided_uniforms - {"in_vert", "in_uv"}
+        if extra:
+            warning(
+                f"[{frag_shader_path}] Python provides but shader ignores: {sorted(extra)}"
+            )
+        if missing:
+            warning(
+                f"[{frag_shader_path}] Shader expects but Python doesn't provide: {sorted(missing)}"
+            )
 
     # Set uniforms efficiently
     texture_unit = 0

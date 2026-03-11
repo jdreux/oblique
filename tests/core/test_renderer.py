@@ -20,6 +20,8 @@ def test_set_hot_reload_and_ctx():
     ctx = object()
     renderer.set_hot_reload_shaders(True)
     assert renderer._hot_reload_shaders_enabled is True
+    renderer.set_debug_mode(True)
+    assert renderer._debug_mode is True
     renderer.set_ctx(ctx)  # type: ignore[arg-type]
     assert renderer._ctx is ctx
 
@@ -217,3 +219,42 @@ def test_texture_cache_lru_enforces_capacity():
 
     assert len(renderer._texture_cache) == 64
     assert released == [f"key_{idx}" for idx in range(6)]
+
+
+def test_debug_mode_logs_uniform_contract_mismatches(tmp_path, monkeypatch):
+    setup_stubs()
+    renderer = load_module("core.renderer", ROOT / "core" / "renderer.py")
+    import moderngl
+
+    ctx = moderngl.create_context()
+    shader_src = (ROOT / "shaders" / "passthrough.frag").read_text()
+    shader_file = tmp_path / "debug_mismatch.frag"
+    shader_file.write_text(shader_src)
+
+    class DummyProgram(dict):
+        def __iter__(self):
+            return iter(["u_brightness", "u_resolution", "in_vert", "in_uv"])
+
+        def release(self):
+            return None
+
+    monkeypatch.setattr(
+        ctx,
+        "program",
+        lambda *args, **kwargs: DummyProgram({"u_brightness": None, "u_resolution": None}),
+    )
+
+    warnings: list[str] = []
+    monkeypatch.setattr(renderer, "warning", lambda message: warnings.append(message))
+
+    renderer._shader_cache.clear()
+    renderer._last_good_cache.clear()
+    renderer.set_debug_mode(True)
+    renderer.render_fullscreen_quad(
+        ctx,
+        str(shader_file),
+        {"u_brightnes": 0.5, "u_resolution": (1, 1)},
+    )
+
+    assert any("Python provides but shader ignores" in message for message in warnings)
+    assert any("Shader expects but Python doesn't provide" in message for message in warnings)

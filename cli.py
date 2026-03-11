@@ -242,6 +242,9 @@ def format_start_plan(config: StartConfiguration) -> str:
 
 def run_start(args: argparse.Namespace) -> ExitCode:
     """Implementation of the ``oblique start`` command."""
+    from core.renderer import set_debug_mode
+
+    set_debug_mode(args.debug)
 
     if args.target == "repl":
         repl_args = argparse.Namespace(
@@ -439,7 +442,10 @@ def run_repl(args: argparse.Namespace) -> ExitCode:
 def run_render(args: argparse.Namespace) -> ExitCode:
     """Implementation of the ``oblique render`` command."""
     from core.logger import configure_logging
+    from core.renderer import set_debug_mode
+
     configure_logging(level=args.log_level)
+    set_debug_mode(args.debug)
 
     if args.fps <= 0:
         sys.stderr.write("error: --fps must be > 0\n")
@@ -673,6 +679,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     start_parser.add_argument("--log-level", default="INFO")
     start_parser.add_argument("--log-file")
+    start_parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable shader/uniform contract mismatch warnings",
+    )
     start_parser.add_argument("--dry-run", action="store_true")
     start_parser.set_defaults(func=run_start)
 
@@ -697,6 +708,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Seconds of audio to prime before rendering (default: 0.5)")
     render_parser.add_argument("--inspect", action="store_true",
         help="Print JSON frame stats (and temporal stats for multi-frame timelines)")
+    render_parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable shader/uniform contract mismatch warnings",
+    )
     render_parser.add_argument("--log-level", default="WARNING")
     render_parser.set_defaults(func=run_render)
 

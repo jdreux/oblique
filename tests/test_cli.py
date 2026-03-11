@@ -81,6 +81,7 @@ def _render_args(**overrides: object) -> Namespace:
         "height": 600,
         "prime_audio": 0.5,
         "inspect": False,
+        "debug": False,
         "log_level": "WARNING",
     }
     defaults.update(overrides)
@@ -258,6 +259,17 @@ def test_parser_supports_module_registry_commands() -> None:
     assert describe_args.json is True
 
 
+def test_parser_supports_debug_flags() -> None:
+    parser = cli_module.build_parser()
+    start_args = parser.parse_args(["start", "projects.demo.demo_audio_file", "--debug"])
+    assert start_args.command == "start"
+    assert start_args.debug is True
+
+    render_args = parser.parse_args(["render", "projects.demo.demo_audio_file", "--debug", "--inspect"])
+    assert render_args.command == "render"
+    assert render_args.debug is True
+
+
 def test_list_modules_json_output(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
     class DummySpec:
         name = "FeedbackModule"
@@ -308,3 +320,43 @@ def test_describe_unknown_module_returns_usage(
     assert cli_module.run_describe(args) == ExitCode.USAGE
     err = capsys.readouterr().err
     assert "unknown module" in err
+
+
+def test_render_debug_calls_set_debug_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    debug_calls: list[bool] = []
+
+    fake_renderer_mod = ModuleType("core.renderer")
+    fake_renderer_mod.set_debug_mode = lambda enabled: debug_calls.append(enabled)  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "core.renderer", fake_renderer_mod)
+
+    class FakeHeadlessRenderer:
+        def __init__(self, patch: object, width: int, height: int) -> None:
+            self.patch = patch
+            self.width = width
+            self.height = height
+
+        def __enter__(self) -> "FakeHeadlessRenderer":
+            return self
+
+        def __exit__(self, *_: object) -> None:
+            return None
+
+        def prime_audio(self, t: float) -> None:
+            return None
+
+        def inspect(self, t: float) -> dict[str, object]:
+            return {"ok": True}
+
+    fake_headless = ModuleType("core.headless_renderer")
+    fake_headless.HeadlessRenderer = FakeHeadlessRenderer
+    monkeypatch.setitem(sys.modules, "core.headless_renderer", fake_headless)
+    monkeypatch.setattr(cli_module, "parse_patch_reference", lambda _: object())
+    monkeypatch.setattr(
+        cli_module,
+        "instantiate_patch",
+        lambda *_args, **_kwargs: (object(), None, None),
+    )
+
+    args = _render_args(inspect=True, debug=True)
+    assert run_render(args) == ExitCode.OK
+    assert debug_calls == [True]
