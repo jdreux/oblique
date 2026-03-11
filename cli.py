@@ -435,6 +435,113 @@ def run_repl(args: argparse.Namespace) -> ExitCode:
     return ExitCode.OK
 
 
+def run_render(args: argparse.Namespace) -> ExitCode:
+    """Implementation of the ``oblique render`` command."""
+    from core.logger import configure_logging
+    configure_logging(level=args.log_level)
+
+    if args.fps <= 0:
+        sys.stderr.write("error: --fps must be > 0\n")
+        return ExitCode.USAGE
+    if args.duration is not None and args.duration < 0:
+        sys.stderr.write("error: --duration must be >= 0\n")
+        return ExitCode.USAGE
+    if args.frames is not None and args.frames <= 0:
+        sys.stderr.write("error: --frames must be > 0\n")
+        return ExitCode.USAGE
+    if args.duration is not None and args.frames is not None:
+        sys.stderr.write("error: use either --duration or --frames, not both\n")
+        return ExitCode.USAGE
+
+    try:
+        patch_ref = parse_patch_reference(args.target)
+        patch, _, _ = instantiate_patch(patch_ref, args.width, args.height)
+    except CliError as err:
+        print_cli_error(err)
+        return err.exit_code
+    except Exception as exc:
+        error(f"Unexpected error while loading patch: {exc}")
+        return ExitCode.INTERNAL
+
+    from core.headless_renderer import HeadlessRenderer
+
+    try:
+        with HeadlessRenderer(patch, args.width, args.height) as renderer:
+            renderer.prime_audio(t=args.prime_audio)
+
+            # --inspect: print stats and exit
+            if args.inspect:
+                stats = renderer.inspect(args.t)
+                print(stats)
+                return ExitCode.OK
+
+            # Determine output mode
+            output: Optional[str] = args.output
+            output_dir: Optional[str] = args.output_dir
+
+            if output is None and output_dir is None:
+                sys.stderr.write(
+                    "error: provide --output PATH or --output-dir DIR\n"
+                    "hint: use --inspect to print frame stats without saving\n"
+                )
+                return ExitCode.USAGE
+
+            # Single frame
+            if output is not None and args.duration is None and args.frames is None:
+                renderer.render_to_file(args.t, output)
+                return ExitCode.OK
+
+            # Build time list
+            times, end_t = _build_render_timeline(
+                start_t=args.t,
+                duration=args.duration,
+                frames=args.frames,
+                fps=args.fps,
+            )
+
+            # Video output
+            if output is not None:
+                from pathlib import Path as _Path
+                ext = _Path(output).suffix.lower()
+                if ext in (".mp4", ".mov", ".gif"):
+                    renderer.render_video(times[0], end_t, args.fps, output)
+                    return ExitCode.OK
+                # Fallback: treat as single frame
+                renderer.render_to_file(times[0], output)
+                return ExitCode.OK
+
+            # Sequence to directory
+            if output_dir is not None:
+                renderer.render_sequence(times, output_dir)
+                return ExitCode.OK
+
+    except RuntimeError as exc:
+        error(f"Render error: {exc}")
+        return ExitCode.GPU
+
+    return ExitCode.OK
+
+
+def _build_render_timeline(
+    start_t: float,
+    duration: Optional[float],
+    frames: Optional[int],
+    fps: int,
+) -> Tuple[list[float], float]:
+    """Return render sample times and the exclusive timeline end time."""
+    if duration is not None:
+        n_frames = max(1, int(duration * fps))
+    elif frames is not None:
+        n_frames = frames
+    else:
+        n_frames = 1
+
+    dt = 1.0 / fps
+    times = [start_t + i * dt for i in range(n_frames)]
+    end_t = start_t + n_frames * dt
+    return times, end_t
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Construct the top-level argument parser."""
 
@@ -473,6 +580,30 @@ def build_parser() -> argparse.ArgumentParser:
     start_parser.add_argument("--dry-run", action="store_true")
     start_parser.set_defaults(func=run_start)
 
+    render_parser = subparsers.add_parser(
+        "render",
+        help="Render a patch headlessly to image(s) or video",
+    )
+    render_parser.add_argument("target", help="Patch module path or file (same syntax as 'start')")
+    render_parser.add_argument("--t", type=float, default=0.0, help="Time offset in seconds (default: 0.0)")
+    render_parser.add_argument("--output", default=None, metavar="PATH",
+        help="Output path: .png for a single frame, .mp4/.mov/.gif for video")
+    render_parser.add_argument("--output-dir", default=None, metavar="DIR",
+        help="Directory for a PNG sequence (frame_0000.png, …)")
+    render_parser.add_argument("--duration", type=float, default=None, metavar="SECS",
+        help="Duration in seconds for sequences and video")
+    render_parser.add_argument("--frames", type=int, default=None, metavar="N",
+        help="Number of frames to render (used when --duration is not set)")
+    render_parser.add_argument("--fps", type=int, default=30, help="Frames per second (default: 30)")
+    render_parser.add_argument("--width", type=int, default=800)
+    render_parser.add_argument("--height", type=int, default=600)
+    render_parser.add_argument("--prime-audio", type=float, default=0.5, metavar="SECS",
+        help="Seconds of audio to prime before rendering (default: 0.5)")
+    render_parser.add_argument("--inspect", action="store_true",
+        help="Print frame stats (brightness, non-black ratio) instead of saving")
+    render_parser.add_argument("--log-level", default="WARNING")
+    render_parser.set_defaults(func=run_render)
+
     return parser
 
 
@@ -503,4 +634,3 @@ def _read_repl_template() -> str:
             exit_code=ExitCode.IO,
         )
     return template_path.read_text(encoding="utf-8")
-

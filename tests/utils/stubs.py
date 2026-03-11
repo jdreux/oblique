@@ -113,7 +113,7 @@ def setup_stubs() -> None:
             Buffer=DummyBuffer,
             VertexArray=DummyVAO,
             Context=DummyContext,
-            create_context=lambda: DummyContext(),
+            create_context=lambda *a, **k: DummyContext(),
             NEAREST=0,
             LINEAR=1,
             TRIANGLE_STRIP=0,

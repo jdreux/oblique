@@ -67,6 +67,21 @@ def cleanup_shader_cache() -> None:
     _shader_cache.clear()
 
 
+def cleanup_texture_cache() -> None:
+    """Release all cached textures.
+
+    Must be called when the OpenGL context is about to be destroyed so that
+    subsequent contexts do not receive stale texture handles.
+    """
+    global _texture_cache
+    for tex in _texture_cache.values():
+        try:
+            tex.release()
+        except Exception:
+            pass
+    _texture_cache.clear()
+
+
 def _release_shader_cache_entry(entry: ShaderCacheEntry) -> None:
     """Safely release program, VAO and VBO resources from a cache entry."""
     if entry is not None:
