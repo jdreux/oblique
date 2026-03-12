@@ -21,7 +21,7 @@ elif not hasattr(logger_module, "configure_logging"):
     logger_module.warning = getattr(logger_module, "warning", lambda *a, **k: None)
 
 import cli as cli_module
-from cli import CliError, ExitCode, resolve_start_configuration, run_render
+from cli import CliError, ExitCode, resolve_start_configuration, run_preview, run_render
 
 
 def test_start_requires_patch_argument() -> None:
@@ -81,6 +81,25 @@ def _render_args(**overrides: object) -> Namespace:
         "height": 600,
         "prime_audio": 0.5,
         "inspect": False,
+        "debug": False,
+        "log_level": "WARNING",
+    }
+    defaults.update(overrides)
+    return Namespace(**defaults)
+
+
+def _preview_args(**overrides: object) -> Namespace:
+    defaults = {
+        "target": "projects.demo.demo_audio_file",
+        "host": "127.0.0.1",
+        "port": 8765,
+        "fps": 30,
+        "width": 800,
+        "height": 600,
+        "t": 0.0,
+        "prime_audio": 0.5,
+        "jpeg_quality": 80,
+        "playback_speed": 1.0,
         "debug": False,
         "log_level": "WARNING",
     }
@@ -268,6 +287,61 @@ def test_parser_supports_debug_flags() -> None:
     render_args = parser.parse_args(["render", "projects.demo.demo_audio_file", "--debug", "--inspect"])
     assert render_args.command == "render"
     assert render_args.debug is True
+
+    preview_args = parser.parse_args(["preview", "projects.demo.demo_audio_file", "--debug"])
+    assert preview_args.command == "preview"
+    assert preview_args.debug is True
+
+
+def test_preview_rejects_non_positive_fps() -> None:
+    args = _preview_args(fps=0)
+    assert run_preview(args) == ExitCode.USAGE
+
+
+def test_preview_calls_serve_preview(monkeypatch: pytest.MonkeyPatch) -> None:
+    debug_calls: list[bool] = []
+    serve_calls: list[dict[str, object]] = []
+
+    fake_renderer_mod = ModuleType("core.renderer")
+    fake_renderer_mod.set_debug_mode = lambda enabled: debug_calls.append(enabled)  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "core.renderer", fake_renderer_mod)
+
+    fake_preview_mod = ModuleType("core.preview_server")
+    fake_preview_mod.serve_preview = lambda **kwargs: serve_calls.append(kwargs)  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "core.preview_server", fake_preview_mod)
+
+    monkeypatch.setattr(cli_module, "parse_patch_reference", lambda _: object())
+    monkeypatch.setattr(
+        cli_module,
+        "instantiate_patch",
+        lambda *_args, **_kwargs: (object(), None, None),
+    )
+
+    args = _preview_args(
+        host="0.0.0.0",
+        port=9001,
+        fps=24,
+        width=960,
+        height=540,
+        t=1.0,
+        prime_audio=0.25,
+        jpeg_quality=70,
+        playback_speed=1.5,
+        debug=True,
+    )
+    assert run_preview(args) == ExitCode.OK
+    assert debug_calls == [True]
+    assert len(serve_calls) == 1
+    call = serve_calls[0]
+    assert call["host"] == "0.0.0.0"
+    assert call["port"] == 9001
+    assert call["fps"] == 24
+    assert call["width"] == 960
+    assert call["height"] == 540
+    assert call["start_t"] == pytest.approx(1.0)
+    assert call["prime_audio"] == pytest.approx(0.25)
+    assert call["jpeg_quality"] == 70
+    assert call["playback_speed"] == pytest.approx(1.5)
 
 
 def test_list_modules_json_output(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:

@@ -538,6 +538,61 @@ def run_render(args: argparse.Namespace) -> ExitCode:
     return ExitCode.OK
 
 
+def run_preview(args: argparse.Namespace) -> ExitCode:
+    """Implementation of the ``oblique preview`` command."""
+    from core.logger import configure_logging
+    from core.preview_server import serve_preview
+    from core.renderer import set_debug_mode
+
+    configure_logging(level=args.log_level)
+    set_debug_mode(args.debug)
+
+    if args.fps <= 0:
+        sys.stderr.write("error: --fps must be > 0\n")
+        return ExitCode.USAGE
+    if args.jpeg_quality < 1 or args.jpeg_quality > 95:
+        sys.stderr.write("error: --jpeg-quality must be between 1 and 95\n")
+        return ExitCode.USAGE
+    if args.playback_speed <= 0:
+        sys.stderr.write("error: --playback-speed must be > 0\n")
+        return ExitCode.USAGE
+    if args.port < 0 or args.port > 65535:
+        sys.stderr.write("error: --port must be between 0 and 65535\n")
+        return ExitCode.USAGE
+
+    try:
+        patch_ref = parse_patch_reference(args.target)
+        patch, _, _ = instantiate_patch(patch_ref, args.width, args.height)
+    except CliError as err:
+        print_cli_error(err)
+        return err.exit_code
+    except Exception as exc:
+        error(f"Unexpected error while loading patch: {exc}")
+        return ExitCode.INTERNAL
+
+    try:
+        serve_preview(
+            patch=patch,
+            width=args.width,
+            height=args.height,
+            host=args.host,
+            port=args.port,
+            fps=args.fps,
+            start_t=args.t,
+            prime_audio=args.prime_audio,
+            jpeg_quality=args.jpeg_quality,
+            playback_speed=args.playback_speed,
+        )
+    except OSError as exc:
+        error(f"Preview server error: {exc}")
+        return ExitCode.IO
+    except RuntimeError as exc:
+        error(f"Preview render error: {exc}")
+        return ExitCode.GPU
+
+    return ExitCode.OK
+
+
 def run_list_modules(args: argparse.Namespace) -> ExitCode:
     """Implementation of the ``oblique list-modules`` command."""
     try:
@@ -715,6 +770,41 @@ def build_parser() -> argparse.ArgumentParser:
     )
     render_parser.add_argument("--log-level", default="WARNING")
     render_parser.set_defaults(func=run_render)
+
+    preview_parser = subparsers.add_parser(
+        "preview",
+        help="Serve a local MJPEG preview stream for editor/web embedding",
+    )
+    preview_parser.add_argument("target", help="Patch module path or file (same syntax as 'start')")
+    preview_parser.add_argument("--host", default="127.0.0.1", help="Bind host (default: 127.0.0.1)")
+    preview_parser.add_argument("--port", type=int, default=8765, help="Bind port (default: 8765)")
+    preview_parser.add_argument("--fps", type=int, default=30, help="Preview frame rate (default: 30)")
+    preview_parser.add_argument("--width", type=int, default=800)
+    preview_parser.add_argument("--height", type=int, default=600)
+    preview_parser.add_argument("--t", type=float, default=0.0, help="Start time offset in seconds")
+    preview_parser.add_argument("--prime-audio", type=float, default=0.5, metavar="SECS",
+        help="Seconds of audio to prime before preview starts (default: 0.5)")
+    preview_parser.add_argument(
+        "--jpeg-quality",
+        type=int,
+        default=80,
+        metavar="N",
+        help="JPEG quality for MJPEG stream (1-95, default: 80)",
+    )
+    preview_parser.add_argument(
+        "--playback-speed",
+        type=float,
+        default=1.0,
+        metavar="X",
+        help="Time scale multiplier for preview playback (default: 1.0)",
+    )
+    preview_parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable shader/uniform contract mismatch warnings",
+    )
+    preview_parser.add_argument("--log-level", default="WARNING")
+    preview_parser.set_defaults(func=run_preview)
 
     list_modules_parser = subparsers.add_parser(
         "list-modules",
