@@ -57,6 +57,15 @@ class _PreviewState:
             self.cond.notify_all()
 
 
+def _resolve_preview_host(requested_host: str, bound_host: str) -> str:
+    """Return a browser-friendly host for terminal links."""
+    if requested_host in {"", "0.0.0.0", "::"}:
+        return "127.0.0.1"
+    if bound_host in {"0.0.0.0", "::"}:
+        return "127.0.0.1"
+    return requested_host
+
+
 def _encode_jpeg(arr: np.ndarray, quality: int) -> bytes:
     rgb = (np.clip(arr[:, :, :3], 0.0, 1.0) * 255.0).astype(np.uint8)
     image = Image.fromarray(rgb, mode="RGB")
@@ -88,12 +97,27 @@ def _render_loop(
             renderer.prime_audio(t=prime_audio)
             start_wall = time.perf_counter()
             next_frame_at = start_wall
+            last_wall = start_wall
+            audio_chunk_carry = 0.0
 
             while state.running:
                 now = time.perf_counter()
                 t = start_t + (now - start_wall) * playback_speed
+
+                audio = patch.audio_output
+                if audio is not None and audio.chunk_size > 0 and audio.sample_rate > 0:
+                    delta = max(0.0, now - last_wall) * playback_speed
+                    audio_chunk_carry += (delta * audio.sample_rate) / float(audio.chunk_size)
+                    chunks_to_read = int(audio_chunk_carry)
+                    for _ in range(chunks_to_read):
+                        chunk = audio.read()
+                        if getattr(chunk, "shape", (0,))[0] == 0:
+                            break
+                    audio_chunk_carry -= chunks_to_read
+
                 arr = renderer.render_frame(t)
                 state.publish(_encode_jpeg(arr, jpeg_quality))
+                last_wall = now
 
                 next_frame_at += frame_period
                 sleep_for = next_frame_at - time.perf_counter()
@@ -138,12 +162,21 @@ def serve_preview(
     <style>
       body {{ margin: 0; background: #111; color: #ddd; font: 13px/1.4 monospace; }}
       .meta {{ padding: 8px 12px; border-bottom: 1px solid #222; }}
-      img {{ display: block; width: min(100vw, {width}px); height: auto; margin: 0 auto; }}
+      .viewer {{ display: flex; justify-content: center; align-items: center; height: calc(100vh - 42px); }}
+      img {{
+        display: block;
+        width: auto;
+        height: auto;
+        max-width: 100vw;
+        max-height: calc(100vh - 42px);
+        object-fit: contain;
+        margin: 0 auto;
+      }}
     </style>
   </head>
   <body>
     <div class="meta">oblique preview @ {host}:{self.server.server_port} ({width}x{height} @ {fps} fps)</div>
-    <img src="/stream.mjpg" alt="Oblique live preview" />
+    <div class="viewer"><img src="/stream.mjpg" alt="Oblique live preview" /></div>
   </body>
 </html>"""
             data = body.encode("utf-8")
@@ -221,7 +254,14 @@ def serve_preview(
     render_thread.start()
 
     bound_host, bound_port = httpd.server_address[0], httpd.server_address[1]
-    info(f"[preview] Serving MJPEG stream at http://{bound_host}:{bound_port}/")
+    link_host = _resolve_preview_host(host, bound_host)
+    preview_url = f"http://{link_host}:{bound_port}/"
+    stream_url = f"http://{link_host}:{bound_port}/stream.mjpg"
+    info(f"[preview] Viewer URL: {preview_url}")
+    info(f"[preview] Stream URL: {stream_url}")
+    # Plain URLs for editor terminals that auto-linkify stdout text.
+    print(preview_url)
+    print(stream_url)
     try:
         httpd.serve_forever(poll_interval=0.25)
     except KeyboardInterrupt:

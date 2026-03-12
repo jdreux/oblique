@@ -301,6 +301,7 @@ def test_preview_rejects_non_positive_fps() -> None:
 def test_preview_calls_serve_preview(monkeypatch: pytest.MonkeyPatch) -> None:
     debug_calls: list[bool] = []
     serve_calls: list[dict[str, object]] = []
+    instantiate_calls: list[dict[str, object]] = []
 
     fake_renderer_mod = ModuleType("core.renderer")
     fake_renderer_mod.set_debug_mode = lambda enabled: debug_calls.append(enabled)  # type: ignore[attr-defined]
@@ -311,11 +312,26 @@ def test_preview_calls_serve_preview(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(sys.modules, "core.preview_server", fake_preview_mod)
 
     monkeypatch.setattr(cli_module, "parse_patch_reference", lambda _: object())
-    monkeypatch.setattr(
-        cli_module,
-        "instantiate_patch",
-        lambda *_args, **_kwargs: (object(), None, None),
-    )
+
+    def _fake_instantiate_patch(
+        patch_ref: object,
+        width: int,
+        height: int,
+        reload: bool = False,
+        pixel_ratio: int = 2,
+    ) -> tuple[object, None, None]:
+        instantiate_calls.append(
+            {
+                "patch_ref": patch_ref,
+                "width": width,
+                "height": height,
+                "reload": reload,
+                "pixel_ratio": pixel_ratio,
+            }
+        )
+        return object(), None, None
+
+    monkeypatch.setattr(cli_module, "instantiate_patch", _fake_instantiate_patch)
 
     args = _preview_args(
         host="0.0.0.0",
@@ -342,6 +358,8 @@ def test_preview_calls_serve_preview(monkeypatch: pytest.MonkeyPatch) -> None:
     assert call["prime_audio"] == pytest.approx(0.25)
     assert call["jpeg_quality"] == 70
     assert call["playback_speed"] == pytest.approx(1.5)
+    assert len(instantiate_calls) == 1
+    assert instantiate_calls[0]["pixel_ratio"] == 1
 
 
 def test_list_modules_json_output(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:

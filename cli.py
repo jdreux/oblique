@@ -165,6 +165,7 @@ def instantiate_patch(
     width: int,
     height: int,
     reload: bool = False,
+    pixel_ratio: int = 2,
 ) -> Tuple[ObliquePatch, ModuleType, Path]:
     """Instantiate a patch from a reference and return module + file path."""
 
@@ -183,7 +184,7 @@ def instantiate_patch(
         module, patch_ref.function_name
     )
 
-    patch = factory(width * 2, height * 2)
+    patch = factory(width * pixel_ratio, height * pixel_ratio)
     module_path = Path(module.__file__).resolve() if module.__file__ else Path()
     return patch, module, module_path
 
@@ -462,7 +463,12 @@ def run_render(args: argparse.Namespace) -> ExitCode:
 
     try:
         patch_ref = parse_patch_reference(args.target)
-        patch, _, _ = instantiate_patch(patch_ref, args.width, args.height)
+        patch, _, _ = instantiate_patch(
+            patch_ref,
+            args.width,
+            args.height,
+            pixel_ratio=1,
+        )
     except CliError as err:
         print_cli_error(err)
         return err.exit_code
@@ -562,7 +568,12 @@ def run_preview(args: argparse.Namespace) -> ExitCode:
 
     try:
         patch_ref = parse_patch_reference(args.target)
-        patch, _, _ = instantiate_patch(patch_ref, args.width, args.height)
+        patch, _, _ = instantiate_patch(
+            patch_ref,
+            args.width,
+            args.height,
+            pixel_ratio=1,
+        )
     except CliError as err:
         print_cli_error(err)
         return err.exit_code
