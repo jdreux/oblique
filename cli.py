@@ -482,8 +482,12 @@ def run_render(args: argparse.Namespace) -> ExitCode:
         with HeadlessRenderer(patch, args.width, args.height) as renderer:
             renderer.prime_audio(t=args.prime_audio)
 
-            # --inspect: print frame stats as JSON and exit
-            if args.inspect:
+            # Determine output mode
+            output: Optional[str] = args.output
+            output_dir: Optional[str] = args.output_dir
+
+            # --inspect without output: print frame stats and exit
+            if args.inspect and output is None and output_dir is None:
                 if args.duration is not None or args.frames is not None:
                     times, _ = _build_render_timeline(
                         start_t=args.t,
@@ -497,10 +501,6 @@ def run_render(args: argparse.Namespace) -> ExitCode:
                 print(json.dumps(stats, indent=2))
                 return ExitCode.OK
 
-            # Determine output mode
-            output: Optional[str] = args.output
-            output_dir: Optional[str] = args.output_dir
-
             if output is None and output_dir is None:
                 sys.stderr.write(
                     "error: provide --output PATH or --output-dir DIR\n"
@@ -511,6 +511,8 @@ def run_render(args: argparse.Namespace) -> ExitCode:
             # Single frame
             if output is not None and args.duration is None and args.frames is None:
                 renderer.render_to_file(args.t, output)
+                if args.inspect:
+                    print(json.dumps(renderer.inspect(args.t), indent=2))
                 return ExitCode.OK
 
             # Build time list
@@ -527,14 +529,20 @@ def run_render(args: argparse.Namespace) -> ExitCode:
                 ext = _Path(output).suffix.lower()
                 if ext in (".mp4", ".mov", ".gif"):
                     renderer.render_video(times[0], end_t, args.fps, output)
+                    if args.inspect:
+                        print(json.dumps(renderer.inspect_sequence(times), indent=2))
                     return ExitCode.OK
                 # Fallback: treat as single frame
                 renderer.render_to_file(times[0], output)
+                if args.inspect:
+                    print(json.dumps(renderer.inspect(times[0]), indent=2))
                 return ExitCode.OK
 
             # Sequence to directory
             if output_dir is not None:
                 renderer.render_sequence(times, output_dir)
+                if args.inspect:
+                    print(json.dumps(renderer.inspect_sequence(times), indent=2))
                 return ExitCode.OK
 
     except RuntimeError as exc:
