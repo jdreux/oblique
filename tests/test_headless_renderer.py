@@ -8,6 +8,8 @@ tests that install moderngl stubs (e.g. unit tests for engine/renderer internals
 """
 
 import os
+from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -42,7 +44,8 @@ _skip_if_no_gpu = pytest.mark.skipif(
 
 from core.headless_renderer import HeadlessRenderer
 from core.oblique_patch import ObliquePatch
-from modules.core.base_av_module import BaseAVModule
+from core.frame_analysis import analyze_frame, analyze_temporal, hash_distance, perceptual_hash
+from modules.core.base_av_module import BaseAVModule, BaseAVParams, Uniforms
 from modules.core.visual_noise import VisualNoiseModule, VisualNoiseParams
 
 
@@ -57,6 +60,83 @@ def _noise_patch(width: int, height: int) -> ObliquePatch:
         return module
 
     return ObliquePatch(tick_callback=tick)
+
+
+def _rotating_rect_shader(shader_path: Path) -> None:
+    shader_path.write_text(
+        """
+#version 330 core
+uniform vec2 u_resolution;
+uniform float u_time;
+in vec2 v_uv;
+out vec4 fragColor;
+
+mat2 rot(float a) {
+    float c = cos(a);
+    float s = sin(a);
+    return mat2(c, -s, s, c);
+}
+
+void main() {
+    vec2 p = v_uv * 2.0 - 1.0;
+    float angle = u_time * 0.78539816339; // 45 degrees / second
+    vec2 q = rot(-angle) * p;
+    vec2 half_size = vec2(0.45, 0.18);
+    float inside = step(abs(q.x), half_size.x) * step(abs(q.y), half_size.y);
+    fragColor = vec4(vec3(inside), 1.0);
+}
+        """.strip(),
+        encoding="utf-8",
+    )
+
+
+def _rotating_rect_patch(width: int, height: int, shader_path: str) -> ObliquePatch:
+    @dataclass
+    class RotatingRectParams(BaseAVParams):
+        width: int
+        height: int
+
+    class RotatingRectUniforms(Uniforms, total=True):
+        u_time: float
+
+    class RotatingRectModule(BaseAVModule[RotatingRectParams, RotatingRectUniforms]):
+        frag_shader_path = "shaders/passthrough.frag"
+
+        def __init__(self, params: RotatingRectParams, shader_file: str) -> None:
+            self.frag_shader_path = shader_file
+            super().__init__(params)
+
+        def prepare_uniforms(self, t: float) -> RotatingRectUniforms:
+            return {
+                "u_resolution": (self.params.width, self.params.height),
+                "u_time": t,
+            }
+
+    module = RotatingRectModule(
+        RotatingRectParams(width=width, height=height),
+        shader_path,
+    )
+
+    def tick(t: float) -> BaseAVModule:
+        return module
+
+    return ObliquePatch(tick_callback=tick)
+
+
+def _dominant_axis_angle(arr: np.ndarray) -> float:
+    """Return principal axis angle (radians) of bright pixels in a frame."""
+    mask = arr[:, :, 0] > 0.5
+    ys, xs = np.nonzero(mask)
+    x = xs.astype(np.float32)
+    y = ys.astype(np.float32)
+    x -= x.mean()
+    y -= y.mean()
+
+    cov_xx = float(np.mean(x * x))
+    cov_yy = float(np.mean(y * y))
+    cov_xy = float(np.mean(x * y))
+    angle = 0.5 * np.arctan2(2.0 * cov_xy, cov_xx - cov_yy)
+    return float(abs(angle))
 
 
 @pytest.fixture
@@ -175,3 +255,33 @@ class TestPrimeAudio:
     def test_no_audio_is_safe(self, renderer):
         """prime_audio should be a no-op when the patch has no audio output."""
         renderer.prime_audio(t=1.0)  # should not raise
+
+
+@_skip_if_no_gpu
+class TestAnimatedRenderCycle:
+    def test_rotating_rect_changes_over_time(self, tmp_path):
+        shader_path = tmp_path / "rotating-rect.frag"
+        _rotating_rect_shader(shader_path)
+        patch = _rotating_rect_patch(WIDTH, HEIGHT, str(shader_path))
+
+        with HeadlessRenderer(patch, WIDTH, HEIGHT) as renderer:
+            frame_t0 = renderer.render_frame(0.0)
+            frame_t1 = renderer.render_frame(1.0)
+
+        stats_t0 = analyze_frame(frame_t0)
+        stats_t1 = analyze_frame(frame_t1)
+        temporal = analyze_temporal([frame_t0, frame_t1])
+
+        assert stats_t0["is_blank"] is False
+        assert stats_t1["is_blank"] is False
+        assert abs(stats_t0["non_black_ratio"] - stats_t1["non_black_ratio"]) < 0.05
+        assert temporal["mean_motion"] > 0.01
+
+        h0 = perceptual_hash(frame_t0)
+        h1 = perceptual_hash(frame_t1)
+        assert hash_distance(h0, h1) >= 8
+
+        angle_t0 = _dominant_axis_angle(frame_t0)
+        angle_t1 = _dominant_axis_angle(frame_t1)
+        assert angle_t0 < 0.2
+        assert angle_t1 > 0.5
