@@ -7,9 +7,20 @@ allowing complex compositions while keeping Python orchestration minimal.  The
 code is optimised for Apple Silicon and GLSL 330.
 """
 
+import dataclasses
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Callable, Generic, TypedDict, TypeVar, Union, cast, overload
+from typing import (
+    Any,
+    Callable,
+    Generic,
+    TypedDict,
+    TypeVar,
+    Union,
+    cast,
+    get_type_hints,
+    overload,
+)
 
 import moderngl
 
@@ -458,3 +469,133 @@ class BaseAVModule(ABC, Generic[P, U]):
     def _resolve_resolution(self) -> tuple[int, int]:
         """ Helper method to resolve the resolution of the module. """
         return (self._resolve_param(self.params.width), self._resolve_param(self.params.height))
+
+    # ------------------------------------------------------------------
+    # Chainable composition API: .to() and .mix()
+    # ------------------------------------------------------------------
+
+    def to(self, module_cls: type["BaseAVModule"], **kwargs: Any) -> "BaseAVModule":
+        """Chain this module's output as the primary texture input of *module_cls*.
+
+        Introspects the target module's ``Params`` dataclass, finds the first
+        ``ParamTexture`` / ``BaseAVModule`` field, and wires ``self`` into it.
+        ``width`` and ``height`` are inherited from the source unless overridden.
+
+        Example::
+
+            result = (
+                noise_module
+                .to(FeedbackModule, feedback_strength=0.9)
+                .to(BarrelDistortionModule, strength=0.5)
+                .to(LevelModule, invert=True)
+            )
+        """
+        params_cls = _get_params_class(module_cls)
+        input_field = _find_texture_input_field(params_cls)
+
+        if input_field is None:
+            raise TypeError(
+                f"{module_cls.__name__} has no ParamTexture / BaseAVModule field "
+                "to auto-wire. Pass the texture input explicitly."
+            )
+
+        params_dict: dict[str, Any] = {
+            "width": self.params.width,
+            "height": self.params.height,
+        }
+
+        # Auto-wire only if the caller didn't supply the field explicitly.
+        if input_field not in kwargs:
+            params_dict[input_field] = self
+
+        params_dict.update(kwargs)
+        return module_cls(params_cls(**params_dict))
+
+    def mix(
+        self,
+        other: "BaseAVModule",
+        amount: "ParamFloat" = 0.5,
+        op: Any = None,
+    ) -> "BaseAVModule":
+        """Blend this module with *other* via :class:`CompositeModule`.
+
+        Returns a ``CompositeModule`` (which is itself a ``BaseAVModule``,
+        so the chain can continue).
+
+        Example::
+
+            result = module_a.mix(module_b, amount=0.7, op=CompositeOp.SCREEN)
+        """
+        from modules.composition.composite_module import (
+            CompositeModule,
+            CompositeOp,
+            CompositeParams,
+        )
+
+        if op is None:
+            op = CompositeOp.SCREEN
+
+        return CompositeModule(
+            CompositeParams(
+                width=self.params.width,
+                height=self.params.height,
+                top_texture=self,
+                bottom_texture=other,
+                operation=op,
+                mix=amount,
+            )
+        )
+
+
+# ------------------------------------------------------------------
+# Helpers for the chainable API
+# ------------------------------------------------------------------
+
+def _get_params_class(module_cls: type[BaseAVModule]) -> type[BaseAVParams]:
+    """Extract the ``Params`` dataclass from a module class's generic base."""
+    for base in getattr(module_cls, "__orig_bases__", ()):
+        args = getattr(base, "__args__", None)
+        if args:
+            candidate = args[0]
+            if isinstance(candidate, type) and issubclass(candidate, BaseAVParams):
+                return candidate
+    raise TypeError(
+        f"Cannot determine Params class for {module_cls.__name__}. "
+        "Ensure it inherits BaseAVModule[SomeParams, SomeUniforms]."
+    )
+
+
+def _find_texture_input_field(params_cls: type[BaseAVParams]) -> str | None:
+    """Return the name of the first ``ParamTexture`` / ``BaseAVModule`` field."""
+    try:
+        hints = get_type_hints(params_cls)
+    except Exception:
+        hints = {}
+
+    for f in dataclasses.fields(params_cls):
+        if f.name in ("width", "height"):
+            continue
+        hint = hints.get(f.name, f.type)
+        if _hint_contains_base_av_module(hint):
+            return f.name
+
+    return None
+
+
+def _hint_contains_base_av_module(hint: Any) -> bool:
+    """Check whether a type hint is or contains ``BaseAVModule``."""
+    # Bare class
+    if hint is BaseAVModule or (
+        isinstance(hint, type) and issubclass(hint, BaseAVModule)
+    ):
+        return True
+
+    # Union containing BaseAVModule (e.g. ParamTexture)
+    if getattr(hint, "__origin__", None) is Union:
+        return any(_hint_contains_base_av_module(a) for a in hint.__args__)
+
+    # ForwardRef("BaseAVModule") — happens when get_type_hints can't resolve
+    if hasattr(hint, "__forward_arg__") and hint.__forward_arg__ == "BaseAVModule":
+        return True
+
+    return False
