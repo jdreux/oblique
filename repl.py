@@ -1,11 +1,10 @@
 """Interactive REPL runner for Oblique patches.
 
-This utility starts an :class:`~core.oblique_engine.ObliqueEngine` in a background
-thread and drops the user into a Python REPL. The active engine instance and a
-``reload_patch`` helper are exposed in the console's local scope so patches can
-be edited and reloaded on the fly. Shader hot reloading can be toggled via the
-``--hot-reload-shaders`` flag, while ``--hot-reload-python`` enables automatic
-patch module re-imports when files change.
+This utility starts an :class:`~core.oblique_engine.ObliqueEngine` on the main
+thread and drops the user into a Python REPL in a background thread.  The active
+engine instance, a ``reload_patch`` helper, and live-coding helpers (``controls``,
+``slider``, ``midi_map``, ``midi_learn``, ``set_scene``, ``store``) are all
+exposed in the console's local scope.
 """
 
 import argparse
@@ -45,6 +44,11 @@ def main() -> None:
         action="store_true",
         help="Reload the patch module automatically when files change",
     )
+    parser.add_argument(
+        "--controls",
+        action="store_true",
+        help="Open a control surface window with parameter sliders and telemetry",
+    )
     parser.add_argument("--log-level", type=str, default="INFO",
                         choices=["FATAL", "ERROR", "WARNING", "INFO", "DEBUG", "TRACE"],
                         help="Logging level")
@@ -53,6 +57,37 @@ def main() -> None:
     args = parser.parse_args()
 
     configure_logging(level=args.log_level, log_to_file=args.log_file is not None, log_file_path=args.log_file)
+
+    # -- Live control infrastructure ------------------------------------------
+    # Set up *before* loading the patch so helpers are available at module scope.
+    import builtins
+
+    from core.live_helpers import (
+        make_controls_fn,
+        make_midi_learn_fn,
+        make_midi_map_fn,
+        make_set_scene_fn,
+        make_slider_fn,
+    )
+    from core.midi_mapper import MidiMapper
+    from core.param_store import ParamStore
+
+    store = ParamStore()
+    midi_mapper = MidiMapper(store)
+    control_window = None
+
+    # Inject helpers into builtins so patch files can call controls() etc.
+    # These are no-ops until --controls is passed (control_window=None).
+    controls_fn = make_controls_fn(store, control_window)
+    slider_fn = make_slider_fn(store, control_window)
+    midi_learn_fn = make_midi_learn_fn(midi_mapper)
+    midi_map_fn = make_midi_map_fn(midi_mapper)
+
+    setattr(builtins, "controls", controls_fn)
+    setattr(builtins, "slider", slider_fn)
+    setattr(builtins, "midi_learn", midi_learn_fn)
+    setattr(builtins, "midi_map", midi_map_fn)
+    setattr(builtins, "store", store)
 
     try:
         patch = _load_patch(args.patch_path, args.patch_function, args.width, args.height)
@@ -74,6 +109,14 @@ def main() -> None:
         target_fps=args.fps,
         hot_reload_shaders=args.hot_reload_shaders,
     )
+
+    if args.controls:
+        info(
+            "--controls is no longer supported in 'oblique start repl'. "
+            "Use 'oblique live' instead for the TUI control surface."
+        )
+
+    set_scene_fn = make_set_scene_fn([engine])
 
     # Store REPL state for communication between threads
     repl_state = {
@@ -98,29 +141,48 @@ def main() -> None:
     def start_repl():
         import sys
         import time
-        
+
         # Give the engine a moment to start and show initial logs
         time.sleep(0.5)
-        
+
+        extra = ""
+        if args.controls:
+            extra = (
+                "  controls(mod)      — auto-generate sliders for a module\n"
+                "  slider(name, ...)  — create a standalone slider\n"
+                "  midi_learn(key)    — arm MIDI learn for a param\n"
+                "  midi_map(cc, key)  — bind CC number to a param\n"
+                "  set_scene(mod)     — hot-swap the active scene\n"
+                "  store              — direct ParamStore access\n"
+            )
+
         banner = (
             "Oblique REPL.\n"
-            "Type reload_patch() or r() to reload patch, quit() to exit.\n"
-            "The running engine is available as 'engine'.\n"
-            "Engine logs will continue to appear above your input."
+            "  r() / reload_patch() — reload patch\n"
+            "  quit()               — exit\n"
+            "  engine               — running engine instance\n"
+            + extra
         )
         console_locals = {
-            "engine": engine, 
-            "reload_patch": reload_patch, 
+            "engine": engine,
+            "reload_patch": reload_patch,
             "r": reload_patch,
-            "quit": quit_repl
+            "quit": quit_repl,
+            "controls": controls_fn,
+            "slider": slider_fn,
+            "midi_learn": midi_learn_fn,
+            "midi_map": midi_map_fn,
+            "set_scene": set_scene_fn,
+            "store": store,
+            "midi_mapper": midi_mapper,
         }
-        
+
         # Create a custom console that flushes output
         class FlushingConsole(code.InteractiveConsole):
             def write(self, data):
                 sys.stdout.write(data)
                 sys.stdout.flush()
-        
+
         FlushingConsole(console_locals).interact(banner=banner)
 
     repl_thread = threading.Thread(target=start_repl, daemon=True)
@@ -158,19 +220,24 @@ def main() -> None:
             )
             python_watcher_thread.start()
 
+    # Start control window if requested (before entering render loop)
+    if control_window is not None:
+        control_window.start()
+        info("Control surface window started")
+
     # Run engine with REPL integration (must be on main thread for macOS)
     try:
         # Initialize engine
         engine._create_window()
         engine.start_time = time.time()
         engine.running = True
-        
+
         info(f"Starting Oblique REPL engine with patch {engine.patch}")
         info("REPL is starting in background - you can type commands once you see the >>> prompt")
-        
+
         if engine.hot_reload_shaders:
             info("Hot shader reload enabled")
-            
+
         if engine.audio_output is not None:
             engine.audio_output.start()
             engine.audio_thread = threading.Thread(
@@ -179,7 +246,7 @@ def main() -> None:
                 daemon=True,
             )
             engine.audio_thread.start()
-        
+
         # Main render loop (on main thread)
         import glfw
         while not glfw.window_should_close(engine.window) and not repl_state['quit_requested']:
@@ -199,33 +266,38 @@ def main() -> None:
                     print(">>> ", end="")  # Restore prompt even on error
                     sys.stdout.flush()
                 repl_state['reload_requested'] = False
-            
+
             # Performance monitoring
             if engine.performance_monitor:
                 engine.performance_monitor.begin_frame()
-            
+
             frame_start = time.time()
             t = frame_start - engine.start_time
-            
+
+            # Poll MIDI mapper
+            midi_mapper.poll()
+
             # Render modules
             engine._render_patch(t, engine.patch)
-            
+
             # Performance monitoring
             if engine.performance_monitor:
                 engine.performance_monitor.end_frame()
                 engine.performance_monitor.print_stats(every_n_frames=60)
-            
+
             # Frame rate limiting
             frame_end = time.time()
             elapsed = frame_end - frame_start
             sleep_time = engine.frame_duration - elapsed
             if sleep_time > 0:
                 time.sleep(sleep_time)
-                
+
     except Exception as e:
         error(f"Error in Oblique REPL engine: {e}")
         raise
     finally:
+        if control_window is not None:
+            control_window.stop()
         python_watcher_stop.set()
         if python_watcher_thread is not None:
             python_watcher_thread.join(timeout=1.0)
@@ -234,4 +306,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

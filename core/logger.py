@@ -9,7 +9,7 @@ import logging
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 
 class ObliqueLogger:
@@ -152,8 +152,25 @@ class ObliqueLogger:
 
         self._logger.log(level, formatted_message)
 
+        # Forward to external sink (e.g. TUI log panel)
+        if _log_sink is not None:
+            level_name = logging.getLevelName(level)
+            try:
+                _log_sink(level_name, formatted_message)
+            except Exception:
+                pass
+
 # Global logger instance
 logger = ObliqueLogger()
+
+# External log sink (e.g. for forwarding to TUI subprocess)
+_log_sink: Optional[Callable[[str, str], None]] = None
+
+
+def set_log_sink(callback: Optional[Callable[[str, str], None]]) -> None:
+    """Set an external log sink that receives (level_name, message) for every log call."""
+    global _log_sink
+    _log_sink = callback
 
 
 def get_logger() -> logging.Logger:

@@ -48,7 +48,12 @@ oblique start projects.demo.demo_audio_file
 # Launch with options
 oblique start projects.demo.demo_audio_file --width 1920 --height 1080 --fps 60 --hot-reload-shaders
 
-# Start REPL (creates .oblique/repl_patch.py, supports Python hot reload)
+# Live mode — TUI control surface + file watching + hot reload (preferred)
+oblique live
+oblique live projects.demo.demo_audio_file
+oblique live --width 1920 --height 1080 --no-hot-reload-python
+
+# Start REPL (deprecated — use `oblique live` instead)
 oblique start repl --hot-reload-shaders --hot-reload-python
 
 # Dry run to inspect config without launching
@@ -160,6 +165,24 @@ Enable with `--debug` on `start` or `render` commands, or call `set_debug_mode(T
 6. Ensure the module works with the chain API — include a `ParamTexture` / `BaseAVModule` field in your params if the module accepts a texture input.
 
 See `modules/audio_reactive/circle_echo.py` as a minimal reference.
+
+### Live Mode (`oblique live`)
+
+Two-process architecture for live performance:
+
+- **Process A (main thread):** GLFW render window + OpenGL, audio thread, file watchers, MIDI polling.
+- **Process B (subprocess):** Textual TUI in the terminal — param sliders, telemetry bar, error log, status footer.
+- **IPC:** `multiprocessing.Pipe` with a background sender thread (never blocks the render loop).
+
+Key files:
+- **`live.py`** — Entry point. Loads patch, creates engine, spawns TUI, wires IPC, runs render loop.
+- **`core/control_ipc.py`** — `ControlBridge`: engine-side IPC bridge. Sends telemetry (~10Hz), param snapshots, log messages. Receives `set_param`/`reload`/`quit` from TUI. Duck-type compatible with old `ControlWindow` via `mark_dirty()`.
+- **`core/control_tui.py`** — Textual `App` subclass. Polls IPC at 20Hz, rebuilds sliders dynamically on `params_snapshot`, routes `ParamBar.Changed` back as `set_param`.
+- **`core/control_subprocess.py`** — `spawn_control_tui(store)` → `(ControlBridge, Process)`. Reopens `/dev/tty` in the subprocess so Textual can drive the terminal.
+- **`core/param_store.py`** — `ParamStore` with `_on_change` callback. Wired to `bridge.send_param_update` so MIDI/code changes auto-forward to TUI.
+- **`core/logger.py`** — `set_log_sink(callback)` forwards all log messages to the TUI log panel.
+
+`oblique live` defaults: `--hot-reload-shaders` and `--hot-reload-python` are **on** by default (use `--no-hot-reload-*` to disable). Console logging is suppressed (TUI owns the terminal); parent stdout/stderr redirected to `/dev/null`.
 
 ### Inputs
 

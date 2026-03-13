@@ -19,6 +19,7 @@ class ObliquePatch:
         """
         self.audio_output: Optional[BaseAudioInput] = audio_output
         self.tick_callback: Callable[[float], BaseAVModule] = tick_callback
+        self._override_scene: Optional[BaseAVModule] = None
 
     # def set_inputs(self, inputs: List[BaseAudioInput]) -> None:
     #     """
@@ -35,8 +36,10 @@ class ObliquePatch:
 
     def tick(self, t: float) -> BaseAVModule:
         """
-        Call the tick callback.
+        Call the tick callback, or return the override scene if set.
         """
+        if self._override_scene is not None:
+            return self._override_scene
         return self.tick_callback(t)
 
     # def add(self, module: BaseAVModule) -> BaseAVModule:

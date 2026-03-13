@@ -9,6 +9,23 @@ logging, window configuration and shader reloading.
 
 from __future__ import annotations
 
+# Point pyglfw at the Homebrew shared GLFW so it doesn't load its own bundled
+# copy.  This prevents ObjC class collisions with dearpygui (which also bundles
+# GLFW) on macOS.
+import os as _os
+import subprocess as _sp
+
+if "PYGLFW_LIBRARY" not in _os.environ:
+    try:
+        _prefix = _sp.check_output(
+            ["brew", "--prefix", "glfw"], stderr=_sp.DEVNULL, text=True
+        ).strip()
+        _dylib = f"{_prefix}/lib/libglfw.3.dylib"
+        if _os.path.isfile(_dylib):
+            _os.environ["PYGLFW_LIBRARY"] = _dylib
+    except Exception:
+        pass
+
 import argparse
 import importlib
 import importlib.util
@@ -248,6 +265,16 @@ def run_start(args: argparse.Namespace) -> ExitCode:
     set_debug_mode(args.debug)
 
     if args.target == "repl":
+        import warnings
+
+        warnings.warn(
+            "'oblique start repl' is deprecated. Use 'oblique live' instead.",
+            DeprecationWarning,
+            stacklevel=1,
+        )
+        sys.stderr.write(
+            "WARNING: 'oblique start repl' is deprecated. Use 'oblique live' instead.\n"
+        )
         repl_args = argparse.Namespace(
             patch=args.extra_target,
             width=args.width,
@@ -258,6 +285,7 @@ def run_start(args: argparse.Namespace) -> ExitCode:
             dry_run=args.dry_run,
             hot_reload_shaders=args.hot_reload_shaders,
             hot_reload_python=args.hot_reload_python,
+            controls=getattr(args, "controls", False),
         )
         return run_repl(repl_args)
 
@@ -351,6 +379,75 @@ def ensure_repl_template() -> Tuple[str, Path, bool]:
     return module_name, target, created
 
 
+def run_live(args: argparse.Namespace) -> ExitCode:
+    """Implementation of the ``oblique live`` command."""
+    from core.renderer import set_debug_mode
+
+    set_debug_mode(getattr(args, "debug", False))
+
+    patch_module: str
+    patch_function: str
+    created = False
+
+    if args.target is not None:
+        try:
+            patch_ref = parse_patch_reference(args.target)
+            patch_ref.load_module()
+        except CliError as err:
+            print_cli_error(err)
+            return err.exit_code
+        patch_module = patch_ref.module_name
+        patch_function = patch_ref.function_name
+    else:
+        try:
+            patch_module, created_file, created = ensure_repl_template()
+            patch_function = "temp_patch"
+        except CliError as err:
+            print_cli_error(err)
+            return err.exit_code
+
+    plan_lines = [
+        f"Patch module: {patch_module}:{patch_function}",
+        f"Resolution: {args.width}x{args.height}",
+        f"FPS: {args.fps}",
+        f"Shader hot reload: {'enabled' if args.hot_reload_shaders else 'disabled'}",
+        f"Python hot reload: {'enabled' if args.hot_reload_python else 'disabled'}",
+        f"TUI control surface: enabled",
+    ]
+    plan = "\n".join(plan_lines)
+
+    if args.dry_run:
+        print(plan)
+        return ExitCode.OK
+
+    live_args = [
+        "live",
+        patch_module,
+        patch_function,
+        "--width", str(args.width),
+        "--height", str(args.height),
+        "--fps", str(args.fps),
+        "--log-level", args.log_level,
+    ]
+    if args.log_file:
+        live_args.extend(["--log-file", args.log_file])
+    if not args.hot_reload_shaders:
+        live_args.append("--no-hot-reload-shaders")
+    if not args.hot_reload_python:
+        live_args.append("--no-hot-reload-python")
+
+    original_argv = sys.argv
+    try:
+        sys.argv = live_args
+        import live as live_module
+
+        live_module.main()
+    finally:
+        sys.argv = original_argv
+
+    return ExitCode.OK
+
+
 def run_repl(args: argparse.Namespace) -> ExitCode:
     """Implementation of the REPL workflow dispatched through ``oblique start``."""
 
@@ -427,6 +524,8 @@ def run_repl(args: argparse.Namespace) -> ExitCode:
         repl_args.append("--hot-reload-shaders")
     if args.hot_reload_python:
         repl_args.append("--hot-reload-python")
+    if getattr(args, "controls", False):
+        repl_args.append("--controls")
 
     original_argv = sys.argv
     try:
@@ -691,6 +790,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Reload the patch module automatically (REPL only)",
     )
+    start_parser.add_argument(
+        "--controls",
+        action="store_true",
+        help="Open a control surface window with parameter sliders and telemetry (REPL only)",
+    )
     start_parser.add_argument("--log-level", default="INFO")
     start_parser.add_argument("--log-file")
     start_parser.add_argument(
@@ -755,6 +859,51 @@ def build_parser() -> argparse.ArgumentParser:
     describe_parser.add_argument("module_name", help="Module class name (e.g. FeedbackModule)")
     describe_parser.add_argument("--json", action="store_true", help="Output as JSON")
     describe_parser.set_defaults(func=run_describe)
+
+    live_parser = subparsers.add_parser(
+        "live",
+        help="Launch a patch with TUI control surface, file watching, and hot reload",
+    )
+    live_parser.add_argument(
+        "target",
+        nargs="?",
+        default=None,
+        help="Patch module path or file (defaults to .oblique/repl_patch.py)",
+    )
+    live_parser.add_argument("--width", type=int, default=800)
+    live_parser.add_argument("--height", type=int, default=600)
+    live_parser.add_argument("--fps", type=int, default=60)
+    live_parser.add_argument(
+        "--hot-reload-shaders",
+        action="store_true",
+        default=True,
+        help="Reload GLSL shaders when files change (default: on)",
+    )
+    live_parser.add_argument(
+        "--no-hot-reload-shaders",
+        dest="hot_reload_shaders",
+        action="store_false",
+    )
+    live_parser.add_argument(
+        "--hot-reload-python",
+        action="store_true",
+        default=True,
+        help="Reload the patch module on file change (default: on)",
+    )
+    live_parser.add_argument(
+        "--no-hot-reload-python",
+        dest="hot_reload_python",
+        action="store_false",
+    )
+    live_parser.add_argument("--log-level", default="INFO")
+    live_parser.add_argument("--log-file", default=None)
+    live_parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable shader/uniform contract mismatch warnings",
+    )
+    live_parser.add_argument("--dry-run", action="store_true")
+    live_parser.set_defaults(func=run_live)
 
     return parser
 

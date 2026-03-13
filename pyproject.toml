@@ -23,6 +23,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+controls = [
+    "textual>=1.0.0",
+]
 dev = [
     "pytest>=8.4.0",
     "pytest-cov>=6.0.0",
@@ -33,7 +36,7 @@ oblique = "cli:main"
 
 [tool.setuptools]
 include-package-data = true
-py-modules = ["cli", "main", "repl"]
+py-modules = ["cli", "main", "repl", "live"]
 
 [tool.setuptools.packages.find]
 include = [
