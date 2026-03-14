@@ -7,7 +7,6 @@ in a subprocess for parameter sliders, telemetry, and log output.
 from __future__ import annotations
 
 import argparse
-import builtins
 import importlib
 import sys
 import threading
@@ -65,30 +64,20 @@ def main() -> None:
     # Spawn TUI subprocess (must happen before stdout is redirected)
     bridge, tui_process = spawn_control_tui(store)
 
-    # TUI owns the terminal — silence the parent's stdout/stderr so stray
-    # prints from patches or libraries don't corrupt the TUI.
-    import os
-    _devnull = open(os.devnull, "w")
-    sys.stdout = _devnull
-    sys.stderr = _devnull
-
     # Wire on_change so MIDI/code param changes forward to TUI
     store._on_change = bridge.send_param_update
 
     # Forward log messages to TUI
     set_log_sink(bridge.send_log)
 
-    # Inject helpers into builtins (bridge is duck-type compatible with ControlWindow)
+    # Build helpers and wire them into the importable live_api module
     controls_fn = make_controls_fn(store, bridge)
     slider_fn = make_slider_fn(store, bridge)
     midi_learn_fn = make_midi_learn_fn(midi_mapper)
     midi_map_fn = make_midi_map_fn(midi_mapper)
 
-    setattr(builtins, "controls", controls_fn)
-    setattr(builtins, "slider", slider_fn)
-    setattr(builtins, "midi_learn", midi_learn_fn)
-    setattr(builtins, "midi_map", midi_map_fn)
-    setattr(builtins, "store", store)
+    from core.live_api import _wire as _wire_live_api
+    _wire_live_api(store, controls_fn, slider_fn, midi_learn_fn, midi_map_fn)
 
     # Load patch
     try:
@@ -99,6 +88,14 @@ def main() -> None:
         bridge.close()
         tui_process.terminate()
         raise
+
+    # TUI owns the terminal — silence the parent's stdout/stderr so stray
+    # prints from patches or libraries don't corrupt the TUI.
+    # This is done AFTER patch loading so that load errors are visible.
+    import os
+    _devnull = open(os.devnull, "w")
+    sys.stdout = _devnull
+    sys.stderr = _devnull
 
     module_file = None
     module_obj = sys.modules.get(args.patch_path)

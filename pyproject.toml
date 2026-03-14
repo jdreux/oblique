@@ -36,7 +36,7 @@ oblique = "cli:main"
 
 [tool.setuptools]
 include-package-data = true
-py-modules = ["cli", "main", "repl", "live"]
+py-modules = ["cli", "live"]
 
 [tool.setuptools.packages.find]
 include = [

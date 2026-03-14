@@ -53,8 +53,8 @@ oblique live
 oblique live projects.demo.demo_audio_file
 oblique live --width 1920 --height 1080 --no-hot-reload-python
 
-# Start REPL (deprecated — use `oblique live` instead)
-oblique start repl --hot-reload-shaders --hot-reload-python
+# Start REPL (deprecated — redirects to `oblique live`)
+oblique start repl
 
 # Dry run to inspect config without launching
 oblique start projects.demo.demo_audio_file --dry-run

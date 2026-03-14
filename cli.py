@@ -265,18 +265,11 @@ def run_start(args: argparse.Namespace) -> ExitCode:
     set_debug_mode(args.debug)
 
     if args.target == "repl":
-        import warnings
-
-        warnings.warn(
-            "'oblique start repl' is deprecated. Use 'oblique live' instead.",
-            DeprecationWarning,
-            stacklevel=1,
-        )
         sys.stderr.write(
             "WARNING: 'oblique start repl' is deprecated. Use 'oblique live' instead.\n"
         )
-        repl_args = argparse.Namespace(
-            patch=args.extra_target,
+        live_args = argparse.Namespace(
+            target=args.extra_target,
             width=args.width,
             height=args.height,
             fps=args.fps,
@@ -285,9 +278,9 @@ def run_start(args: argparse.Namespace) -> ExitCode:
             dry_run=args.dry_run,
             hot_reload_shaders=args.hot_reload_shaders,
             hot_reload_python=args.hot_reload_python,
-            controls=getattr(args, "controls", False),
+            debug=args.debug,
         )
-        return run_repl(repl_args)
+        return run_live(live_args)
 
     try:
         config = resolve_start_configuration(args)
@@ -442,97 +435,6 @@ def run_live(args: argparse.Namespace) -> ExitCode:
         import live as live_module
 
         live_module.main()
-    finally:
-        sys.argv = original_argv
-
-    return ExitCode.OK
-
-
-def run_repl(args: argparse.Namespace) -> ExitCode:
-    """Implementation of the REPL workflow dispatched through ``oblique start``."""
-
-    patch_module: str
-    patch_function: str
-    created_file: Optional[Path] = None
-    created = False
-
-    if args.patch is not None:
-        try:
-            patch_ref = parse_patch_reference(args.patch)
-            patch_ref.load_module()
-        except CliError as err:
-            print_cli_error(err)
-            return err.exit_code
-
-        patch_module = patch_ref.module_name
-        patch_function = patch_ref.function_name
-    else:
-        try:
-            patch_module, created_file, created = ensure_repl_template()
-            patch_function = "temp_patch"
-        except CliError as err:
-            print_cli_error(err)
-            return err.exit_code
-
-    plan_lines = [
-        f"Patch module: {patch_module}:{patch_function}",
-        f"Resolution: {args.width}x{args.height}",
-        f"FPS: {args.fps}",
-    ]
-    plan_lines.append(
-        "Shader hot reload: "
-        + ("enabled" if args.hot_reload_shaders else "disabled")
-    )
-    plan_lines.append(
-        "Python hot reload: "
-        + ("enabled" if args.hot_reload_python else "disabled")
-    )
-    plan_lines.append(
-        "Logging: level="
-        + args.log_level
-        + (f" file={args.log_file}" if args.log_file else "")
-    )
-
-    if created_file is not None:
-        state = "created" if args.patch is None and created else "existing"
-        plan_lines.append(f"Template path ({state}): {created_file}")
-
-    plan = "\n".join(plan_lines)
-    info(plan)
-
-    if args.dry_run:
-        print(plan)
-        return ExitCode.OK
-
-    repl_args = [
-        "repl",
-        patch_module,
-        patch_function,
-        "--width",
-        str(args.width),
-        "--height",
-        str(args.height),
-        "--fps",
-        str(args.fps),
-        "--log-level",
-        args.log_level,
-    ]
-
-    if args.log_file:
-        repl_args.extend(["--log-file", args.log_file])
-    if args.hot_reload_shaders:
-        repl_args.append("--hot-reload-shaders")
-    if args.hot_reload_python:
-        repl_args.append("--hot-reload-python")
-    if getattr(args, "controls", False):
-        repl_args.append("--controls")
-
-    original_argv = sys.argv
-    try:
-        sys.argv = repl_args
-        import repl as repl_module
-
-        repl_module.main()
     finally:
         sys.argv = original_argv
 
@@ -847,11 +749,6 @@ def build_parser() -> argparse.ArgumentParser:
         "--hot-reload-python",
         action="store_true",
         help="Reload the patch module automatically (REPL only)",
-    )
-    start_parser.add_argument(
-        "--controls",
-        action="store_true",
-        help="Open a control surface window with parameter sliders and telemetry (REPL only)",
     )
     start_parser.add_argument("--log-level", default="INFO")
     start_parser.add_argument("--log-file")
