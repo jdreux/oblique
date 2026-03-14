@@ -651,6 +651,64 @@ def run_render(args: argparse.Namespace) -> ExitCode:
     return ExitCode.OK
 
 
+def run_list_devices(args: argparse.Namespace) -> ExitCode:
+    """Implementation of the ``oblique list-devices`` command."""
+    import sounddevice as sd
+
+    try:
+        all_devices = sd.query_devices()
+    except Exception as exc:
+        sys.stderr.write(f"error: unable to enumerate audio devices: {exc}\n")
+        return ExitCode.DEVICE
+
+    audio_rows = []
+    for idx, dev in enumerate(all_devices):
+        inp = int(dev.get("max_input_channels", 0))
+        out = int(dev.get("max_output_channels", 0))
+        if inp == 0 and out == 0:
+            continue
+        audio_rows.append((idx, dev.get("name", "?"), inp, out))
+
+    if audio_rows:
+        id_w = max(len("ID"), *(len(str(r[0])) for r in audio_rows))
+        name_w = max(len("Name"), *(len(r[1]) for r in audio_rows))
+        hdr = f"{'ID':<{id_w}}  {'Name':<{name_w}}  {'In':>3}  {'Out':>3}"
+        print("Audio devices")
+        print(hdr)
+        print("-" * len(hdr))
+        for dev_id, name, inp, out in audio_rows:
+            print(f"{dev_id:<{id_w}}  {name:<{name_w}}  {inp:>3}  {out:>3}")
+    else:
+        print("No audio devices found.")
+
+    print()
+
+    try:
+        import mido
+
+        midi_inputs = mido.get_input_names()
+        midi_outputs = mido.get_output_names()
+    except Exception:
+        midi_inputs = []
+        midi_outputs = []
+
+    all_midi = sorted(set(midi_inputs) | set(midi_outputs))
+    if all_midi:
+        name_w = max(len("Name"), *(len(n) for n in all_midi))
+        hdr = f"{'Name':<{name_w}}  {'In':>3}  {'Out':>3}"
+        print("MIDI devices")
+        print(hdr)
+        print("-" * len(hdr))
+        for name in all_midi:
+            is_in = "yes" if name in midi_inputs else " - "
+            is_out = "yes" if name in midi_outputs else " - "
+            print(f"{name:<{name_w}}  {is_in:>3}  {is_out:>3}")
+    else:
+        print("No MIDI devices found.")
+
+    return ExitCode.OK
+
+
 def run_list_modules(args: argparse.Namespace) -> ExitCode:
     """Implementation of the ``oblique list-modules`` command."""
     try:
@@ -833,6 +891,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     render_parser.add_argument("--log-level", default="WARNING")
     render_parser.set_defaults(func=run_render)
+
+    list_devices_parser = subparsers.add_parser(
+        "list-devices",
+        help="List available audio and MIDI devices",
+    )
+    list_devices_parser.set_defaults(func=run_list_devices)
 
     list_modules_parser = subparsers.add_parser(
         "list-modules",
