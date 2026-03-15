@@ -21,19 +21,6 @@ class ObliquePatch:
         self.tick_callback: Callable[[float], BaseAVModule] = tick_callback
         self._override_scene: Optional[BaseAVModule] = None
 
-    # def set_inputs(self, inputs: List[BaseAudioInput]) -> None:
-    #     """
-    #     Register an input module (e.g., audio, MIDI).
-    #     Returns a handle to the input's output for chaining.
-    #     """
-    #     self.inputs = inputs
-
-    # def set_tick_callback(self, callback: Callable[[float, int, int, List[BaseAudioInput]], BaseAVModule]) -> None:
-    #     """
-    #     Register a callback to be called on each tick (every frame).
-    #     """
-    #     self.tick_callback = callback
-
     def tick(self, t: float) -> BaseAVModule:
         """
         Call the tick callback, or return the override scene if set.
@@ -41,29 +28,3 @@ class ObliquePatch:
         if self._override_scene is not None:
             return self._override_scene
         return self.tick_callback(t)
-
-    # def add(self, module: BaseAVModule) -> BaseAVModule:
-    #     """
-    #     Add a processing or rendering module to the patch.
-    #     Returns a handle to the module's output for chaining.
-    #     """
-    #     self.modules.append(module)
-    #     self._graph.append(module)
-    #     return module
-
-    # def get_output(self) -> BaseAVModule | None:
-    #     """
-    #     Return the final output node (renderer or passthrough).
-    #     If no renderer is present, returns a default DebugModule instance.
-    #     """
-    #     if self.modules:
-    #         return self.modules[-1]
-    #     return None
-
-    # def get_audio_input(self) -> BaseAudioInput | None:
-    #     """
-    #     Return the audio input node.
-    #     """
-    #     if len(self.inputs) == 0:
-    #         return None
-    #     return self.inputs[0]

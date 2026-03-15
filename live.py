@@ -8,12 +8,13 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import os
 import sys
 import threading
 import time
 from pathlib import Path
 
-from core.logger import configure_logging, error, info, set_log_sink
+from core.logger import configure_logging, error, info, warning, set_log_sink
 from core.oblique_engine import ObliqueEngine
 
 
@@ -34,6 +35,7 @@ def main() -> None:
     parser.add_argument("--no-hot-reload-shaders", dest="hot_reload_shaders", action="store_false")
     parser.add_argument("--hot-reload-python", action="store_true", default=True)
     parser.add_argument("--no-hot-reload-python", dest="hot_reload_python", action="store_false")
+    parser.add_argument("--monitor", type=int, default=None)
     parser.add_argument("--log-level", default="INFO")
     parser.add_argument("--log-file", default=None)
 
@@ -61,8 +63,17 @@ def main() -> None:
     store = ParamStore()
     midi_mapper = MidiMapper(store)
 
+    # Save a tty fd for terminal reset on exit (before stdout gets redirected)
+    try:
+        _tty_reset_fd = os.open("/dev/tty", os.O_WRONLY)
+    except OSError:
+        _tty_reset_fd = -1
+
     # Spawn TUI subprocess (must happen before stdout is redirected)
     bridge, tui_process = spawn_control_tui(store)
+
+    # Track whether TUI has died so we only warn once
+    _tui_dead = False
 
     # Wire on_change so MIDI/code param changes forward to TUI
     store._on_change = bridge.send_param_update
@@ -92,7 +103,6 @@ def main() -> None:
     # TUI owns the terminal — silence the parent's stdout/stderr so stray
     # prints from patches or libraries don't corrupt the TUI.
     # This is done AFTER patch loading so that load errors are visible.
-    import os
     _devnull = open(os.devnull, "w")
     sys.stdout = _devnull
     sys.stderr = _devnull
@@ -111,6 +121,7 @@ def main() -> None:
         height=args.height,
         target_fps=args.fps,
         hot_reload_shaders=args.hot_reload_shaders,
+        monitor=args.monitor,
     )
 
     make_set_scene_fn([engine])
@@ -152,6 +163,7 @@ def main() -> None:
         python_watcher_thread.start()
 
     reload_state = {"requested": False}
+    _render_error_sent = False
 
     # -- Main render loop -----------------------------------------------------
     try:
@@ -173,10 +185,17 @@ def main() -> None:
         import glfw
 
         while not glfw.window_should_close(engine.window):
-            # Poll IPC from TUI
-            signal = bridge.poll_incoming()
-            if signal == "quit":
-                break
+            # Poll IPC from TUI — graceful degradation if TUI dies
+            if not _tui_dead and tui_process.poll() is not None:
+                _tui_dead = True
+                bridge._closed = True
+                warning("TUI subprocess exited — render continues without control surface")
+
+            signal = None
+            if not _tui_dead:
+                signal = bridge.poll_incoming()
+                if signal == "quit":
+                    break
             if signal == "reload":
                 reload_state["requested"] = True
 
@@ -191,6 +210,7 @@ def main() -> None:
                     )
                     info("Patch reloaded successfully")
                     bridge.send_params_snapshot()
+                    _render_error_sent = False
                 except Exception as e:
                     error(f"Failed to reload patch: {e}")
 
@@ -204,8 +224,21 @@ def main() -> None:
             # Poll MIDI
             midi_mapper.poll()
 
-            # Render
-            engine._render_patch(t, engine.patch)
+            # Render — catch tick callback errors so the loop survives
+            try:
+                engine._render_patch(t, engine.patch)
+            except Exception as e:
+                # Throttle error logging to avoid flooding the TUI
+                if not _render_error_sent:
+                    error(f"Render error (patch will keep retrying): {e}")
+                    _render_error_sent = True
+                # Swap buffers so the window stays responsive
+                glfw.swap_buffers(engine.window)
+                glfw.poll_events()
+                time.sleep(engine.frame_duration)
+                continue
+
+            _render_error_sent = False
 
             # Performance monitoring + telemetry
             if engine.performance_monitor:
@@ -230,10 +263,45 @@ def main() -> None:
         if python_watcher_thread is not None:
             python_watcher_thread.join(timeout=1.0)
         bridge.close()
-        if tui_process.is_alive():
+        if tui_process.poll() is None:
             tui_process.terminate()
-            tui_process.join(timeout=2.0)
+            try:
+                tui_process.wait(timeout=2.0)
+            except Exception:
+                tui_process.kill()
         engine.cleanup()
+
+        # Restore terminal in case the TUI subprocess died without cleanup
+        from core.control_subprocess import _TERMINAL_RESET
+        try:
+            os.system("stty sane 2>/dev/null")
+            if _tty_reset_fd >= 0:
+                os.write(_tty_reset_fd, _TERMINAL_RESET.encode())
+                os.close(_tty_reset_fd)
+        except Exception:
+            pass
+
+        # Surface TUI crash log if the subprocess died
+        from core.control_subprocess import CRASH_LOG
+        if os.path.exists(CRASH_LOG):
+            try:
+                with open(CRASH_LOG) as f:
+                    crash = f.read().strip()
+                if crash:
+                    msg = (
+                        f"\n--- TUI subprocess crashed ---\n{crash}\n"
+                        f"(crash log: {CRASH_LOG})\n"
+                    )
+                    if _tty_reset_fd >= 0:
+                        # tty fd already closed above, reopen
+                        try:
+                            fd = os.open("/dev/tty", os.O_WRONLY)
+                            os.write(fd, msg.encode())
+                            os.close(fd)
+                        except OSError:
+                            pass
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

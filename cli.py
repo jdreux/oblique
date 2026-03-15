@@ -278,6 +278,7 @@ def run_start(args: argparse.Namespace) -> ExitCode:
             dry_run=args.dry_run,
             hot_reload_shaders=args.hot_reload_shaders,
             hot_reload_python=args.hot_reload_python,
+            monitor=args.monitor,
             debug=args.debug,
         )
         return run_live(live_args)
@@ -424,6 +425,8 @@ def run_live(args: argparse.Namespace) -> ExitCode:
     ]
     if args.log_file:
         live_args.extend(["--log-file", args.log_file])
+    if getattr(args, "monitor", None) is not None:
+        live_args.extend(["--monitor", str(args.monitor)])
     if not args.hot_reload_shaders:
         live_args.append("--no-hot-reload-shaders")
     if not args.hot_reload_python:
@@ -549,6 +552,38 @@ def run_render(args: argparse.Namespace) -> ExitCode:
     except RuntimeError as exc:
         error(f"Render error: {exc}")
         return ExitCode.GPU
+
+    return ExitCode.OK
+
+
+def run_list_monitors(args: argparse.Namespace) -> ExitCode:
+    """Implementation of the ``oblique list-monitors`` command."""
+    import glfw
+
+    if not glfw.init():
+        sys.stderr.write("error: failed to initialize GLFW\n")
+        return ExitCode.GPU
+
+    try:
+        monitors = glfw.get_monitors()
+        if not monitors:
+            print("No monitors found.")
+            return ExitCode.OK
+
+        primary = glfw.get_primary_monitor()
+        id_w = max(2, len(str(len(monitors) - 1)))
+        print(f"{'ID':<{id_w}}  {'Name':<30}  {'Resolution':>15}  {'Hz':>4}  Primary")
+        print(f"{'-' * id_w}  {'-' * 30}  {'-' * 15}  {'-' * 4}  {'-' * 7}")
+        for i, mon in enumerate(monitors):
+            raw_name = glfw.get_monitor_name(mon) or "Unknown"
+            name = raw_name.decode() if isinstance(raw_name, bytes) else raw_name
+            vm = glfw.get_video_mode(mon)
+            res = f"{vm.size[0]}x{vm.size[1]}" if vm else "?"
+            hz = str(vm.refresh_rate) if vm else "?"
+            is_primary = "yes" if mon == primary else ""
+            print(f"{i:<{id_w}}  {name:<30}  {res:>15}  {hz:>4}  {is_primary}")
+    finally:
+        glfw.terminate()
 
     return ExitCode.OK
 
@@ -789,6 +824,12 @@ def build_parser() -> argparse.ArgumentParser:
     render_parser.add_argument("--log-level", default="WARNING")
     render_parser.set_defaults(func=run_render)
 
+    list_monitors_parser = subparsers.add_parser(
+        "list-monitors",
+        help="List available display monitors",
+    )
+    list_monitors_parser.set_defaults(func=run_list_monitors)
+
     list_devices_parser = subparsers.add_parser(
         "list-devices",
         help="List available audio and MIDI devices",
@@ -834,6 +875,7 @@ def build_parser() -> argparse.ArgumentParser:
     live_parser.add_argument("--width", type=int, default=800)
     live_parser.add_argument("--height", type=int, default=600)
     live_parser.add_argument("--fps", type=int, default=60)
+    live_parser.add_argument("--monitor", type=int, default=None, help="Monitor index to open window on (0-based)")
     live_parser.add_argument(
         "--hot-reload-shaders",
         action="store_true",

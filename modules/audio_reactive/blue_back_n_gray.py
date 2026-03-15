@@ -7,10 +7,10 @@ from modules.core.base_av_module import BaseAVModule, BaseAVParams, ParamFloat, 
 @dataclass
 class BlueBackNGrayParams(BaseAVParams):
     n_circles: ParamInt = field(
-        default=8,
+        default=32,
         metadata={
             "min": 1,
-            "max": 16,
+            "max": 64,
             "description": "Number of concentric circles in the source pass.",
         },
     )

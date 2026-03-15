@@ -61,7 +61,7 @@ class ControlBridge:
                 "group": entry.group,
                 "description": entry.description,
             }
-        self._enqueue(("params_snapshot", snapshot))
+        self._enqueue(("params_snapshot", snapshot), priority=True)
 
     def send_param_update(self, key: str, value: float) -> None:
         """Forward a single param change (e.g. from MIDI) to TUI."""
@@ -69,11 +69,11 @@ class ControlBridge:
 
     def send_log(self, level: str, message: str) -> None:
         """Send a log line to the TUI log panel."""
-        self._enqueue(("log", level, message))
+        self._enqueue(("log", level, message), priority=True)
 
     def send_status(self, info: dict[str, Any]) -> None:
         """Send status metadata (patch name, hot-reload flags, etc.)."""
-        self._enqueue(("status", info))
+        self._enqueue(("status", info), priority=True)
 
     def mark_dirty(self) -> None:
         """Duck-type compatible with old ControlWindow.mark_dirty()."""
@@ -130,14 +130,20 @@ class ControlBridge:
 
     # -- Internal -------------------------------------------------------------
 
-    def _enqueue(self, msg: tuple) -> None:
-        """Put a message on the send queue, dropping oldest if full."""
+    def _enqueue(self, msg: tuple, priority: bool = False) -> None:
+        """Put a message on the send queue, dropping oldest if full.
+
+        When *priority* is True the message is never dropped — instead
+        we evict as many old messages as needed to make room.
+        """
         if self._closed:
             return
         try:
             self._queue.put_nowait(msg)
         except queue.Full:
-            # Drop oldest message to make room
+            if not priority:
+                return  # expendable message (e.g. telemetry) — just drop it
+            # Make room for priority messages by evicting old entries
             try:
                 self._queue.get_nowait()
             except queue.Empty:

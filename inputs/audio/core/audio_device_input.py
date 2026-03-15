@@ -212,6 +212,14 @@ class AudioDeviceInput(BaseAudioInput):
         :param channels: List of channel indices to return. If None, uses the default channel selection.
         :return: Numpy array of shape (n*chunk_size, selected_channels) or None if not available
         """
+        # Drain any queued chunks into history so peek() works without read()
+        while not self._audio_queue.empty():
+            try:
+                chunk = self._audio_queue.get_nowait()
+                self._chunk_history.append(chunk)
+            except queue.Empty:
+                break
+
         if n_buffers <= 0 or len(self._chunk_history) == 0:
             return None
         # Get up to n_buffers most recent chunks (these are unfiltered)
