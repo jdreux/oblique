@@ -33,22 +33,22 @@ def register_module_params(
         if "min" not in meta or "max" not in meta:
             continue
         key = f"{group_name}.{f.name}"
-        if key in store:
-            continue
+        if key not in store:
+            current = getattr(params, f.name)
+            default = float(current) if isinstance(current, (int, float)) else float(f.default)
 
+            store.register(
+                name=f.name,
+                group=group_name,
+                default=default,
+                min=float(meta["min"]),
+                max=float(meta["max"]),
+                description=meta.get("description", ""),
+            )
+
+        # Always re-wire the param to the store (new module instances after
+        # hot-reload need their params bound even if the key already existed).
         current = getattr(params, f.name)
-        default = float(current) if isinstance(current, (int, float)) else float(f.default)
-
-        store.register(
-            name=f.name,
-            group=group_name,
-            default=default,
-            min=float(meta["min"]),
-            max=float(meta["max"]),
-            description=meta.get("description", ""),
-        )
-        # Wire the param to read from the store.
-        # Wrap int fields so the callable returns int (shaders need correct types).
         bound = store.bind(key)
         is_int = isinstance(current, int) and not isinstance(current, bool)
         if is_int:

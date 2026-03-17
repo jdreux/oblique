@@ -23,6 +23,7 @@ _controls_fn: Optional[callable] = None
 _slider_fn: Optional[callable] = None
 _midi_learn_fn: Optional[callable] = None
 _midi_map_fn: Optional[callable] = None
+_chart_fn: Optional[callable] = None
 
 
 class _StoreProxy:
@@ -45,14 +46,16 @@ def _wire(
     slider_fn: callable,
     midi_learn_fn: callable,
     midi_map_fn: callable,
+    chart_fn: Optional[callable] = None,
 ) -> None:
     """Called once by live.py to install the real implementations."""
-    global _controls_fn, _slider_fn, _midi_learn_fn, _midi_map_fn
+    global _controls_fn, _slider_fn, _midi_learn_fn, _midi_map_fn, _chart_fn
     store._store = real_store  # type: ignore[attr-defined]
     _controls_fn = controls_fn
     _slider_fn = slider_fn
     _midi_learn_fn = midi_learn_fn
     _midi_map_fn = midi_map_fn
+    _chart_fn = chart_fn
 
 
 # -- Public API ---------------------------------------------------------------
@@ -87,6 +90,18 @@ def midi_map(cc: int, param_key: str) -> None:
     """Map a MIDI CC number to a parameter."""
     if _midi_map_fn is not None:
         _midi_map_fn(cc, param_key)
+
+
+def chart(channel: str, value: float) -> None:
+    """Send a data point to a named sparkline chart in the TUI.
+
+    Call this every frame from your tick callback to visualize a value
+    over time without flooding the log panel::
+
+        chart("amplitude", amplitude)
+    """
+    if _chart_fn is not None:
+        _chart_fn(channel, value)
 
 
 def log(*args: object) -> None:

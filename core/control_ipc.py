@@ -28,6 +28,7 @@ class ControlBridge:
         self._conn = conn
         self._store = store
         self._last_telemetry = 0.0
+        self._last_chart: dict[str, float] = {}
         self._closed = False
 
         # Background sender — keeps the render loop non-blocking
@@ -66,6 +67,14 @@ class ControlBridge:
     def send_param_update(self, key: str, value: float) -> None:
         """Forward a single param change (e.g. from MIDI) to TUI."""
         self._enqueue(("param_update", key, value))
+
+    def send_chart_data(self, channel: str, value: float) -> None:
+        """Send a data point to a named chart channel in the TUI (~20 Hz)."""
+        now = time.monotonic()
+        if now - self._last_chart.get(channel, 0.0) < 0.05:
+            return
+        self._last_chart[channel] = now
+        self._enqueue(("chart_data", channel, value))
 
     def send_log(self, level: str, message: str) -> None:
         """Send a log line to the TUI log panel."""
@@ -110,6 +119,12 @@ class ControlBridge:
                     result = "reload"
                 elif kind == "quit":
                     result = "quit"
+                elif kind == "list_devices":
+                    self._run_list_command("devices")
+                elif kind == "list_monitors":
+                    self._run_list_command("monitors")
+                elif kind == "list_modules":
+                    self._run_list_command("modules")
         except (EOFError, OSError):
             self._closed = True
             return "quit"
@@ -127,6 +142,51 @@ class ControlBridge:
             except OSError:
                 pass
             self._sender_thread.join(timeout=1.0)
+
+    def _run_list_command(self, kind: str) -> None:
+        """Run a list-* command and send the output as log messages."""
+        import io
+
+        buf = io.StringIO()
+        try:
+            if kind == "devices":
+                import sounddevice as sd
+                all_devs = sd.query_devices()
+                buf.write("Audio Devices:\n")
+                for i, dev in enumerate(all_devs):
+                    direction = ""
+                    if dev["max_input_channels"] > 0:
+                        direction += "IN"
+                    if dev["max_output_channels"] > 0:
+                        direction += "/OUT" if direction else "OUT"
+                    buf.write(
+                        f"  [{i}] {dev['name']}  "
+                        f"({direction}, {int(dev['default_samplerate'])} Hz)\n"
+                    )
+            elif kind == "monitors":
+                import glfw
+                monitors = glfw.get_monitors()
+                buf.write("Monitors:\n")
+                for i, mon in enumerate(monitors):
+                    name = glfw.get_monitor_name(mon)
+                    mode = glfw.get_video_mode(mon)
+                    w, h = mode.size.width, mode.size.height
+                    buf.write(f"  [{i}] {name}  ({w}x{h} @ {mode.refresh_rate}Hz)\n")
+            elif kind == "modules":
+                from core.registry import discover_modules, search_modules
+                discover_modules()
+                specs = search_modules()
+                buf.write("Modules:\n")
+                for spec in specs:
+                    buf.write(
+                        f"  {spec.name}  "
+                        f"[{spec.category}]  {spec.description}\n"
+                    )
+        except Exception as e:
+            buf.write(f"Error: {e}\n")
+
+        for line in buf.getvalue().rstrip().split("\n"):
+            self.send_log("INFO", line)
 
     # -- Internal -------------------------------------------------------------
 

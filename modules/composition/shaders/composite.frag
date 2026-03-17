@@ -108,11 +108,18 @@ void main() {
         result = top;
     else if (u_op == 25) // PASSTHROUGH_BOTTOM: Passes through bottom texture
         result = bottom;
-    else if (u_op == 26) { // ATOP: (top.rgb * bottom.a) + (bottom.rgb * (1.0 - top.a)), alpha = bottom.a
-        result.rgb = (top.rgb * bottom.a) + (bottom.rgb * (1.0 - top.a));
-        result.a = bottom.a;
+    else if (u_op == 26) { // ATOP: alpha-over composite, u_mix scales overlay visibility
+        float a = top.a * u_mix;
+        result = vec4(mix(bottom.rgb, top.rgb, a), max(bottom.a, a));
+        fragColor = clamp(result, 0.0, 1.0);
+        return;
     } else {
         result = top;
+    }
+    // Alpha-aware compositing: where top is transparent, show bottom through.
+    // PASSTHROUGH ops handle alpha themselves, so skip for those.
+    if (u_op < 24 || u_op > 25) {
+        result = vec4(mix(bottom.rgb, result.rgb, top.a), mix(bottom.a, 1.0, top.a));
     }
     result = mix(bottom, result, u_mix);
     fragColor = clamp(result, 0.0, 1.0);

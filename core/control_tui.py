@@ -14,22 +14,22 @@ from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.message import Message
 from textual.reactive import reactive
-from textual.widgets import Footer, Header, Label, RichLog, Rule, Static
+from textual.widgets import Footer, Header, Label, RichLog, Sparkline, Static
 
 
 # -- Custom slider widget -----------------------------------------------------
 
 class ParamBar(Static, can_focus=True):
-    """A focusable horizontal slider bar.  Left/Right or click to adjust."""
+    """A focusable horizontal slider bar with value overlay."""
 
     DEFAULT_CSS = """
     ParamBar {
         height: 1;
         min-width: 20;
-        background: $surface;
+        background: transparent;
     }
     ParamBar:focus {
-        background: $surface;
+        background: transparent;
     }
     """
 
@@ -55,15 +55,46 @@ class ParamBar(Static, can_focus=True):
         self.value = value
         self._step = step or (max_val - min_val) / 100
 
+    @staticmethod
+    def _fmt(v: float) -> str:
+        if abs(v - round(v)) < 0.005 and abs(v) < 100_000:
+            return str(int(round(v)))
+        if abs(v) >= 100:
+            return f"{v:.0f}"
+        if abs(v) >= 10:
+            return f"{v:.1f}"
+        return f"{v:.2f}"
+
     def render(self) -> str:
-        width = max(self.size.width - 2, 1)
-        ratio = (self.value - self.min_val) / max(self.max_val - self.min_val, 1e-9)
-        ratio = max(0.0, min(1.0, ratio))
+        width = max(self.size.width, 1)
+        rng = max(self.max_val - self.min_val, 1e-9)
+        ratio = max(0.0, min(1.0, (self.value - self.min_val) / rng))
         filled = int(ratio * width)
-        bar = "\u2588" * filled + "\u2591" * (width - filled)
+
+        val_text = f" {self._fmt(self.value)} "
+
+        bar_f = "\u2588" * filled
+        bar_e = "\u2591" * (width - filled)
+        bar = list(bar_f + bar_e)
+
+        start = max(0, (width - len(val_text)) // 2)
+        for i, ch in enumerate(val_text):
+            pos = start + i
+            if pos < len(bar):
+                bar[pos] = ch
+
+        filled_part = "".join(bar[:filled])
+        empty_part = "".join(bar[filled:])
+
         if self.has_focus:
-            return f"[bold cyan]\u2590{bar}\u258c[/]"
-        return f"[dim]\u2590[/][cyan]{bar}[/][dim]\u258c[/]"
+            return (
+                f"[bold white on dodger_blue]{filled_part}[/]"
+                f"[bold white on grey27]{empty_part}[/]"
+            )
+        return (
+            f"[white on grey37]{filled_part}[/]"
+            f"[grey62 on grey15]{empty_part}[/]"
+        )
 
     def _nudge(self, direction: int, coarse: bool = False) -> None:
         multiplier = 10 if coarse else 1
@@ -87,15 +118,63 @@ class ParamBar(Static, can_focus=True):
             self._nudge(1, coarse=True)
             event.stop()
 
-    def on_click(self, event: events.Click) -> None:
-        width = max(self.size.width - 2, 1)
-        ratio = max(0.0, min(1.0, (event.x - 1) / width))
-        self.value = self.min_val + ratio * (self.max_val - self.min_val)
-        self.post_message(self.Changed(self, self.value))
+    _dragging: bool = False
+
+    def _set_from_x(self, x: float) -> None:
+        width = max(self.size.width, 1)
+        ratio = max(0.0, min(1.0, x / width))
+        new = self.min_val + ratio * (self.max_val - self.min_val)
+        if new != self.value:
+            self.value = new
+            self.post_message(self.Changed(self, self.value))
+
+    def on_mouse_down(self, event: events.MouseDown) -> None:
+        self._dragging = True
+        self._set_from_x(event.x)
         self.focus()
+        event.stop()
+
+    def on_mouse_move(self, event: events.MouseMove) -> None:
+        if self._dragging:
+            self._set_from_x(event.x)
+            event.stop()
+
+    def on_mouse_up(self, event: events.MouseUp) -> None:
+        if self._dragging:
+            self._dragging = False
+            event.stop()
+
+    def on_click(self, event: events.Click) -> None:
+        if not self._dragging:
+            self._set_from_x(event.x)
+            self.focus()
+        event.stop()
 
     def watch_value(self, new_value: float) -> None:
         self.refresh()
+
+    def on_focus(self) -> None:
+        self.refresh()
+        self._update_label_style(focused=True)
+
+    def on_blur(self) -> None:
+        self.refresh()
+        self._update_label_style(focused=False)
+
+    def _update_label_style(self, focused: bool) -> None:
+        try:
+            row = self.parent
+            if row is None:
+                return
+            for child in row.children:
+                if isinstance(child, Label) and (
+                    "param-name" in child.classes or "param-name-focused" in child.classes
+                ):
+                    child.remove_class("param-name", "param-name-focused")
+                    child.add_class("param-name-focused" if focused else "param-name")
+                    break
+        except Exception:
+            pass
 
 
 # -- Telemetry ----------------------------------------------------------------
@@ -109,17 +188,17 @@ class TelemetryPanel(Static):
 
     def render(self) -> str:
         return (
-            f"  FPS [bold cyan]{self.fps:5.1f}[/]"
-            f"  \u250a  Frame [bold]{self.frame_time:5.1f}[/] ms"
-            f"  \u250a  Frames [bold]{self.frame_count}[/]"
-            f"  \u250a  Runtime [bold]{self.runtime:6.1f}[/] s"
-            f"  \u250a  Mem [bold]{self.memory}[/]"
+            f"  [bold cyan]{self.fps:5.1f}[/] fps"
+            f"  [dim]\u2502[/]  [bold]{self.frame_time:5.1f}[/] ms"
+            f"  [dim]\u2502[/]  [bold]{self.frame_count}[/] frames"
+            f"  [dim]\u2502[/]  [bold]{self.runtime:6.1f}[/] s"
+            f"  [dim]\u2502[/]  [bold]{self.memory}[/] MB"
         )
 
 
 # -- Param row ----------------------------------------------------------------
 
-class ParamSlider(Vertical):
+class ParamSlider(Vertical, can_focus=False):
     DEFAULT_CSS = """
     ParamSlider {
         height: auto;
@@ -133,14 +212,15 @@ class ParamSlider(Vertical):
         width: 22;
         color: $text;
     }
-    ParamSlider .param-value {
-        width: 10;
-        text-align: right;
+    ParamSlider .param-name-focused {
+        width: 22;
         color: $accent;
+        text-style: bold;
     }
-    ParamSlider .param-desc {
+    ParamSlider .param-range {
+        width: 16;
+        text-align: right;
         color: $text-muted;
-        margin: 0 0 0 2;
     }
     """
 
@@ -167,6 +247,8 @@ class ParamSlider(Vertical):
 
     def compose(self) -> ComposeResult:
         safe = self._safe_id(self.param_key)
+        lo = ParamBar._fmt(self.min_val)
+        hi = ParamBar._fmt(self.max_val)
         with Horizontal(classes="param-row"):
             yield Label(self.param_name, classes="param-name")
             yield ParamBar(
@@ -176,12 +258,9 @@ class ParamSlider(Vertical):
                 id=f"bar-{safe}",
             )
             yield Label(
-                f"{self.param_value:.2f}",
-                classes="param-value",
-                id=f"val-{safe}",
+                f"[dim]{lo}\u25c2 \u25b8{hi}[/]",
+                classes="param-range",
             )
-        if self.description:
-            yield Label(f"  {self.description}", classes="param-desc")
 
 
 # -- Group header -------------------------------------------------------------
@@ -194,8 +273,98 @@ class GroupHeader(Static):
         padding: 0 1;
         margin: 1 0 0 0;
         text-style: bold;
+        border-bottom: solid $primary-background-lighten-2;
     }
     """
+
+
+# -- Chart panel --------------------------------------------------------------
+
+_CHART_MAX_POINTS = 200
+
+
+class ChartRow(Horizontal):
+    DEFAULT_CSS = """
+    ChartRow {
+        height: 4;
+        margin: 0 1;
+    }
+    ChartRow .chart-label {
+        width: 22;
+        color: $text;
+    }
+    ChartRow .chart-value {
+        width: 10;
+        text-align: right;
+        color: $accent;
+    }
+    ChartRow Sparkline {
+        min-width: 20;
+    }
+    """
+
+    def __init__(self, channel: str) -> None:
+        super().__init__()
+        self.channel = channel
+        self._data: list[float] = []
+
+    def compose(self) -> ComposeResult:
+        yield Label(self.channel, classes="chart-label")
+        yield Sparkline(
+            data=[0.0],
+            min_color="grey37",
+            max_color="dodger_blue",
+            id=f"spark-{self.channel}",
+        )
+        yield Label("0.00", classes="chart-value", id=f"chartval-{self.channel}")
+
+    def push(self, value: float) -> None:
+        self._data.append(value)
+        if len(self._data) > _CHART_MAX_POINTS:
+            self._data = self._data[-_CHART_MAX_POINTS:]
+        try:
+            spark = self.query_one(Sparkline)
+            spark.data = list(self._data)
+            lbl = self.query_one(f"#chartval-{self.channel}", Label)
+            lbl.update(f"[bold]{ParamBar._fmt(value)}[/]")
+        except Exception:
+            pass
+
+
+class ChartArea(Vertical):
+    DEFAULT_CSS = """
+    ChartArea {
+        height: auto;
+        max-height: 16;
+        border-top: solid $primary-background;
+    }
+    """
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self._rows: dict[str, ChartRow] = {}
+        self._pending: dict[str, float] = {}
+
+    async def _mount_row(self, channel: str) -> None:
+        row = ChartRow(channel)
+        row.id = f"chartrow-{channel}"
+        await self.mount(row)
+        self._rows[channel] = row
+        # Push any value that arrived while mounting
+        if channel in self._pending:
+            row.push(self._pending.pop(channel))
+
+    def add_point(self, channel: str, value: float) -> None:
+        if not self.is_mounted:
+            return
+        row = self._rows.get(channel)
+        if row is not None:
+            row.push(value)
+            return
+        # Row not created yet — schedule async mount, buffer value
+        if channel not in self._pending:
+            self.call_later(self._mount_row, channel)
+        self._pending[channel] = value
 
 
 # -- Log panel ----------------------------------------------------------------
@@ -240,11 +409,17 @@ class ControlTUI(App):
     LogPanel {
         dock: bottom;
     }
+    #chart-area {
+        dock: bottom;
+    }
     """
 
     BINDINGS: ClassVar = [
         ("q", "quit", "Quit"),
         ("r", "reload", "Reload"),
+        ("d", "list_devices", "Devices"),
+        ("m", "list_monitors", "Monitors"),
+        ("l", "list_modules", "Modules"),
         ("tab", "focus_next", "Next"),
         ("shift+tab", "focus_previous", "Prev"),
     ]
@@ -259,6 +434,7 @@ class ControlTUI(App):
         yield Header()
         yield TelemetryPanel()
         yield VerticalScroll(id="slider-area")
+        yield ChartArea(id="chart-area")
         yield LogPanel(id="log-panel", max_lines=200)
         yield Static("", id="status-bar")
         yield Footer()
@@ -289,6 +465,8 @@ class ControlTUI(App):
                 self._update_single_slider(msg[1], msg[2])
             elif kind == "log" and len(msg) >= 3:
                 self._append_log(msg[1], msg[2])
+            elif kind == "chart_data" and len(msg) >= 3:
+                self._push_chart(msg[1], msg[2])
             elif kind == "status" and len(msg) >= 2:
                 self._apply_status(msg[1])
 
@@ -318,7 +496,6 @@ class ControlTUI(App):
 
         for group_name, entries in groups.items():
             area.mount(GroupHeader(f"\u25b8 {group_name}"))
-            area.mount(Rule(line_style="dashed"))
             for key, info in entries:
                 area.mount(
                     ParamSlider(
@@ -336,8 +513,6 @@ class ControlTUI(App):
         try:
             bar = self.query_one(f"#bar-{safe}", ParamBar)
             bar.value = value
-            val_label = self.query_one(f"#val-{safe}", Label)
-            val_label.update(f"{value:.2f}")
         except Exception:
             pass
 
@@ -352,6 +527,14 @@ class ControlTUI(App):
             log_panel.write(f"[yellow]{level}[/] {message}")
         else:
             log_panel.write(f"[dim]{level}[/] {message}")
+        log_panel.scroll_end(animate=False)
+
+    def _push_chart(self, channel: str, value: float) -> None:
+        try:
+            area = self.query_one("#chart-area", ChartArea)
+            area.add_point(channel, value)
+        except Exception:
+            pass
 
     def _apply_status(self, info: dict[str, Any]) -> None:
         self._status = info
@@ -364,26 +547,33 @@ class ControlTUI(App):
         python_icon = "\u2713" if info.get("python") else "\u2717"
         bar.update(
             f"  Patch: [bold]{patch}[/]"
-            f"  | Shader reload: {shader_icon}"
-            f"  | Python reload: {python_icon}"
+            f"  [dim]\u2502[/] Shader reload: {shader_icon}"
+            f"  [dim]\u2502[/] Python reload: {python_icon}"
         )
+
+    def on_mouse_up(self, event: events.MouseUp) -> None:
+        for bar in self.query(ParamBar):
+            bar._dragging = False
 
     def on_param_bar_changed(self, event: ParamBar.Changed) -> None:
         bar_id = event.bar.id or ""
         if bar_id.startswith("bar-"):
             safe_key = bar_id[4:]
-            try:
-                val_label = self.query_one(f"#val-{safe_key}", Label)
-                val_label.update(f"{event.value:.2f}")
-            except Exception:
-                pass
-            # Reverse the safe_id to get the param key
             param_key = safe_key.replace("-", ".", 1)
             self._send(("set_param", param_key, event.value))
 
     def action_reload(self) -> None:
         self._send(("reload",))
         self._append_log("INFO", "Reload requested")
+
+    def action_list_devices(self) -> None:
+        self._send(("list_devices",))
+
+    def action_list_monitors(self) -> None:
+        self._send(("list_monitors",))
+
+    def action_list_modules(self) -> None:
+        self._send(("list_modules",))
 
     def action_quit(self) -> None:
         self._send(("quit",))

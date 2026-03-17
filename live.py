@@ -88,7 +88,10 @@ def main() -> None:
     midi_map_fn = make_midi_map_fn(midi_mapper)
 
     from core.live_api import _wire as _wire_live_api
-    _wire_live_api(store, controls_fn, slider_fn, midi_learn_fn, midi_map_fn)
+    _wire_live_api(
+        store, controls_fn, slider_fn, midi_learn_fn, midi_map_fn,
+        chart_fn=bridge.send_chart_data,
+    )
 
     # Load patch
     try:

@@ -5,10 +5,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Setup
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate
+python3.13 -m venv .venv
+source .venv/bin/activate
 pip install --editable .
 ```
+
+> **Note:** Do not use `uv venv` + `uv pip install -e .` — uv's editable install
+> does not support `py-modules` (`cli.py`, `live.py`) and the CLI entry point will fail.
 
 ## Commands
 
