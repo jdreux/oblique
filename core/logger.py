@@ -102,16 +102,45 @@ class ObliqueLogger:
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 log_file_path = logs_dir / f"oblique_{timestamp}.log"
 
-            self._log_file = Path(log_file_path)
-            self._log_file.parent.mkdir(parents=True, exist_ok=True)
-
-            self._file_handler = logging.FileHandler(self._log_file)
+            requested_path = Path(log_file_path)
+            self._log_file = self._ensure_unique_log_path(requested_path)
+            try:
+                self._log_file.parent.mkdir(parents=True, exist_ok=True)
+                self._file_handler = logging.FileHandler(self._log_file)
+            except OSError as exc:
+                raise RuntimeError(
+                    f"Unable to create log file at '{self._log_file}': {exc}"
+                ) from exc
             self._file_handler.setLevel(logging.DEBUG)  # File gets all logs
             self._file_handler.setFormatter(formatter)
             self._logger.addHandler(self._file_handler)
 
             # Log the configuration
-            self.info(f"Logging to file: {self._log_file}")
+            if self._log_file == requested_path:
+                self.info(f"Logging to file: {self._log_file}")
+            else:
+                self.info(
+                    "Logging to file: {path} (requested {requested})",
+                    path=self._log_file,
+                    requested=requested_path
+                )
+
+    def _ensure_unique_log_path(self, log_file_path: Path) -> Path:
+        """Return a unique log path when the target file already exists."""
+        if not log_file_path.exists():
+            return log_file_path
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        for suffix_index in range(1, 1000):
+            candidate = log_file_path.with_name(
+                f"{log_file_path.stem}_{timestamp}_{suffix_index}{log_file_path.suffix}"
+            )
+            if not candidate.exists():
+                return candidate
+
+        raise RuntimeError(
+            "Unable to create a unique log file name after 1000 attempts."
+        )
 
     def get_logger(self) -> logging.Logger:
         """Get the configured logger instance."""
