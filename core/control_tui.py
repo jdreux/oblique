@@ -312,8 +312,8 @@ class ChartRow(Horizontal):
         yield Label(self.channel, classes="chart-label")
         yield Sparkline(
             data=[0.0],
-            min_color="grey37",
-            max_color="dodger_blue",
+            min_color="#5f5f5f",
+            max_color="#1e90ff",
             id=f"spark-{self.channel}",
         )
         yield Label("0.00", classes="chart-value", id=f"chartval-{self.channel}")
@@ -345,26 +345,20 @@ class ChartArea(Vertical):
         self._rows: dict[str, ChartRow] = {}
         self._pending: dict[str, float] = {}
 
-    async def _mount_row(self, channel: str) -> None:
+    def _mount_row(self, channel: str) -> None:
         row = ChartRow(channel)
         row.id = f"chartrow-{channel}"
-        await self.mount(row)
+        self.mount(row)
         self._rows[channel] = row
-        # Push any value that arrived while mounting
-        if channel in self._pending:
-            row.push(self._pending.pop(channel))
 
     def add_point(self, channel: str, value: float) -> None:
         if not self.is_mounted:
             return
         row = self._rows.get(channel)
-        if row is not None:
-            row.push(value)
-            return
-        # Row not created yet — schedule async mount, buffer value
-        if channel not in self._pending:
-            self.call_later(self._mount_row, channel)
-        self._pending[channel] = value
+        if row is None:
+            self._mount_row(channel)
+            row = self._rows[channel]
+        row.push(value)
 
 
 # -- Log panel ----------------------------------------------------------------
@@ -424,11 +418,25 @@ class ControlTUI(App):
         ("shift+tab", "focus_previous", "Prev"),
     ]
 
+    _LOG_FILE = ".oblique_tui.log"
+    _LOG_MAX_BYTES = 2 * 1024 * 1024  # 2 MB
+
     def __init__(self, conn: Connection) -> None:
         super().__init__()
         self._conn = conn
         self._params: dict[str, dict[str, Any]] = {}
         self._status: dict[str, Any] = {}
+        self._log_fh = open(self._LOG_FILE, "a")
+        # Truncate if over limit
+        try:
+            if self._log_fh.tell() == 0:
+                import os
+                size = os.path.getsize(self._LOG_FILE)
+                if size > self._LOG_MAX_BYTES:
+                    self._log_fh.close()
+                    self._log_fh = open(self._LOG_FILE, "w")
+        except OSError:
+            pass
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -466,6 +474,7 @@ class ControlTUI(App):
             elif kind == "log" and len(msg) >= 3:
                 self._append_log(msg[1], msg[2])
             elif kind == "chart_data" and len(msg) >= 3:
+                self._append_log("DEBUG", f"chart_data: {msg[1]}={msg[2]:.3f}")
                 self._push_chart(msg[1], msg[2])
             elif kind == "status" and len(msg) >= 2:
                 self._apply_status(msg[1])
@@ -517,6 +526,13 @@ class ControlTUI(App):
             pass
 
     def _append_log(self, level: str, message: str) -> None:
+        import time as _time
+        ts = _time.strftime("%H:%M:%S")
+        try:
+            self._log_fh.write(f"{ts} [{level}] {message}\n")
+            self._log_fh.flush()
+        except Exception:
+            pass
         try:
             log_panel = self.query_one("#log-panel", LogPanel)
         except Exception:
@@ -533,8 +549,8 @@ class ControlTUI(App):
         try:
             area = self.query_one("#chart-area", ChartArea)
             area.add_point(channel, value)
-        except Exception:
-            pass
+        except Exception as exc:
+            self._append_log("ERROR", f"chart error: {exc}")
 
     def _apply_status(self, info: dict[str, Any]) -> None:
         self._status = info
